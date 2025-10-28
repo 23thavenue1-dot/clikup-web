@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/firebase/provider";
+import { useAuth } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +37,7 @@ export default function SignupPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!auth) return;
     setIsLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
@@ -109,5 +110,3 @@ export default function SignupPage() {
     </main>
   );
 }
-
-    
