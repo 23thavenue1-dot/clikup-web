@@ -2,8 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { ref, uploadBytesResumable, getDownloadURL, getStorage } from "firebase/storage";
+import { useFirebaseApp } from "@/firebase/provider";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,8 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const firebaseApp = useFirebaseApp();
+  const storage = getStorage(firebaseApp);
 
   const handleFile = useCallback((selectedFile: File | undefined) => {
     if (!selectedFile) return;
