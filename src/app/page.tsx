@@ -139,20 +139,19 @@ export default function Home() {
         setStage('preview');
       },
       (downloadURL, storagePath) => {
-        // Crée les URLs BBCode et HTML ici
         const bbCode = `[img]${downloadURL}[/img]`;
         const htmlCode = `<img src="${downloadURL}" alt="${customName || file.name}" />`;
         
-        // Appelle saveImageMetadata avec les données formatées correctement
         saveImageMetadata(firestore, user, {
           originalName: file.name,
           storagePath: storagePath,
           directUrl: downloadURL,
           mimeType: file.type,
           fileSize: file.size,
+          bbCode: bbCode,
+          htmlCode: htmlCode,
         });
   
-        // Met à jour l'état du résultat pour l'affichage
         setResult({
           directUrl: downloadURL,
           bbCode: bbCode,
@@ -402,7 +401,5 @@ export default function Home() {
     </div>
   );
 }
-
-    
 
     

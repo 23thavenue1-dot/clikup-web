@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -36,6 +37,8 @@ type InputMetadata = {
   directUrl: string;
   mimeType: string;
   fileSize: number;
+  bbCode: string;
+  htmlCode: string;
 };
 
 /**
@@ -61,9 +64,9 @@ export function saveImageMetadata(
     userId: user.uid, // L'ID du propriétaire, requis par les règles.
     originalName: metadata.originalName,
     storagePath: metadata.storagePath,
-    directUrl: metadata.directUrl, // Utilise le nom de propriété correct.
-    bbCode: `[img]${metadata.directUrl}[/img]`,
-    htmlCode: `<img src="${metadata.directUrl}" alt="${metadata.originalName}" />`,
+    directUrl: metadata.directUrl,
+    bbCode: metadata.bbCode,
+    htmlCode: metadata.htmlCode,
     mimeType: metadata.mimeType,
     fileSize: metadata.fileSize,
     uploadTimestamp: serverTimestamp(),
@@ -109,3 +112,5 @@ export function incrementImageLike(firestore: Firestore, imageUserId: string, im
     errorEmitter.emit('permission-error', permissionError);
   });
 }
+
+    
