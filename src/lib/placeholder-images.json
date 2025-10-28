@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "placeholder-1",
+      "description": "Forêt brumeuse",
+      "imageUrl": "https://images.unsplash.com/photo-1544039161-b0c20826c6f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtaXN0eSUyMGZvcmVzdHxlbnwwfHx8fDE3NjE2ODkyNzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "misty forest"
+    },
+    {
+      "id": "placeholder-2",
+      "description": "Plage tropicale",
+      "imageUrl": "https://images.unsplash.com/photo-1672841828459-bc913fdcd995?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx0cm9waWNhbCUyMGJlYWNofGVufDB8fHx8MTc2MTYyOTI1MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tropical beach"
+    },
+    {
+      "id": "placeholder-3",
+      "description": "Montagnes enneigées",
+      "imageUrl": "https://images.unsplash.com/photo-1644691338782-72fa80619050?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzbm93eSUyMG1vdW50YWluc3xlbnwwfHx8fDE3NjE1OTk4Mzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "snowy mountains"
+    },
+    {
+      "id": "placeholder-4",
+      "description": "Ciel étoilé",
+      "imageUrl": "https://images.unsplash.com/photo-1628498188904-036f5e25e93e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdGFycnklMjBza3l8ZW58MHx8fHwxNzYxNjU4MDU3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "starry sky"
+    }
+  ]
 }

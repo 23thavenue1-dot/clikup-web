@@ -9,6 +9,7 @@ import { Copy, ExternalLink, AlertCircle, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { incrementImageLike } from "@/lib/firestore";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export function ImageGallery() {
     const { user } = useUser();
@@ -20,7 +21,9 @@ export function ImageGallery() {
         return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
     }, [user, firestore]);
 
-    const { data: images, isLoading, error } = useCollection(imagesQuery);
+    const { data: userImages, isLoading, error } = useCollection(imagesQuery);
+
+    const allImages = [...(userImages || []), ...PlaceHolderImages];
 
     const copyToClipboard = async (text: string, type: string) => {
         try {
@@ -32,7 +35,10 @@ export function ImageGallery() {
     };
 
     const handleLike = (imageId: string, ownerId: string) => {
-        if (!firestore) return;
+        if (!firestore || !ownerId) {
+            toast({ variant: "destructive", title: "Action non disponible", description: "Vous ne pouvez pas aimer une image de démonstration." });
+            return;
+        };
         incrementImageLike(firestore, ownerId, imageId);
     };
 
@@ -67,7 +73,7 @@ export function ImageGallery() {
         )
     }
 
-    if (!images || images.length === 0) {
+    if (!allImages || allImages.length === 0) {
         return (
             <Card className="text-center">
                  <CardHeader>
@@ -85,27 +91,28 @@ export function ImageGallery() {
         <Card>
             <CardHeader>
                 <CardTitle>Ma galerie</CardTitle>
-                <CardDescription>Vos images récemment téléversées.</CardDescription>
+                <CardDescription>Vos images récemment téléversées et des exemples.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {images.map((image) => (
+                    {allImages.map((image) => (
                         <div key={image.id} className="group relative overflow-hidden rounded-lg border">
                              <Image
-                                src={image.directUrl}
-                                alt={image.originalName}
+                                src={image.directUrl || image.imageUrl}
+                                alt={image.originalName || image.description}
                                 width={300}
                                 height={300}
                                 className="aspect-square object-cover w-full transition-transform group-hover:scale-105"
+                                data-ai-hint={image.imageHint}
                             />
                              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                                <p className="text-white text-xs font-semibold truncate">{image.originalName}</p>
+                                <p className="text-white text-xs font-semibold truncate">{image.originalName || image.description}</p>
                             </div>
                             <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <div className="flex justify-between items-center">
                                     <div className="flex gap-1">
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => copyToClipboard(image.directUrl, "L'URL directe")}><Copy className="w-4 h-4"/></Button>
-                                          <a href={image.directUrl} target="_blank" rel="noopener noreferrer">
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => copyToClipboard(image.directUrl || image.imageUrl, "L'URL directe")}><Copy className="w-4 h-4"/></Button>
+                                          <a href={image.directUrl || image.imageUrl} target="_blank" rel="noopener noreferrer">
                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white"><ExternalLink className="w-4 h-4"/></Button>
                                           </a>
                                     </div>
