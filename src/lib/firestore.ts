@@ -73,7 +73,7 @@ export function saveImageMetadata(
 
   // 3. Tente d'écrire le document dans Firestore.
   setDoc(imageDocRef, dataToSave).catch((error) => {
-    console.error('Erreur lors de la sauvegarde des métadonnées de l\'image :', error);
+    console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
     
     // Crée une erreur contextuelle détaillée pour un meilleur débogage.
     const permissionError = new FirestorePermissionError({
@@ -94,6 +94,10 @@ export function saveImageMetadata(
  * @param imageId L'ID de l'image à aimer.
  */
 export function incrementImageLike(firestore: Firestore, imageUserId: string, imageId: string) {
+  if (!imageUserId || !imageId) {
+    console.warn("Impossible d'aimer une image de démonstration ou sans ID.");
+    return;
+  }
   const imageRef = doc(firestore, `users/${imageUserId}/images/${imageId}`);
   
   updateDoc(imageRef, {

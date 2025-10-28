@@ -1,3 +1,4 @@
+
 'use client';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -34,7 +35,7 @@ export function ImageGallery() {
         }
     };
 
-    const handleLike = (imageId: string, ownerId: string) => {
+    const handleLike = (imageId: string, ownerId: string | undefined) => {
         if (!firestore || !ownerId) {
             toast({ variant: "destructive", title: "Action non disponible", description: "Vous ne pouvez pas aimer une image de démonstration." });
             return;
