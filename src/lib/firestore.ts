@@ -11,58 +11,74 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 
-// This type represents the data structure of an image document in Firestore.
+// Ce type représente la structure de données attendue pour un document d'image dans Firestore.
+// Il est crucial qu'il corresponde au schéma dans backend.json et aux règles de sécurité.
 type ImageMetadata = {
-  id: string; // The unique ID of the document itself.
-  userId: string; // The ID of the user who owns the image.
-  name: string;
+  id: string;
+  userId: string;
+  originalName: string;
   storagePath: string;
-  downloadURL: string;
-  contentType: string;
-  size: number;
-  createdAt: any; // Firestore server timestamp.
+  directUrl: string;
+  bbCode: string;
+  htmlCode: string;
+  mimeType: string;
+  fileSize: number;
+  uploadTimestamp: any; // Firestore server timestamp.
+};
+
+// Ce type représente les données de base que nous recevons de la page principale.
+type InputMetadata = {
+  originalName: string;
+  storagePath: string;
+  directUrl: string;
+  mimeType: string;
+  fileSize: number;
 };
 
 /**
- * Saves image metadata to Firestore in the user's subcollection.
- * This function now correctly includes the userId in the document data to satisfy security rules.
- * @param firestore The Firestore instance.
- * @param user The authenticated user object.
- * @param metadata An object containing the core metadata from the upload.
+ * Sauvegarde les métadonnées de l'image dans Firestore dans la sous-collection de l'utilisateur.
+ * Cette fonction construit l'objet de données complet, y compris les champs requis par les règles de sécurité.
+ * @param firestore L'instance Firestore.
+ * @param user L'objet utilisateur authentifié.
+ * @param metadata Un objet contenant les métadonnées de base du téléversement.
  */
 export function saveImageMetadata(
   firestore: Firestore,
   user: User,
-  metadata: Omit<ImageMetadata, 'createdAt' | 'id' | 'userId'>
+  metadata: InputMetadata
 ) {
-  // 1. Generate a new unique ID for the image document.
+  // 1. Génère un nouvel ID unique pour le document d'image.
   const imageId = doc(collection(firestore, 'users', user.uid, 'images')).id;
 
-  // 2. Create a reference to the document location.
+  // 2. Crée une référence à l'emplacement du document.
   const imageRef = doc(firestore, `users/${user.uid}/images/${imageId}`);
   
-  // 3. Construct the full data object to save, ensuring it matches the ImageMetadata type
-  //    and satisfies security rules.
+  // 3. Construit l'objet de données complet à sauvegarder.
   const dataToSave: ImageMetadata = {
-    ...metadata,
-    id: imageId, // The document's own ID.
-    userId: user.uid, // The owner's ID, required by security rules.
-    createdAt: serverTimestamp(),
+    id: imageId, // L'ID propre du document.
+    userId: user.uid, // L'ID du propriétaire, requis par les règles.
+    originalName: metadata.originalName,
+    storagePath: metadata.storagePath,
+    directUrl: metadata.directUrl, // Utilise le nom de propriété correct.
+    bbCode: `[img]${metadata.directUrl}[/img]`,
+    htmlCode: `<img src="${metadata.directUrl}" alt="${metadata.originalName}" />`,
+    mimeType: metadata.mimeType,
+    fileSize: metadata.fileSize,
+    uploadTimestamp: serverTimestamp(),
   };
 
-  // 4. Attempt to write the document to Firestore.
+  // 4. Tente d'écrire le document dans Firestore.
   setDoc(imageRef, dataToSave).catch((error) => {
-    // This .catch() block is crucial for debugging security rule failures.
-    console.error('Error saving image metadata:', error);
+    console.error('Erreur lors de la sauvegarde des métadonnées de l\'image :', error);
     
-    // Create a detailed, contextual error for better debugging.
+    // Crée une erreur contextuelle détaillée pour un meilleur débogage.
     const permissionError = new FirestorePermissionError({
       path: imageRef.path,
       operation: 'create',
-      requestResourceData: dataToSave, // Send the exact data we tried to write.
+      requestResourceData: dataToSave,
     });
 
-    // Emit the error globally so it can be caught and displayed.
+    // Émet l'erreur globalement pour qu'elle puisse être interceptée et affichée.
     errorEmitter.emit('permission-error', permissionError);
   });
 }

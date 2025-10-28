@@ -1,6 +1,6 @@
 'use client';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,8 @@ export function ImageGallery() {
 
     const imagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        return collection(firestore, `users/${user.uid}/images`);
+        // Ordonne les images par date de téléversement, les plus récentes en premier
+        return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
     }, [user, firestore]);
 
     const { data: images, isLoading, error } = useCollection(imagesQuery);
@@ -87,17 +88,17 @@ export function ImageGallery() {
                     {images.map((image) => (
                         <div key={image.id} className="group relative overflow-hidden rounded-lg border">
                              <Image
-                                src={image.downloadURL}
-                                alt={image.name}
+                                src={image.directUrl}
+                                alt={image.originalName}
                                 width={300}
                                 height={300}
                                 className="aspect-square object-cover w-full transition-transform group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <p className="text-white text-xs font-semibold truncate">{image.name}</p>
+                                <p className="text-white text-xs font-semibold truncate">{image.originalName}</p>
                                 <div className="flex gap-1 mt-1">
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => copyToClipboard(image.downloadURL, "L'URL directe")}><Copy className="w-4 h-4"/></Button>
-                                      <a href={image.downloadURL} target="_blank" rel="noopener noreferrer">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => copyToClipboard(image.directUrl, "L'URL directe")}><Copy className="w-4 h-4"/></Button>
+                                      <a href={image.directUrl} target="_blank" rel="noopener noreferrer">
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white"><ExternalLink className="w-4 h-4"/></Button>
                                       </a>
                                 </div>
