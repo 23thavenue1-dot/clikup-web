@@ -46,3 +46,5 @@ export function saveImageMetadata(
     errorEmitter.emit('permission-error', permissionError);
   });
 }
+
+    
