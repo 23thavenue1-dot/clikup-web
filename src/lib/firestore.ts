@@ -26,13 +26,12 @@ export function saveImageMetadata(
   user: User,
   metadata: Omit<ImageMetadata, 'createdAt' | 'id'>
 ) {
-  const imageId = doc(collection(firestore, `users/${user.uid}/images`)).id;
-
+  const imageId = doc(collection(firestore, 'users', user.uid, 'images')).id;
   const imageRef = doc(firestore, `users/${user.uid}/images/${imageId}`);
+  
   const dataToSave = {
     ...metadata,
     id: imageId,
-    userId: user.uid,
     createdAt: serverTimestamp(),
   };
 
@@ -46,5 +45,3 @@ export function saveImageMetadata(
     errorEmitter.emit('permission-error', permissionError);
   });
 }
-
-    
