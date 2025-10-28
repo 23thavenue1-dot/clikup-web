@@ -1,16 +1,19 @@
+
 "use client";
 
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { ref, uploadBytesResumable, getDownloadURL, getStorage } from "firebase/storage";
-import { useFirebaseApp } from "@/firebase/provider";
+import Link from "next/link";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { useUser, useAuth, useStorage } from "@/firebase/provider";
+import { signOut } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Copy, FileText, Code, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Copy, FileText, Code, Image as ImageIcon, LogOut, Loader2 } from "lucide-react";
 
 type Stage = "idle" | "preview" | "uploading" | "success";
 
@@ -41,8 +44,10 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const firebaseApp = useFirebaseApp();
-  const storage = getStorage(firebaseApp);
+  
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const storage = useStorage();
 
   const handleFile = useCallback((selectedFile: File | undefined) => {
     if (!selectedFile) return;
@@ -74,7 +79,7 @@ export default function Home() {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !user) return;
 
     setStage("uploading");
     setUploadProgress(0);
@@ -82,7 +87,7 @@ export default function Home() {
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const baseName = customName.trim() ? sanitize(customName.trim()) : sanitize(file.name.replace(/\.[^/.]+$/, ""));
-    const finalFileName = `${baseName}-${Date.now()}.${ext}`;
+    const finalFileName = `${user.uid}/${baseName}-${Date.now()}.${ext}`;
     const storageRef = ref(storage, `uploads/${finalFileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file, { contentType: file.type });
 
@@ -131,14 +136,57 @@ export default function Home() {
     setStage("idle");
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Déconnexion réussie' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erreur de déconnexion', description: (error as Error).message });
+    }
+  };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="flex items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Bienvenue</CardTitle>
+            <CardDescription>Veuillez vous connecter ou vous inscrire pour continuer.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Button asChild>
+              <Link href="/login">Se connecter</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/signup">S'inscrire</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="flex items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-3xl mx-auto space-y-6">
-        <header className="text-center">
-          <h1 className="text-4xl font-headline font-bold">Uploader d’images</h1>
-          <p className="text-muted-foreground mt-2">
-            Glisse-dépose une image ou choisis un fichier. À l’upload, tu obtiendras une URL directe.
-          </p>
+        <header className="flex justify-between items-center">
+          <div className="text-center flex-grow">
+            <h1 className="text-4xl font-headline font-bold">Uploader d’images</h1>
+            <p className="text-muted-foreground mt-2">
+              Glisse-dépose une image ou choisis un fichier. À l’upload, tu obtiendras une URL directe.
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign out">
+            <LogOut className="h-5 w-5" />
+          </Button>
         </header>
 
         <Card className="overflow-hidden">
@@ -230,3 +278,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
