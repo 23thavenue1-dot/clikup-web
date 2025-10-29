@@ -1,34 +1,57 @@
-
 'use client';
 
 import {
-  ref,
+  ref as storageRef,
   uploadBytesResumable,
   getDownloadURL,
-  FirebaseStorage,
   deleteObject,
+  type UploadTask,
+  type FirebaseStorage,
 } from 'firebase/storage';
 import type { User } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 
-// Fonction pour nettoyer et sécuriser un nom de fichier
+// -----------------------------
+// Config côté client (guards)
+// -----------------------------
+export const MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
+export const ALLOWED_MIME = /^(image\/.*)$/i; // On ne garde que les images pour l'instant
+
+// Nettoie un nom de fichier
 const sanitize = (name: string): string =>
   name
     .toLowerCase()
-    .replace(/\s+/g, '-') // remplace les espaces par des tirets
-    .replace(/[^a-z0-9._-]/g, '') // supprime les caractères non autorisés
-    .replace(/-+/g, '-') // remplace les tirets multiples
-    .replace(/^-+|-+$/g, ''); // supprime les tirets au début/à la fin
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
-/**
- * Gère le téléversement d'un fichier vers Firebase Storage.
- * @param storage L'instance de Firebase Storage.
- * @param user L'utilisateur authentifié.
- * @param file Le fichier à téléverser.
- * @param customName Le nom personnalisé (optionnel) pour le fichier.
- * @param onProgress Callback pour suivre la progression (en pourcentage).
- * @param onError Callback en cas d'erreur.
- * @param onComplete Callback appelé à la fin, avec l'URL de téléchargement et le chemin de stockage.
- */
+// Construit un chemin qui MATCHE les règles Storage
+export const buildStoragePath = (uid: string, fileName: string) =>
+  `uploads/${uid}/${fileName}`;
+
+// Mapping d’erreurs pour messages UX
+const friendlyStorageError = (e: unknown) => {
+  const fe = e as FirebaseError;
+  switch (fe?.code) {
+    case 'storage/unauthorized':
+      return 'Permission refusée : vérifiez les règles de sécurité de Storage et l’authentification de l\'utilisateur.';
+    case 'storage/canceled':
+      return 'Le téléversement a été annulé.';
+    case 'storage/retry-limit-exceeded':
+      return 'Impossible d’écrire dans le stockage. Cela est souvent dû à des règles de sécurité non conformes ou à un problème de réseau.';
+    case 'storage/invalid-checksum':
+      return 'Le fichier semble corrompu. Le téléversement a été interrompu pour garantir l\'intégrité des données.';
+    case 'storage/object-not-found':
+      return 'Le fichier est introuvable dans l\'espace de stockage.';
+    default:
+      return fe?.message || 'Une erreur inconnue est survenue lors de l\'opération de stockage.';
+  }
+};
+
+// -----------------------------
+// Upload
+// -----------------------------
 export function uploadImage(
   storage: FirebaseStorage,
   user: User,
@@ -37,81 +60,81 @@ export function uploadImage(
   onProgress: (progress: number) => void,
   onError: (error: Error) => void,
   onComplete: (downloadURL: string, storagePath: string) => void
-) {
-  // Extrait l'extension du fichier
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
-  
-  // Utilise le nom personnalisé s'il est fourni, sinon le nom original du fichier
-  const baseName = customName.trim()
-    ? sanitize(customName.trim())
-    : sanitize(file.name.replace(/\.[^/.]+$/, ''));
-  
-  // Construit un nom de fichier unique pour éviter les conflits
-  const fileName = `${baseName}-${Date.now()}.${ext}`;
+): UploadTask | null {
+  // Guards locaux (même logique que les rules)
+  if (!user?.uid) {
+    onError(new Error('Utilisateur non authentifié.'));
+    return null;
+  }
+  if (!file) {
+    onError(new Error('Aucun fichier fourni.'));
+    return null;
+  }
+  if (file.size > MAX_BYTES) {
+    onError(new Error('Fichier trop volumineux (> 10 Mo).'));
+    return null;
+  }
+  if (!ALLOWED_MIME.test(file.type)) {
+    onError(new Error('Type de fichier non autorisé (images uniquement).'));
+    return null;
+  }
 
-  // **IMPORTANT** : Le chemin de stockage qui correspond aux règles de sécurité
-  const storagePath = `uploads/${user.uid}/${fileName}`;
-  const storageRef = ref(storage, storagePath);
+  const safeCustom = (customName || '').trim();
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+  const baseName = safeCustom
+    ? sanitize(safeCustom)
+    : sanitize(file.name.replace(/\.[^/.]+$/, '') || 'file');
+  const fileName = `${baseName || 'file'}-${Date.now()}.${ext}`;
 
-  // Crée la tâche de téléversement
-  const uploadTask = uploadBytesResumable(storageRef, file, {
-    contentType: file.type,
+  const finalStoragePath = buildStoragePath(user.uid, fileName);
+  const ref = storageRef(storage, finalStoragePath);
+
+  const task = uploadBytesResumable(ref, file, {
+    contentType: file.type || 'application/octet-stream',
+    customMetadata: { uid: user.uid },
   });
 
-  // Écoute les événements de la tâche
-  uploadTask.on(
+  task.on(
     'state_changed',
-    (snapshot) => {
-      // Calcule et envoie la progression
-      const progress = Math.round(
-        (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-      );
-      onProgress(progress);
+    (snap) => {
+      const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+      onProgress(pct);
     },
-    (error) => {
-      // Gère les erreurs (y compris les erreurs de permission)
-      console.error("Erreur de téléversement Storage:", error);
-      onError(error);
+    (err) => {
+      console.error('Erreur upload Storage:', err);
+      onError(new Error(friendlyStorageError(err)));
     },
     async () => {
-      // Une fois le téléversement terminé, récupère l'URL
       try {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        // Appelle le callback de complétion avec l'URL et le chemin
-        onComplete(downloadURL, storagePath);
-      } catch (error) {
-        console.error("Erreur de récupération de l'URL:", error);
-        onError(error as Error);
+        const url = await getDownloadURL(task.snapshot.ref);
+        onComplete(url, finalStoragePath);
+      } catch (e) {
+        console.error('Erreur getDownloadURL:', e);
+        onError(new Error(friendlyStorageError(e)));
       }
     }
   );
 
-  return uploadTask;
+  return task;
 }
 
-/**
- * Supprime un fichier de Firebase Storage.
- * Ne fait rien si le storagePath est vide ou nul (cas d'une image ajoutée par URL).
- * @param storage L'instance FirebaseStorage.
- * @param storagePath Le chemin complet du fichier dans Storage.
- */
-export async function deleteImageFile(storage: FirebaseStorage, storagePath?: string | null): Promise<void> {
-  if (!storagePath) {
-    // Si l'image a été ajoutée par URL, il n'y a pas de fichier à supprimer dans notre Storage.
-    return Promise.resolve();
-  }
-  const imageRef = ref(storage, storagePath);
+// -----------------------------
+// Delete
+// -----------------------------
+export async function deleteImageFile(
+  storage: FirebaseStorage,
+  storagePath?: string | null
+): Promise<void> {
+  if (!storagePath) return;
+  const ref = storageRef(storage, storagePath);
   try {
-    await deleteObject(imageRef);
-  } catch (error: any) {
-    // Si le fichier n'existe pas, Firebase renvoie une erreur 'storage/object-not-found'.
-    // Nous pouvons ignorer cette erreur car le but est de s'assurer que le fichier n'existe plus.
-    if (error.code === 'storage/object-not-found') {
-      console.warn(`Le fichier à ${storagePath} n'a pas été trouvé, il a peut-être déjà été supprimé.`);
-      return Promise.resolve();
+    await deleteObject(ref);
+  } catch (e: any) {
+    if (e?.code === 'storage/object-not-found') {
+      console.warn(`Fichier absent (${storagePath}), déjà supprimé ?`);
+      return;
     }
-    // Pour toutes les autres erreurs (comme les problèmes de permission), nous les renvoyons.
-    console.error(`Erreur lors de la suppression du fichier ${storagePath}:`, error);
-    throw error;
+    console.error(`Erreur suppression ${storagePath}:`, e);
+    throw new Error(friendlyStorageError(e));
   }
 }

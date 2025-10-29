@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { uploadImage } from '@/lib/storage';
+import { uploadImage, MAX_BYTES, ALLOWED_MIME } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,8 +35,15 @@ export function Uploader() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (file.size > MAX_BYTES) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Fichier trop volumineux (> 10 Mo).' });
+        return;
+      }
+      if (!ALLOWED_MIME.test(file.type)) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
+        return;
+      }
       setSelectedFile(file);
-      // Réinitialiser l'état spécifique au téléversement de fichier
       setStatus({ state: 'idle' });
       setCustomName('');
       setCopied(null);
@@ -45,7 +51,6 @@ export function Uploader() {
   };
   
   const handleTabChange = () => {
-    // Réinitialisation complète lors du changement d'onglet
     setStatus({ state: 'idle' });
     setSelectedFile(null);
     setCustomName('');
@@ -83,9 +88,12 @@ export function Uploader() {
     }
   };
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = useCallback(() => {
     if (!selectedFile || !user || !storage || !firestore) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Fichier ou utilisateur manquant.' });
+      let description = 'Le fichier, l\'utilisateur, ou la configuration Firebase est manquant.';
+      if (!selectedFile) description = 'Veuillez sélectionner un fichier à téléverser.';
+      if (!user) description = 'Vous devez être connecté pour téléverser un fichier.';
+      toast({ variant: 'destructive', title: 'Erreur de pré-téléversement', description });
       return;
     }
     
@@ -98,7 +106,7 @@ export function Uploader() {
       customName,
       (progress) => setStatus({ state: 'uploading', progress }),
       (error) => {
-        setStatus({ state: 'error', message: "Le téléversement a échoué. Vérifiez les règles de sécurité de Storage." });
+        setStatus({ state: 'error', message: error.message });
         toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
       },
       async (directUrl, storagePath) => {
@@ -121,8 +129,9 @@ export function Uploader() {
           setSelectedFile(null);
           setCustomName('');
         } catch (error) {
-          setStatus({ state: 'error', message: "L'enregistrement dans Firestore a échoué. Vérifiez les règles de sécurité de Firestore." });
-          toast({ variant: 'destructive', title: "Erreur d'enregistrement", description: (error as Error).message });
+          const errorMessage = (error as Error).message;
+          setStatus({ state: 'error', message: `L'enregistrement dans Firestore a échoué: ${errorMessage}` });
+          toast({ variant: 'destructive', title: "Erreur d'enregistrement", description: errorMessage });
         }
       }
     );
@@ -139,7 +148,7 @@ export function Uploader() {
       <CardHeader>
         <CardTitle>Ajouter une image</CardTitle>
         <CardDescription>
-          Téléversez un fichier ou ajoutez une image depuis une URL externe.
+          Téléversez un fichier (max 10 Mo) ou ajoutez une image depuis une URL externe.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -225,9 +234,9 @@ export function Uploader() {
                 alt="Aperçu de l'image" 
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                objectFit="contain"
+                style={{objectFit: 'contain'}}
                 className="bg-background"
-                unoptimized // Important for external URLs that are not in next.config.ts
+                unoptimized
               />
             </div>
 
