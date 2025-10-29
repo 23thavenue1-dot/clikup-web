@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { UploadCloud, Copy, Check, Link } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Image from 'next/image';
 
 
 // État pour gérer le processus de téléversement
@@ -212,6 +213,18 @@ export function Uploader() {
         {status.state === 'success' && (
           <div className="space-y-3 rounded-md border bg-muted/50 p-4">
             <h4 className="font-medium text-sm">Opération réussie !</h4>
+
+            <div className="relative aspect-video w-full overflow-hidden rounded-md">
+              <Image 
+                src={status.url} 
+                alt="Aperçu de l'image" 
+                layout="fill"
+                objectFit="contain"
+                className="bg-background"
+                unoptimized // Important for external URLs that are not in next.config.ts
+              />
+            </div>
+
             <div className="flex items-center gap-2">
                 <Input readOnly value={status.url} className="bg-background"/>
                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.url, 'url')}>
