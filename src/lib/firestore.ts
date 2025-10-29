@@ -10,6 +10,7 @@ import {
   updateDoc,
   increment,
   addDoc,
+  deleteDoc,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -48,16 +49,16 @@ export type Note = {
 export function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>) {
     const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
 
-    const dataToSave: Omit<ImageMetadata, 'id'> = {
+    const dataToSave = {
         ...metadata,
         userId: user.uid,
         uploadTimestamp: serverTimestamp(),
         likeCount: 0,
-        id: ''
     };
 
     return addDoc(imagesCollectionRef, dataToSave)
         .then(docRef => {
+            // Après la création, on met à jour le document pour y inclure son propre ID.
             return updateDoc(docRef, { id: docRef.id });
         })
         .catch(error => {
@@ -87,6 +88,7 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
         uploadTimestamp: serverTimestamp(),
         likeCount: 0,
         originalName: new URL(metadata.directUrl).pathname.split('/').pop() || 'image-from-url',
+        // storagePath, mimeType, et fileSize ne sont pas définis car l'image est externe.
     };
 
     return addDoc(imagesCollectionRef, dataToSave)
@@ -104,6 +106,30 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
             throw error;
         });
 }
+
+
+/**
+ * Supprime les métadonnées d'une image de Firestore.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur propriétaire.
+ * @param imageId L'ID du document de l'image à supprimer.
+ */
+export async function deleteImageMetadata(firestore: Firestore, userId: string, imageId: string): Promise<void> {
+  const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
+  try {
+    await deleteDoc(imageDocRef);
+  } catch (error) {
+    console.error("Erreur lors de la suppression des métadonnées Firestore:", error);
+    // Ici, nous pourrions également émettre une FirestorePermissionError si nécessaire.
+    const permissionError = new FirestorePermissionError({
+        path: imageDocRef.path,
+        operation: 'delete',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    throw error;
+  }
+}
+
 
 /**
  * Sauvegarde une nouvelle note pour l'utilisateur dans Firestore.

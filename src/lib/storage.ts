@@ -6,6 +6,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   FirebaseStorage,
+  deleteObject,
 } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 
@@ -86,4 +87,31 @@ export function uploadImage(
   );
 
   return uploadTask;
+}
+
+/**
+ * Supprime un fichier de Firebase Storage.
+ * Ne fait rien si le storagePath est vide ou nul (cas d'une image ajoutée par URL).
+ * @param storage L'instance FirebaseStorage.
+ * @param storagePath Le chemin complet du fichier dans Storage.
+ */
+export async function deleteImageFile(storage: FirebaseStorage, storagePath?: string | null): Promise<void> {
+  if (!storagePath) {
+    // Si l'image a été ajoutée par URL, il n'y a pas de fichier à supprimer dans notre Storage.
+    return Promise.resolve();
+  }
+  const imageRef = ref(storage, storagePath);
+  try {
+    await deleteObject(imageRef);
+  } catch (error: any) {
+    // Si le fichier n'existe pas, Firebase renvoie une erreur 'storage/object-not-found'.
+    // Nous pouvons ignorer cette erreur car le but est de s'assurer que le fichier n'existe plus.
+    if (error.code === 'storage/object-not-found') {
+      console.warn(`Le fichier à ${storagePath} n'a pas été trouvé, il a peut-être déjà été supprimé.`);
+      return Promise.resolve();
+    }
+    // Pour toutes les autres erreurs (comme les problèmes de permission), nous les renvoyons.
+    console.error(`Erreur lors de la suppression du fichier ${storagePath}:`, error);
+    throw error;
+  }
 }
