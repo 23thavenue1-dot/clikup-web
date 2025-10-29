@@ -28,6 +28,9 @@ type UploadStatus =
 const isLikelyImageUrl = (u: string) =>
   /^https?:\/\/.+\.(png|jpe?g|gif|webp|avif|heic|heif|svg)(\?.*)?$/i.test(u);
 
+const looksLikeImage = (f: File) =>
+  ALLOWED_MIME.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
+
 export function Uploader() {
   const { user, storage, firestore } = useFirebase();
   const { toast } = useToast();
@@ -49,13 +52,13 @@ export function Uploader() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > MAX_BYTES) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Fichier trop volumineux (> 10 Mo).' });
+      if (!looksLikeImage(file)) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
         resetFileInput();
         return;
       }
-      if (!ALLOWED_MIME.test(file.type)) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
+      if (file.size > MAX_BYTES) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Fichier trop volumineux (> 10 Mo).' });
         resetFileInput();
         return;
       }
@@ -117,36 +120,37 @@ export function Uploader() {
     setStatus({ state: 'uploading', progress: 0 });
 
     try {
-      const { directUrl, storagePath } = await new Promise<{directUrl: string, storagePath: string}>((resolve, reject) => {
         taskRef.current = uploadImage(
-          storage,
-          user,
-          selectedFile,
-          customName,
-          (progress) => setStatus({ state: 'uploading', progress }),
-          (error) => reject(error),
-          (directUrl, storagePath) => resolve({ directUrl, storagePath })
+            storage,
+            user,
+            selectedFile,
+            customName,
+            (progress) => setStatus({ state: 'uploading', progress }),
+            (error) => {
+                 setStatus({ state: 'error', message: error.message });
+                 toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
+                 resetFileInput();
+            },
+            async (directUrl, storagePath) => {
+                const bbCode = `[img]${directUrl}[/img]`;
+                const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
+
+                await saveImageMetadata(firestore, user, {
+                    originalName: selectedFile.name,
+                    fileSize: selectedFile.size,
+                    mimeType: selectedFile.type,
+                    storagePath,
+                    directUrl,
+                    bbCode,
+                    htmlCode,
+                });
+
+                setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
+                toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
+                resetFileInput();
+                setCustomName('');
+            }
         );
-      });
-
-      const bbCode = `[img]${directUrl}[/img]`;
-      const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
-
-      await saveImageMetadata(firestore, user, {
-        originalName: selectedFile.name,
-        fileSize: selectedFile.size,
-        mimeType: selectedFile.type,
-        storagePath,
-        directUrl,
-        bbCode,
-        htmlCode,
-      });
-
-      setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
-      toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
-      resetFileInput();
-      setCustomName('');
-
     } catch (error) {
         const errorMessage = (error as Error).message;
         setStatus({ state: 'error', message: errorMessage });

@@ -10,6 +10,8 @@ import {
 } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
+import { getIdToken } from 'firebase/auth';
+
 
 // -----------------------------
 // Config côté client (guards)
@@ -60,23 +62,18 @@ export function uploadImage(
   onProgress: (progress: number) => void,
   onError: (error: Error) => void,
   onComplete: (downloadURL: string, storagePath: string) => void
-): UploadTask | null {
-  // Guards locaux (même logique que les rules)
+): UploadTask {
+  
+  // Guards locaux
   if (!user?.uid) {
-    onError(new Error('Utilisateur non authentifié.'));
-    return null;
+    const error = new Error('Utilisateur non authentifié.');
+    onError(error);
+    throw error;
   }
-  if (!file) {
-    onError(new Error('Aucun fichier fourni.'));
-    return null;
-  }
-  if (file.size > MAX_BYTES) {
-    onError(new Error('Fichier trop volumineux (> 10 Mo).'));
-    return null;
-  }
-  if (!ALLOWED_MIME.test(file.type)) {
-    onError(new Error('Type de fichier non autorisé (images uniquement).'));
-    return null;
+   if (!file) {
+    const error = new Error('Aucun fichier fourni.');
+    onError(error);
+    throw error;
   }
 
   const safeCustom = (customName || '').trim();
@@ -89,6 +86,7 @@ export function uploadImage(
   const finalStoragePath = buildStoragePath(user.uid, fileName);
   const ref = storageRef(storage, finalStoragePath);
 
+  // Forcer le rafraîchissement du token est une étape de débogage clé.
   const task = uploadBytesResumable(ref, file, {
     contentType: file.type || 'application/octet-stream',
     customMetadata: { uid: user.uid },
@@ -100,12 +98,19 @@ export function uploadImage(
       const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
       onProgress(pct);
     },
-    (err) => {
-      console.error('Erreur upload Storage:', err);
+    (err: any) => {
+      console.group('[Storage Upload Error]');
+      console.log('code:', err?.code);
+      console.log('message:', err?.message);
+      console.log('name:', err?.name);
+      console.log('serverResponse:', err?.serverResponse);
+      console.log('httpStatus:', err?.httpStatus);
+      console.log('bucket:', ref.storage.bucket);
+      console.log('fullPath:', ref.fullPath);
+      console.groupEnd();
       onError(new Error(friendlyStorageError(err)));
     },
     async () => {
-      // DEBUG: Temporarily remove try/catch to see the raw error from getDownloadURL
       const url = await getDownloadURL(task.snapshot.ref);
       onComplete(url, finalStoragePath);
     }
@@ -113,6 +118,7 @@ export function uploadImage(
 
   return task;
 }
+
 
 // -----------------------------
 // Delete
