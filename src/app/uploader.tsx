@@ -169,7 +169,7 @@ export function Uploader() {
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept="image/png, image/jpeg, image/gif, image/webp"
+                accept="image/*"
               />
               <UploadCloud className="h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-sm text-muted-foreground">

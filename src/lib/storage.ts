@@ -83,8 +83,8 @@ export function uploadImage(
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const baseName = safeCustom
     ? sanitize(safeCustom)
-    : sanitize(file.name.replace(/\.[^/.]+$/, '') || 'file');
-  const fileName = `${baseName || 'file'}-${Date.now()}.${ext}`;
+    : sanitize(file.name.replace(/\.[^/.]+$/, '') || 'image');
+  const fileName = `${baseName || 'image'}-${Date.now()}.${ext}`;
 
   const finalStoragePath = buildStoragePath(user.uid, fileName);
   const ref = storageRef(storage, finalStoragePath);
