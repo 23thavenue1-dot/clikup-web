@@ -17,6 +17,8 @@ import { getIdToken } from 'firebase/auth';
 // -----------------------------
 export const MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
 export const ALLOWED_MIME = /^(image\/.*)$/i;
+const NAME_EXT_FALLBACK = /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i;
+
 
 // Nettoie un nom de fichier
 const sanitize = (name: string): string =>
@@ -50,6 +52,32 @@ const friendlyStorageError = (e: unknown) => {
   }
 };
 
+const inferImageMimeFromName = (name: string): string | null => {
+  const ext = name.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'avif':
+      return 'image/avif';
+    case 'heic':
+      return 'image/heic';
+    case 'heif':
+      return 'image/heif';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return null;
+  }
+};
+
+
 // -----------------------------
 // Upload
 // -----------------------------
@@ -63,7 +91,6 @@ export function uploadImage(
   onComplete: (downloadURL: string, storagePath: string) => void
 ): UploadTask {
   
-  // Guards locaux (doublon intentionnel pour la robustesse de la lib)
   if (!user?.uid) {
     const error = new Error('Utilisateur non authentifié.');
     onError(error);
@@ -74,16 +101,16 @@ export function uploadImage(
     onError(error);
     throw error;
   }
-   if (file.size > MAX_BYTES) {
+
+  if (file.size > MAX_BYTES) {
     const error = new Error('Fichier trop volumineux (> 10 Mo).');
     onError(error);
     throw error;
   }
-  const looksLikeImage = (f: File) => ALLOWED_MIME.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
-  if (!looksLikeImage(file)) {
-      const error = new Error('Type de fichier non autorisé (images uniquement).');
-      onError(error);
-      throw error;
+  if (!(ALLOWED_MIME.test(file.type) || NAME_EXT_FALLBACK.test(file.name))) {
+    const error = new Error('Type de fichier non autorisé (images uniquement).');
+    onError(error);
+    throw error;
   }
 
 
@@ -97,9 +124,14 @@ export function uploadImage(
   const finalStoragePath = buildStoragePath(user.uid, fileName);
   const ref = storageRef(storage, finalStoragePath);
 
-  // Forcer le rafraîchissement du token est une étape de débogage clé.
+  const guessedMime = inferImageMimeFromName(file.name);
+  const finalContentType =
+    (file.type && /^image\/.+/i.test(file.type) ? file.type : null) ||
+    guessedMime ||
+    'image/jpeg'; // Fallback to a valid image MIME type
+
   const task = uploadBytesResumable(ref, file, {
-    contentType: file.type || 'application/octet-stream',
+    contentType: finalContentType,
     customMetadata: { uid: user.uid },
   });
 
@@ -109,16 +141,21 @@ export function uploadImage(
       const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
       onProgress(pct);
     },
-    (err: any) => {
+    async (err: any) => {
+      // Force token refresh on error to ensure auth state is not stale
+      await getIdToken(user, true);
+
       console.group('[Storage Upload Error]');
       console.log('code:', err?.code);
       console.log('message:', err?.message);
       console.log('name:', err?.name);
       console.log('serverResponse:', err?.serverResponse);
       console.log('httpStatus:', err?.httpStatus);
-      console.log('bucket:', ref.storage.bucket);
-      console.log('fullPath:', ref.fullPath);
+      console.log('>> debug contentType used:', finalContentType);
+      console.log('>> file.type seen by browser:', file.type);
+      console.log('>> path:', ref.fullPath, 'bucket:', ref.storage.bucket);
       console.groupEnd();
+
       onError(new Error(friendlyStorageError(err)));
     },
     async () => {

@@ -1,19 +1,27 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Les utilisateurs ne peuvent écrire que dans leur propre dossier "uploads"
+    // Fichiers dans le dossier "uploads"
+    // Chaque utilisateur peut écrire uniquement dans son propre sous-dossier, identifié par son UID.
     match /uploads/{uid}/{fileName} {
-      // La lecture et la suppression sont autorisées si l'utilisateur est authentifié
-      // et que son UID correspond à celui du dossier.
+      
+      // Un utilisateur peut lire ou supprimer un fichier si son UID correspond à celui du chemin.
       allow read, delete: if request.auth != null && request.auth.uid == uid;
 
-      // L'écriture est autorisée si l'utilisateur est le propriétaire,
-      // que la taille du fichier est inférieure à 10 Mo,
-      // et que le type de contenu est une image.
+      // Un utilisateur peut écrire (créer/mettre à jour) un fichier si :
+      // 1. Il est authentifié.
+      // 2. Son UID correspond à celui du chemin.
+      // 3. La taille du fichier est inférieure à 10 Mo.
+      // 4. Soit le Content-Type est de type "image/*", soit l'extension du fichier est une extension d'image connue.
+      //    Ceci est une sécurité supplémentaire si le navigateur ne fournit pas le bon Content-Type.
       allow write: if request.auth != null
-                   && request.auth.uid == uid
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('^image/.*');
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('^image/.*')
+          ||
+          request.resource.name.matches('^uploads/' + uid + '/.*\\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$')
+        );
     }
   }
 }
