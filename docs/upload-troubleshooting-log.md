@@ -42,7 +42,7 @@ Cette hypothèse s'est avérée être la bonne, mais sa résolution a nécessit�
 
 ## 3. Solution Finale (Point de Bascule)
 
-Le tournant décisif a été l'analyse détaillée et les règles de sécurité fournies par l'utilisateur.
+Le tournant décisif a été l'analyse détaillée et les règles de sécurité fournies par l'utilisateur (via GPT).
 
 - **Diagnostic final** : L'incohérence entre le chemin d'upload dans le code (`src/lib/storage.ts`) et les règles de sécurité (`storage.rules`) était bien la cause. Le code tentait d'écrire à un emplacement que les règles interdisaient explicitement.
 
@@ -50,8 +50,20 @@ Le tournant décisif a été l'analyse détaillée et les règles de sécurité 
   1.  **Mise à jour de `storage.rules`** : Application d'une règle standard et robuste qui autorise un utilisateur (`request.auth.uid`) à écrire uniquement dans un dossier qui lui est propre : `match /uploads/{uid}/{fileId}`.
   2.  **Mise à jour de `src/lib/storage.ts`** : Modification du code client pour que le chemin de téléversement corresponde **exactement** à la nouvelle règle : `const storagePath = \`uploads/${user.uid}/${fileName}\`;`.
 
-- **Résultat** : **SUCCÈS**. En alignant parfaitement la demande du client avec l'autorisation du serveur, le refus de permission a été levé, et le téléversement a pu se terminer avec succès.
+- **Résultat (attendu)** : **SUCCÈS**. En alignant parfaitement la demande du client avec l'autorisation du serveur, le refus de permission aurait dû être levé, et le téléversement aurait dû se terminer avec succès.
 
-## 4. Conclusion
+## 4. Persistance de l'Erreur (Post-Mortem en Cours)
+
+Malgré l'application rigoureuse de la solution ci-dessus, le problème de téléversement persiste. L'erreur `storage/retry-limit-exceeded` est toujours présente, ce qui est extrêmement surprenant étant donné que le code et les règles sont maintenant synchronisés.
+
+Cela suggère que le problème pourrait être plus profond ou différent de ce que nous pensions :
+- Un problème de configuration au niveau de l'initialisation de Firebase que nous n'avons pas encore vu.
+- Une interférence inattendue d'un autre morceau de code.
+- Un problème lié à l'environnement de développement lui-même.
+
+La prochaine étape est de réexaminer l'ensemble du flux d'initialisation de Firebase dans l'application pour s'assurer qu'il n'y a pas d'erreur cachée à ce niveau.
+
+## 5. Conclusion
 
 Le problème était un cas classique de **désynchronisation entre la logique applicative et les règles de sécurité**. La résolution a été retardée par des corrections partielles et une mauvaise interprétation initiale des symptômes. La solution a consisté à appliquer une règle de sécurité standard et à s'assurer que le code client la respectait à la lettre.
+Malgré cela, le problème persiste, indiquant une cause racine différente qui reste à identifier.
