@@ -9,6 +9,7 @@ import {
   collection,
   updateDoc,
   increment,
+  addDoc,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -30,6 +31,14 @@ export type ImageMetadata = {
   likeCount: number;
 };
 
+// Nouveau type pour les notes
+export type Note = {
+  id: string;
+  userId: string;
+  text: string;
+  createdAt: any; // Firestore server timestamp
+}
+
 /**
  * Sauvegarde les métadonnées de l'image dans Firestore dans la sous-collection de l'utilisateur.
  * @param firestore L'instance Firestore.
@@ -39,11 +48,11 @@ export type ImageMetadata = {
 export function saveImageMetadata(
   firestore: Firestore,
   user: User,
-  metadata: Omit<ImageMetadata, 'uploadTimestamp' | 'userId' | 'id'> & { id: string }
+  metadata: Omit<ImageMetadata, 'uploadTimestamp' | 'userId'>
 ) {
   const imageDocRef = doc(firestore, 'users', user.uid, 'images', metadata.id);
 
-  const dataToSave: ImageMetadata = {
+  const dataToSave: Omit<ImageMetadata, 'id'> = {
     ...metadata,
     userId: user.uid,
     uploadTimestamp: serverTimestamp(),
@@ -87,5 +96,35 @@ export function incrementImageLike(firestore: Firestore, imageUserId: string, im
     });
 
     errorEmitter.emit('permission-error', permissionError);
+  });
+}
+
+/**
+ * Sauvegarde une nouvelle note pour l'utilisateur dans Firestore.
+ * @param firestore L'instance Firestore.
+ * @param user L'objet utilisateur authentifié.
+ * @param text Le contenu de la note.
+ */
+export function saveNote(firestore: Firestore, user: User, text: string) {
+  const notesCollectionRef = collection(firestore, 'users', user.uid, 'notes');
+  
+  const dataToSave: Omit<Note, 'id'> = {
+    userId: user.uid,
+    text: text,
+    createdAt: serverTimestamp(),
+  };
+
+  // addDoc crée un document avec un ID généré automatiquement.
+  return addDoc(notesCollectionRef, dataToSave).catch((error) => {
+    console.error("Erreur lors de la sauvegarde de la note :", error);
+    const permissionError = new FirestorePermissionError({
+      path: notesCollectionRef.path, // Le chemin de la collection où l'ajout a échoué
+      operation: 'create',
+      requestResourceData: dataToSave,
+    });
+
+    errorEmitter.emit('permission-error', permissionError);
+    // Renvoyer l'erreur pour que le composant puisse la gérer
+    throw error;
   });
 }

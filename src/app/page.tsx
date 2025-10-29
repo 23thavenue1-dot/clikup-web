@@ -31,6 +31,7 @@ import { uploadImage } from '@/lib/storage';
 import { saveImageMetadata } from '@/lib/firestore';
 import { useAuth, useStorage, useFirestore } from '@/firebase';
 import { ImageGallery } from './gallery';
+import { NotesSection } from './notes';
 import { doc, collection } from 'firebase/firestore';
 
 
@@ -147,7 +148,7 @@ export default function Home() {
         // Generate a new document ID client-side
         const imageId = doc(collection(firestore, 'users', user.uid, 'images')).id;
 
-        saveImageMetadata(firestore, user, {
+        const metadata = {
           id: imageId,
           originalName: file.name,
           storagePath: storagePath,
@@ -157,7 +158,9 @@ export default function Home() {
           bbCode: bbCode,
           htmlCode: htmlCode,
           likeCount: 0,
-        });
+        }
+
+        saveImageMetadata(firestore, user, metadata);
   
         setResult({
           directUrl: downloadURL,
@@ -209,6 +212,8 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-3xl mx-auto space-y-6">
+        <NotesSection />
+        
         <header className="flex justify-between items-center">
           <div className="text-center flex-grow">
             <h1 className="text-4xl font-headline font-bold">
