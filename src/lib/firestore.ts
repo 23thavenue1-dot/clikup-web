@@ -11,6 +11,7 @@ import {
   increment,
   addDoc,
   deleteDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -28,7 +29,7 @@ export type ImageMetadata = {
   htmlCode: string;
   mimeType?: string;
   fileSize?: number;
-  uploadTimestamp: any; // Firestore server timestamp.
+  uploadTimestamp: Timestamp; // Changed to Timestamp for type safety
   likeCount: number;
 };
 
@@ -37,7 +38,7 @@ export type Note = {
   id: string;
   userId: string;
   text: string;
-  createdAt: any; // Firestore server timestamp
+  createdAt: Timestamp; // Changed to Timestamp
 }
 
 /**
@@ -46,7 +47,7 @@ export type Note = {
  * @param user L'objet utilisateur authentifié.
  * @param metadata Les métadonnées de l'image à sauvegarder.
  */
-export function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>) {
+export async function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>): Promise<void> {
     const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
 
     const dataToSave = {
@@ -56,21 +57,20 @@ export function saveImageMetadata(firestore: Firestore, user: User, metadata: Om
         likeCount: 0,
     };
 
-    return addDoc(imagesCollectionRef, dataToSave)
-        .then(docRef => {
-            // Après la création, on met à jour le document pour y inclure son propre ID.
-            return updateDoc(docRef, { id: docRef.id });
-        })
-        .catch(error => {
-            console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
-            const permissionError = new FirestorePermissionError({
-                path: `${imagesCollectionRef.path}/${doc.length}`,
-                operation: 'create',
-                requestResourceData: dataToSave,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw error;
+    try {
+        const docRef = await addDoc(imagesCollectionRef, dataToSave);
+        // Après la création, on met à jour le document pour y inclure son propre ID.
+        await updateDoc(docRef, { id: docRef.id });
+    } catch (error) {
+        console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
+        const permissionError = new FirestorePermissionError({
+            path: imagesCollectionRef.path, // Path of the collection for a create operation
+            operation: 'create',
+            requestResourceData: dataToSave,
         });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error; // Re-throw the error to be caught by the calling function
+    }
 }
 
 /**
@@ -79,7 +79,7 @@ export function saveImageMetadata(firestore: Firestore, user: User, metadata: Om
  * @param user L'objet utilisateur authentifié.
  * @param metadata Les métadonnées de l'image à sauvegarder.
  */
-export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount' | 'originalName' | 'storagePath' | 'mimeType' | 'fileSize'>) {
+export async function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount' | 'originalName' | 'storagePath' | 'mimeType' | 'fileSize'>): Promise<void> {
     const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
 
     const dataToSave = {
@@ -91,20 +91,19 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
         // storagePath, mimeType, et fileSize ne sont pas définis car l'image est externe.
     };
 
-    return addDoc(imagesCollectionRef, dataToSave)
-        .then(docRef => {
-            return updateDoc(docRef, { id: docRef.id });
-        })
-        .catch(error => {
-            console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
-            const permissionError = new FirestorePermissionError({
-                path: imagesCollectionRef.path,
-                operation: 'create',
-                requestResourceData: dataToSave,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw error;
+    try {
+        const docRef = await addDoc(imagesCollectionRef, dataToSave);
+        await updateDoc(docRef, { id: docRef.id });
+    } catch (error) {
+        console.error("Erreur lors de la sauvegarde des métadonnées de l'image depuis URL :", error);
+        const permissionError = new FirestorePermissionError({
+            path: imagesCollectionRef.path,
+            operation: 'create',
+            requestResourceData: dataToSave,
         });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error; // Re-throw the error
+    }
 }
 
 
@@ -140,19 +139,23 @@ export async function deleteImageMetadata(firestore: Firestore, userId: string, 
 export function saveNote(firestore: Firestore, user: User, text: string) {
   const notesCollectionRef = collection(firestore, 'users', user.uid, 'notes');
   
-  const dataToSave: Omit<Note, 'id'> = {
+  const dataToSave: Omit<Note, 'id' | 'createdAt'> = {
     userId: user.uid,
     text: text,
-    createdAt: serverTimestamp(),
+  };
+
+  const dataWithTimestamp = {
+      ...dataToSave,
+      createdAt: serverTimestamp(),
   };
 
   // addDoc crée un document avec un ID généré automatiquement.
-  return addDoc(notesCollectionRef, dataToSave).catch((error) => {
+  return addDoc(notesCollectionRef, dataWithTimestamp).catch((error) => {
     console.error("Erreur lors de la sauvegarde de la note :", error);
     const permissionError = new FirestorePermissionError({
       path: notesCollectionRef.path, // Le chemin de la collection où l'ajout a échoué
       operation: 'create',
-      requestResourceData: dataToSave,
+      requestResourceData: dataWithTimestamp,
     });
 
     errorEmitter.emit('permission-error', permissionError);
