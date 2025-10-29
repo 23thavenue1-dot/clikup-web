@@ -58,18 +58,21 @@ export async function saveImageMetadata(firestore: Firestore, user: User, metada
     };
 
     try {
+        // addDoc est la méthode standard pour ajouter un document avec un ID généré.
         const docRef = await addDoc(imagesCollectionRef, dataToSave);
-        // Après la création, on met à jour le document pour y inclure son propre ID.
+        // On met ensuite à jour le document pour y stocker son propre ID, ce qui est utile.
         await updateDoc(docRef, { id: docRef.id });
     } catch (error) {
         console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
+        // Émission d'une erreur contextuelle pour le débogage
         const permissionError = new FirestorePermissionError({
-            path: imagesCollectionRef.path, // Path of the collection for a create operation
+            path: imagesCollectionRef.path, // Le chemin de la collection est pertinent pour une création
             operation: 'create',
-            requestResourceData: dataToSave,
+            requestResourceData: dataToSave, // Inclure les données qui ont échoué
         });
         errorEmitter.emit('permission-error', permissionError);
-        throw error; // Re-throw the error to be caught by the calling function
+        // Renvoyer l'erreur pour que l'interface utilisateur puisse réagir
+        throw error;
     }
 }
 
@@ -88,21 +91,20 @@ export async function saveImageFromUrl(firestore: Firestore, user: User, metadat
         uploadTimestamp: serverTimestamp(),
         likeCount: 0,
         originalName: new URL(metadata.directUrl).pathname.split('/').pop() || 'image-from-url',
-        // storagePath, mimeType, et fileSize ne sont pas définis car l'image est externe.
     };
 
     try {
         const docRef = await addDoc(imagesCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
     } catch (error) {
-        console.error("Erreur lors de la sauvegarde des métadonnées de l'image depuis URL :", error);
+        console.error("Erreur lors de la sauvegarde depuis URL :", error);
         const permissionError = new FirestorePermissionError({
             path: imagesCollectionRef.path,
             operation: 'create',
             requestResourceData: dataToSave,
         });
         errorEmitter.emit('permission-error', permissionError);
-        throw error; // Re-throw the error
+        throw error;
     }
 }
 
@@ -119,7 +121,6 @@ export async function deleteImageMetadata(firestore: Firestore, userId: string, 
     await deleteDoc(imageDocRef);
   } catch (error) {
     console.error("Erreur lors de la suppression des métadonnées Firestore:", error);
-    // Ici, nous pourrions également émettre une FirestorePermissionError si nécessaire.
     const permissionError = new FirestorePermissionError({
         path: imageDocRef.path,
         operation: 'delete',
