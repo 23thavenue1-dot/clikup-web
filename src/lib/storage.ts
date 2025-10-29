@@ -50,7 +50,7 @@ export function uploadImage(
   const fileName = `${baseName}-${Date.now()}.${ext}`;
 
   // **IMPORTANT** : Le chemin de stockage qui correspond aux règles de sécurité
-  const storagePath = `users/${user.uid}/${fileName}`;
+  const storagePath = `uploads/${user.uid}/${fileName}`;
   const storageRef = ref(storage, storagePath);
 
   // Crée la tâche de téléversement
