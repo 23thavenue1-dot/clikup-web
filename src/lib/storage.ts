@@ -12,12 +12,11 @@ import type { User } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { getIdToken } from 'firebase/auth';
 
-
 // -----------------------------
 // Config côté client (guards)
 // -----------------------------
 export const MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
-export const ALLOWED_MIME = /^(image\/.*)$/i; // On ne garde que les images pour l'instant
+export const ALLOWED_MIME = /^(image\/.*)$/i;
 
 // Nettoie un nom de fichier
 const sanitize = (name: string): string =>
@@ -64,7 +63,7 @@ export function uploadImage(
   onComplete: (downloadURL: string, storagePath: string) => void
 ): UploadTask {
   
-  // Guards locaux
+  // Guards locaux (doublon intentionnel pour la robustesse de la lib)
   if (!user?.uid) {
     const error = new Error('Utilisateur non authentifié.');
     onError(error);
@@ -75,6 +74,18 @@ export function uploadImage(
     onError(error);
     throw error;
   }
+   if (file.size > MAX_BYTES) {
+    const error = new Error('Fichier trop volumineux (> 10 Mo).');
+    onError(error);
+    throw error;
+  }
+  const looksLikeImage = (f: File) => ALLOWED_MIME.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
+  if (!looksLikeImage(file)) {
+      const error = new Error('Type de fichier non autorisé (images uniquement).');
+      onError(error);
+      throw error;
+  }
+
 
   const safeCustom = (customName || '').trim();
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
@@ -111,8 +122,13 @@ export function uploadImage(
       onError(new Error(friendlyStorageError(err)));
     },
     async () => {
-      const url = await getDownloadURL(task.snapshot.ref);
-      onComplete(url, finalStoragePath);
+      try {
+        const url = await getDownloadURL(task.snapshot.ref);
+        onComplete(url, finalStoragePath);
+      } catch (e) {
+          console.error("Erreur lors de la récupération de l'URL de téléchargement :", e);
+          onError(new Error(friendlyStorageError(e)));
+      }
     }
   );
 
