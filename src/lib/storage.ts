@@ -163,7 +163,6 @@ export function uploadImage(
         const url = await getDownloadURL(task.snapshot.ref);
         onComplete(url, finalStoragePath);
       } catch (e) {
-          console.error("Erreur lors de la récupération de l'URL de téléchargement :", e);
           onError(new Error(friendlyStorageError(e)));
       }
     }
