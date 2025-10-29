@@ -33,6 +33,7 @@ export function uploadImage(
   
   // Chemin de stockage mis à jour pour correspondre aux nouvelles règles de sécurité
   const fileName = `${baseName}-${Date.now()}.${ext}`;
+  // Le chemin est maintenant 'users/{userId}/images/{fileName}'
   const storagePath = `users/${user.uid}/images/${fileName}`;
   const storageRef = ref(storage, storagePath);
 
