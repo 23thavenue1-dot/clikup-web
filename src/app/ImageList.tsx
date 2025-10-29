@@ -56,7 +56,10 @@ export function ImageList() {
 
         try {
             // Supprimer d'abord le fichier de Storage (si applicable)
-            await deleteImageFile(storage, imageToDelete.storagePath);
+            // Ne pas tenter de supprimer si c'est une data_url
+            if (imageToDelete.storagePath && imageToDelete.storagePath !== 'data_url') {
+               await deleteImageFile(storage, imageToDelete.storagePath);
+            }
             // Ensuite, supprimer les métadonnées de Firestore
             await deleteImageMetadata(firestore, user.uid, imageToDelete.id);
 
@@ -118,8 +121,7 @@ export function ImageList() {
                                         alt={image.originalName || 'Image téléversée'}
                                         fill
                                         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                        objectFit="cover"
-                                        className="bg-muted transition-transform group-hover:scale-105"
+                                        className="object-cover bg-muted transition-transform group-hover:scale-105"
                                         unoptimized // Important pour les URL externes et celles de Storage
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
@@ -172,4 +174,3 @@ export function ImageList() {
         </>
     );
 }
-

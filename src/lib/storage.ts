@@ -82,6 +82,31 @@ const inferImageMimeFromName = (name: string): string | null => {
   }
 };
 
+/**
+ * Converts a File object to a Base64-encoded Data URL.
+ * @param file The file to convert.
+ * @returns A promise that resolves with the Data URL string.
+ */
+export function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > MAX_BYTES) {
+      return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
+    }
+    if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
+      return reject(new Error('Type de fichier non autorisé (images uniquement).'));
+    }
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(reader.result as string);
+    };
+    reader.onerror = (error) => {
+      reject(error);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 
 // -----------------------------
 // Upload (avec uploadBytesResumable)
