@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, Copy, Check, Link } from 'lucide-react';
+import { UploadCloud, Copy, Check, Link, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
 
@@ -181,6 +181,7 @@ export function Uploader() {
                   disabled={status.state === 'uploading'} 
                   className="w-full"
                 >
+                  {status.state === 'uploading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {status.state === 'uploading' ? 'Téléversement en cours...' : 'Démarrer le téléversement'}
                 </Button>
               </div>
@@ -202,6 +203,7 @@ export function Uploader() {
                 disabled={status.state === 'uploading' || !imageUrl.trim()} 
                 className="w-full"
             >
+                {status.state === 'uploading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {status.state === 'uploading' ? 'Enregistrement...' : 'Ajouter le lien'}
             </Button>
           </TabsContent>
@@ -221,7 +223,8 @@ export function Uploader() {
               <Image 
                 src={status.url} 
                 alt="Aperçu de l'image" 
-                layout="fill"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 objectFit="contain"
                 className="bg-background"
                 unoptimized // Important for external URLs that are not in next.config.ts

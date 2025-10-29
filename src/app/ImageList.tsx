@@ -116,7 +116,8 @@ export function ImageList() {
                                     <Image
                                         src={image.directUrl}
                                         alt={image.originalName || 'Image téléversée'}
-                                        layout="fill"
+                                        fill
+                                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                                         objectFit="cover"
                                         className="bg-muted transition-transform group-hover:scale-105"
                                         unoptimized // Important pour les URL externes et celles de Storage
@@ -164,10 +165,11 @@ export function ImageList() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteImage}>Supprimer</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDeleteImage} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </>
     );
 }
+
