@@ -1,13 +1,25 @@
+
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Seuls les utilisateurs authentifiés peuvent lire et écrire dans le dossier "uploads".
-    match /uploads/{userId}/{allPaths=**} {
-      allow read;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // Fonction utilitaire pour vérifier si un utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
+    // Les utilisateurs peuvent lire toutes les images, car les URL sont publiques par conception.
+    // Cela permet un affichage simple dans les forums, etc.
+    match /uploads/{userId}/{allPaths=**} {
+      allow read;
+    }
+
+    // Un utilisateur ne peut écrire que dans son propre dossier de téléversement.
+    // Le chemin du fichier doit correspondre à l'UID de l'utilisateur.
+    // `/uploads/{userId}/{fileName}`
+    match /uploads/{userId}/{fileName} {
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
   }
 }
