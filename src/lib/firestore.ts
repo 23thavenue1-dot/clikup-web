@@ -45,29 +45,25 @@ export type Note = {
  * @param user L'objet utilisateur authentifié.
  * @param metadata Les métadonnées de l'image à sauvegarder.
  */
-export async function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>) {
+export function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>) {
     const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
 
-    // On utilise addDoc, comme pour les notes.
     const dataToSave: Omit<ImageMetadata, 'id'> = {
         ...metadata,
         userId: user.uid,
         uploadTimestamp: serverTimestamp(),
         likeCount: 0,
-        // On laisse l'ID vide pour le moment
-        id: '' 
+        id: ''
     };
 
     return addDoc(imagesCollectionRef, dataToSave)
         .then(docRef => {
-            // Une fois le document créé, on le met à jour avec son propre ID.
-            // C'est une étape cruciale pour que les règles de sécurité fonctionnent.
             return updateDoc(docRef, { id: docRef.id });
         })
         .catch(error => {
             console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
             const permissionError = new FirestorePermissionError({
-                path: imagesCollectionRef.path,
+                path: `${imagesCollectionRef.path}/${doc.length}`,
                 operation: 'create',
                 requestResourceData: dataToSave,
             });

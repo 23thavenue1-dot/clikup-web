@@ -48,8 +48,8 @@ export function uploadImage(
   // Construit un nom de fichier unique pour éviter les conflits
   const fileName = `${baseName}-${Date.now()}.${ext}`;
 
-  // **IMPORTANT** : Le chemin de stockage qui correspond exactement aux règles de sécurité
-  const storagePath = `users/${user.uid}/images/${fileName}`;
+  // **IMPORTANT** : Le chemin de stockage simplifié qui correspond aux règles de sécurité
+  const storagePath = `users/${user.uid}/${fileName}`;
   const storageRef = ref(storage, storagePath);
 
   // Crée la tâche de téléversement
