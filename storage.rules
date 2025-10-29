@@ -1,21 +1,12 @@
+
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Par défaut, refuser toutes les lectures et écritures pour plus de sécurité.
-    match /{allPaths=**} {
-      allow read, write: if false;
-    }
-
-    // Autoriser les utilisateurs à gérer leurs propres images dans un chemin spécifique.
+    // Les utilisateurs ne peuvent gérer que leurs propres images.
+    // Le chemin doit correspondre à celui utilisé dans src/lib/storage.ts
     match /users/{userId}/images/{imageId} {
-      // Seul le propriétaire peut lire ses images.
-      allow read: if request.auth != null && request.auth.uid == userId;
-
-      // Seul le propriétaire peut écrire (créer, mettre à jour, supprimer).
-      // On ajoute aussi des validations pour la taille et le type de fichier.
-      allow write: if request.auth != null && request.auth.uid == userId
-                   && request.resource.size < 5 * 1024 * 1024 // Limite de 5MB
-                   && request.resource.contentType.matches('image/.*'); // N'accepter que les fichiers de type image
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
