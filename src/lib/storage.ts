@@ -97,24 +97,20 @@ export function uploadImage(
 ): void {
   
   if (!user?.uid) {
-    const error = new Error('Utilisateur non authentifié.');
-    onError(error);
+    onError(new Error('Utilisateur non authentifié.'));
     return;
   }
    if (!file) {
-    const error = new Error('Aucun fichier fourni.');
-    onError(error);
+    onError(new Error('Aucun fichier fourni.'));
     return;
   }
 
   if (file.size > MAX_BYTES) {
-    const error = new Error('Fichier trop volumineux (> 10 Mo).');
-    onError(error);
+    onError(new Error('Fichier trop volumineux (> 10 Mo).'));
     return;
   }
   if (!(ALLOWED_MIME.test(file.type) || NAME_EXT_FALLBACK.test(file.name))) {
-    const error = new Error('Type de fichier non autorisé (images uniquement).');
-    onError(error);
+    onError(new Error('Type de fichier non autorisé (images uniquement).'));
     return;
   }
 
