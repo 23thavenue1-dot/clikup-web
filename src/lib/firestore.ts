@@ -39,11 +39,11 @@ export type ImageMetadata = {
 export function saveImageMetadata(
   firestore: Firestore,
   user: User,
-  metadata: Omit<ImageMetadata, 'uploadTimestamp' | 'userId'>
+  metadata: Omit<ImageMetadata, 'uploadTimestamp' | 'userId' | 'id'> & { id: string }
 ) {
   const imageDocRef = doc(firestore, 'users', user.uid, 'images', metadata.id);
 
-  const dataToSave = {
+  const dataToSave: ImageMetadata = {
     ...metadata,
     userId: user.uid,
     uploadTimestamp: serverTimestamp(),
