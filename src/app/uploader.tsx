@@ -4,22 +4,20 @@
 import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
+import { fileToDataUrl } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
-import { UploadCloud, Copy, Check, Link as LinkIcon, Loader2, HardDriveUpload } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 
 type UploadStatus =
   | { state: 'idle' }
-  | { state: 'processing' | 'uploading'; progress?: number }
+  | { state: 'processing' }
   | { state: 'success'; url: string; }
   | { state: 'error'; message: string };
 
@@ -28,14 +26,13 @@ const looksLikeImage = (f: File) =>
 
 
 export function Uploader() {
-  const { user, firestore, storage } = useFirebase();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
   
   // State for all tabs
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customName, setCustomName] = useState('');
-  const [copied, setCopied] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // State specific to URL tab
@@ -49,7 +46,6 @@ export function Uploader() {
     setSelectedFile(null);
     setCustomName('');
     setImageUrl('');
-    setCopied(false);
     setIsProcessing(false);
     setIsUrlLoading(false);
     if (fileInputRef.current) {
@@ -70,7 +66,6 @@ export function Uploader() {
         }
         setSelectedFile(file);
         setStatus({ state: 'idle' });
-        setCopied(false);
     }
   };
 
@@ -84,7 +79,7 @@ export function Uploader() {
     try {
         const dataUrl = await fileToDataUrl(selectedFile);
         const bbCode = `[img]${dataUrl}[/img]`;
-        const htmlCode = `<img src="${dataUrl}" alt="${customName || selectedFile.name}" />`;
+        const htmlCode = `<img src="${customName || selectedFile.name}" />`;
         
         await saveImageMetadata(firestore, user, {
             originalName: customName || selectedFile.name,
@@ -96,8 +91,7 @@ export function Uploader() {
             storagePath: 'data_url',
         });
 
-        setStatus({ state: 'success', url: dataUrl });
-        toast({ title: 'Succès', description: 'Votre image a été enregistrée (via Data URL).' });
+        toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
         resetState();
 
     } catch (error) {
@@ -124,7 +118,6 @@ export function Uploader() {
             htmlCode,
         });
 
-        setStatus({ state: 'success', url: imageUrl });
         toast({ title: 'Succès', description: 'Image depuis URL ajoutée.' });
         resetState();
         
@@ -136,44 +129,6 @@ export function Uploader() {
         setIsUrlLoading(false);
     }
   };
-
-  // METHOD 3: Firebase Storage (The real deal)
-  const handleStorageUpload = useCallback(async () => {
-    if (!selectedFile || !user || !storage || !firestore) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur ou configuration Firebase manquante.' });
-        return;
-    }
-
-    setIsProcessing(true);
-    setStatus({ state: 'uploading', progress: 0 });
-
-    try {
-      const metadata = await uploadFileAndGetMetadata({
-        storage,
-        file: selectedFile,
-        user,
-        customName: customName || undefined,
-        onProgress: (progress) => setStatus({ state: 'uploading', progress }),
-      });
-
-      await saveImageMetadata(firestore, user, metadata);
-
-      setStatus({ state: 'success', url: metadata.directUrl });
-      toast({ title: 'Succès (Storage)', description: 'Votre image a été téléversée via Firebase Storage.' });
-      resetState();
-
-    } catch (error: any) {
-        const errorMessage = error.message || 'Une erreur inconnue est survenue.';
-        setStatus({ state: 'error', message: `Erreur Storage: ${errorMessage}` });
-        toast({ variant: 'destructive', title: 'Erreur Storage', description: errorMessage, duration: 9000 });
-        console.error("handleStorageUpload error:", error);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [selectedFile, customName, user, storage, firestore, toast]);
-  
-
-  const isUploading = status.state === 'processing' || status.state === 'uploading';
 
   const renderFilePicker = () => (
     <div 
@@ -216,10 +171,9 @@ export function Uploader() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="data-url" className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="data-url"><UploadCloud className="mr-2"/>Via Fichier (sécurisé)</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="data-url"><UploadCloud className="mr-2"/>Via Fichier</TabsTrigger>
             <TabsTrigger value="url"><LinkIcon className="mr-2"/>Via URL</TabsTrigger>
-            <TabsTrigger value="storage"><HardDriveUpload className="mr-2"/>Via Storage (Test)</TabsTrigger>
           </TabsList>
           
           <TabsContent value="data-url" className="space-y-4 pt-4">
@@ -256,51 +210,11 @@ export function Uploader() {
                 Ajouter depuis l'URL
             </Button>
           </TabsContent>
-          
-          <TabsContent value="storage" className="space-y-4 pt-4">
-            {renderFilePicker()}
-            {status.state === 'uploading' && status.progress !== undefined && (
-                <Progress value={status.progress} className="w-full" />
-            )}
-            {selectedFile && (
-              <div className="space-y-4">
-                <Input
-                  placeholder="Nom personnalisé (optionnel)"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  disabled={isUploading}
-                />
-                <Button 
-                  onClick={handleStorageUpload} 
-                  disabled={isUploading || !selectedFile} 
-                  className="w-full"
-                >
-                  {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {status.state === 'uploading' ? `Téléversement... ${status.progress?.toFixed(0) ?? 0}%` : 'Téléverser sur Storage'}
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+
         </Tabs>
         
         {status.state === 'error' && (
           <p className="mt-4 text-sm text-center text-destructive">{status.message}</p>
-        )}
-
-        {status.state === 'success' && (
-          <div className="space-y-3 rounded-md border bg-muted/50 p-4 mt-4">
-            <h4 className="font-medium text-sm">Opération réussie !</h4>
-            
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Lien direct</label>
-                <div className="flex items-center gap-2">
-                    <Input readOnly value={status.url} className="bg-background text-xs truncate"/>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.url)}>
-                        {copied ? <Check className="text-green-500"/> : <Copy />}
-                    </Button>
-                </div>
-            </div>
-          </div>
         )}
 
       </CardContent>
