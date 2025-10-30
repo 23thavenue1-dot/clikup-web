@@ -30,14 +30,16 @@ export default function Home() {
     }
   }, [user, isUserLoading, router]);
 
-  const isLoading = isUserLoading || (user && isProfileLoading);
-
-  if (isLoading || !user) {
+  if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // ou une page de connexion/inscription
   }
 
   return (
@@ -55,7 +57,7 @@ export default function Home() {
           </div>
         </header>
 
-        <Uploader userProfile={userProfile} isProfileLoading={isProfileLoading} />
+        <Uploader userProfile={userProfile} />
 
         <ImageList />
 

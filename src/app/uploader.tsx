@@ -19,7 +19,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type UploaderProps = {
   userProfile: UserProfile | null;
-  isProfileLoading: boolean;
 };
 
 type UploadStatus =
@@ -33,7 +32,7 @@ const looksLikeImage = (f: File) =>
   /^(image\/.*)$/i.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
 
 
-export function Uploader({ userProfile, isProfileLoading }: UploaderProps) {
+export function Uploader({ userProfile }: UploaderProps) {
   const { user, firestore, firebaseApp } = useFirebase();
   const { toast } = useToast();
   
@@ -211,14 +210,12 @@ export function Uploader({ userProfile, isProfileLoading }: UploaderProps) {
                   Choisissez une méthode pour ajouter une image à votre galerie.
                 </CardDescription>
             </div>
-            {isProfileLoading ? (
-                <Skeleton className="h-8 w-20 rounded-full" />
-            ) : userProfile ? (
+            {userProfile ? (
                 <div className="flex items-center gap-2 bg-secondary text-secondary-foreground font-semibold px-3 py-1.5 rounded-full text-sm" title={`${userProfile.ticketCount} tickets restants`}>
                     <Ticket className="h-5 w-5" />
                     <span>{userProfile.ticketCount}</span>
                 </div>
-            ) : null }
+            ) : <Skeleton className="h-8 w-20 rounded-full" /> }
         </div>
       </CardHeader>
       <CardContent>
