@@ -3,9 +3,13 @@
 
 import {
   ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
   deleteObject,
   type FirebaseStorage,
+  type UploadTaskSnapshot,
 } from 'firebase/storage';
+import type { User } from 'firebase/auth';
 
 // -----------------------------
 // Config côté client (guards)
@@ -39,6 +43,75 @@ export function fileToDataUrl(file: File): Promise<string> {
       reject(error);
     };
     reader.readAsDataURL(file);
+  });
+}
+
+// -----------------------------
+// Upload (Firebase Storage)
+// -----------------------------
+type UploadMetadata = {
+    originalName: string;
+    storagePath: string;
+    directUrl: string;
+    bbCode: string;
+    htmlCode: string;
+    mimeType: string;
+    fileSize: number;
+}
+
+export function uploadFileAndGetMetadata(
+  storage: FirebaseStorage,
+  user: User,
+  file: File,
+  customName: string,
+  onProgress: (progress: number) => void
+): Promise<UploadMetadata> {
+  return new Promise((resolve, reject) => {
+
+    if (file.size > MAX_BYTES) {
+      return reject(new Error(`Fichier trop volumineux (> ${MAX_BYTES / 1024 / 1024} Mo).`));
+    }
+    if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
+      return reject(new Error('Type de fichier non autorisé (images uniquement).'));
+    }
+
+    const finalName = customName || file.name;
+    const filePath = `uploads/${user.uid}/${Date.now()}_${file.name}`;
+    const fileRef = storageRef(storage, filePath);
+    const task = uploadBytesResumable(fileRef, file);
+
+    task.on(
+      'state_changed',
+      (snapshot: UploadTaskSnapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress(progress);
+      },
+      (error: any) => {
+        console.error("Erreur détaillée de l'upload:", error);
+        console.error(`Code: ${error.code}, Message: ${error.message}, Nom: ${error.name}`);
+        reject(new Error(`Permission refusée: vérifiez les règles de sécurité de Storage et l'authentification de l'utilisateur.`));
+      },
+      async () => {
+        try {
+          const directUrl = await getDownloadURL(task.snapshot.ref);
+          const bbCode = `[img]${directUrl}[/img]`;
+          const htmlCode = `<img src="${directUrl}" alt="${finalName}" />`;
+
+          resolve({
+            originalName: finalName,
+            storagePath: filePath,
+            directUrl,
+            bbCode,
+            htmlCode,
+            mimeType: file.type,
+            fileSize: file.size,
+          });
+        } catch (error) {
+            console.error("Erreur lors de la récupération de l'URL de téléchargement:", error);
+            reject(new Error("Impossible d'obtenir l'URL de l'image après le téléversement."));
+        }
+      }
+    );
   });
 }
 
