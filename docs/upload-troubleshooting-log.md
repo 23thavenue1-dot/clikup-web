@@ -139,4 +139,27 @@ Après avoir résolu le problème dans l'environnement de développement local, 
      gsutil cors set cors.json gs://studio-9587105821-540bd.firebasestorage.app
      ```
 
-- **Conclusion Générale** : Le téléversement fonctionne désormais parfaitement à la fois dans l'environnement de développement (en utilisant le contournement Data URL) et, plus important encore, sur le site en production (en utilisant la méthode standard du SDK Storage avec la configuration CORS correcte). Cela marque la fin de ce long et instructif processus de débogage.
+- **Conclusion** : Le téléversement fonctionne désormais parfaitement à la fois dans l'environnement de développement (en utilisant le contournement Data URL) et, plus important encore, sur le site en production (en utilisant la méthode standard du SDK Storage avec la configuration CORS correcte).
+
+## 9. Le Dernier Maillon : Les Règles de Sécurité de Storage
+
+Même après avoir résolu le problème de CORS, un dernier obstacle est apparu sur le site en ligne.
+
+- **Symptôme** : Le téléversement ne restait plus bloqué, mais affichait un message d'erreur clair : `"Erreur: Permission refusée: vérifiez les règles de sécurité de Storage et l'authentification de l'utilisateur."`
+- **Diagnostic** : Ce message d'erreur (`storage/unauthorized`) était un immense progrès. Il ne s'agissait plus d'un problème réseau ou de configuration, mais d'un refus explicite de la part de Firebase. La cause était simple : nous n'avions jamais défini les règles autorisant un utilisateur à écrire dans le bucket de stockage. Par défaut, Firebase Storage est verrouillé.
+- **Solution** : Création d'un fichier `storage.rules` avec la règle de sécurité adéquate. Cette règle autorise un utilisateur authentifié à écrire des fichiers uniquement dans un dossier qui porte son propre ID utilisateur (`uid`).
+  ```
+  rules_version = '2';
+  service firebase.storage {
+    match /b/{bucket}/o {
+      // Autoriser l'écriture uniquement dans le dossier personnel de l'utilisateur
+      match /uploads/{uid}/{fileId} {
+        allow write: if request.auth != null && request.auth.uid == uid;
+        allow read: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+  ```
+- **Résultat Final** : Après avoir ajouté ce fichier et redéployé l'application, la boucle était enfin complète. Le code client appelait correctement le SDK, la configuration CORS autorisait la requête, et les règles de sécurité du stockage l'acceptaient. La fonctionnalité de téléversement est désormais 100% fonctionnelle sur le site en production.
+
+Cela marque la fin de ce long et instructif processus de débogage.
