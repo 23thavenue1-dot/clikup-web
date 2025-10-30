@@ -4,8 +4,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,6 +27,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -37,11 +39,25 @@ export default function SignupPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
-      toast({ title: "Inscription réussie", description: "Vous pouvez maintenant vous connecter." });
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Créer un document utilisateur dans Firestore
+      const userDocRef = doc(firestore, "users", user.uid);
+      await setDoc(userDocRef, {
+        id: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email?.split('@')[0],
+        creationTimestamp: serverTimestamp(),
+        ticketCount: 5,
+        lastTicketRefill: serverTimestamp()
+      });
+
+
+      toast({ title: "Inscription réussie", description: "Votre compte a été créé et vos tickets de bienvenue ont été ajoutés." });
       router.push("/login");
     } catch (error) {
       console.error(error);
