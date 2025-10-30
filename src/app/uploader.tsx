@@ -235,17 +235,6 @@ export function Uploader() {
         {status.state === 'success' && (
           <div className="space-y-3 rounded-md border bg-muted/50 p-4 mt-4">
             <h4 className="font-medium text-sm">Opération réussie !</h4>
-
-            <div className="relative aspect-video w-full overflow-hidden rounded-md">
-              <Image 
-                src={status.url} 
-                alt="Aperçu de l'image" 
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-contain bg-background"
-                unoptimized
-              />
-            </div>
             
             <div className="space-y-2">
                 <label className="text-sm font-medium">Lien direct</label>
