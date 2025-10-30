@@ -32,63 +32,16 @@ const sanitize = (name: string): string =>
 export const buildStoragePath = (uid: string, fileName: string) =>
   `uploads/${uid}/${fileName}`;
 
-// Mapping d’erreurs pour messages UX
-const friendlyStorageError = (e: unknown) => {
-  const fe = e as FirebaseError & { serverResponse?: string };
-  switch (fe?.code) {
-    case 'storage/unauthorized':
-      return 'Permission refusée : vérifiez les règles de sécurité de Storage et l’authentification de l\'utilisateur.';
-    case 'storage/canceled':
-      return 'Le téléversement a été annulé.';
-    case 'storage/retry-limit-exceeded':
-      return 'Impossible d’écrire dans le stockage. Cela est souvent dû à des règles de sécurité non conformes ou à un problème de réseau.';
-    case 'storage/invalid-checksum':
-      return 'Le fichier semble corrompu. Le téléversement a été interrompu pour garantir l\'intégrité des données.';
-    case 'storage/object-not-found':
-      return 'Le fichier est introuvable dans l\'espace de stockage.';
-    default:
-        console.group('[Storage Error Details]');
-        console.error('Full Firebase Error:', fe);
-        console.error('Error Code:', fe?.code);
-        console.error('Error Message:', fe?.message);
-        console.error('Server Response:', fe?.serverResponse);
-        console.groupEnd();
-        return fe?.message || 'Une erreur inconnue est survenue lors de l’opération de stockage.';
-  }
-};
-
-const inferImageMimeFromName = (name: string): string | null => {
-  const ext = name.split('.').pop()?.toLowerCase();
-  switch (ext) {
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'png':
-      return 'image/png';
-    case 'gif':
-      return 'image/gif';
-    case 'webp':
-      return 'image/webp';
-    case 'avif':
-      return 'image/avif';
-    case 'heic':
-      return 'image/heic';
-    case 'heif':
-      return 'image/heif';
-    case 'svg':
-      return 'image/svg+xml';
-    default:
-      return null;
-  }
-};
 
 /**
  * Converts a File object to a Base64-encoded Data URL.
+ * This is a workaround for development environments where the Storage SDK might be blocked.
  * @param file The file to convert.
  * @returns A promise that resolves with the Data URL string.
  */
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
+    // Perform checks before reading the file
     if (file.size > MAX_BYTES) {
       return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
     }
@@ -109,103 +62,17 @@ export function fileToDataUrl(file: File): Promise<string> {
 
 
 // -----------------------------
-// Upload (avec uploadBytesResumable)
-// -----------------------------
-export function uploadImage(
-  storage: FirebaseStorage,
-  user: User,
-  file: File,
-  customName: string,
-  onProgress: (progress: number) => void,
-  onComplete: (downloadURL: string, storagePath: string) => void,
-  onError: (error: Error) => void
-): void {
-  
-  if (!user?.uid) {
-    onError(new Error('Utilisateur non authentifié.'));
-    return;
-  }
-   if (!file) {
-    onError(new Error('Aucun fichier fourni.'));
-    return;
-  }
-
-  if (file.size > MAX_BYTES) {
-    onError(new Error('Fichier trop volumineux (> 10 Mo).'));
-    return;
-  }
-  if (!(ALLOWED_MIME.test(file.type) || NAME_EXT_FALLBACK.test(file.name))) {
-    onError(new Error('Type de fichier non autorisé (images uniquement).'));
-    return;
-  }
-
-  const safeCustom = (customName || '').trim();
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-  const baseName = safeCustom
-    ? sanitize(safeCustom)
-    : sanitize(file.name.replace(/\.[^/.]+$/, '') || 'image');
-  const fileName = `${baseName || 'image'}-${Date.now()}.${ext}`;
-
-  const finalStoragePath = buildStoragePath(user.uid, fileName);
-  const ref = storageRef(storage, finalStoragePath);
-
-  const guessedMime = inferImageMimeFromName(file.name);
-  const finalContentType =
-    (file.type && /^image\/.+/i.test(file.type) ? file.type : null) ||
-    guessedMime ||
-    'image/jpeg'; // Fallback
-
-  // Forcer le rafraîchissement du token avant de démarrer l'upload
-  getIdToken(user, true).then(() => {
-    const task = uploadBytesResumable(ref, file, {
-        contentType: finalContentType,
-        customMetadata: { uid: user.uid },
-    });
-
-    task.on('state_changed',
-        (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            onProgress(progress);
-        },
-        (error) => {
-            // Gérer toutes les erreurs ici
-            console.group('[DIAGNOSTIC ERREUR TÉLÉVERSEMENT]');
-            console.error('Code d\'erreur Firebase :', error.code);
-            console.error('Message d\'erreur Firebase :', error.message);
-            console.error('Nom de l\'erreur :', error.name);
-            console.error('Réponse du serveur (si disponible) :', (error as any).serverResponse);
-            console.log('--- Contexte de la requête ---');
-            console.log('Chemin de destination :', ref.fullPath);
-            console.log('Bucket de destination :', ref.storage.bucket);
-            console.log('Type de contenu envoyé (contentType) :', finalContentType);
-            console.log('Taille du fichier (octets) :', file.size);
-            console.log('Nom du fichier original :', file.name);
-            console.log('UID de l\'utilisateur :', user.uid);
-            console.groupEnd();
-            onError(new Error(friendlyStorageError(error)));
-        },
-        () => {
-            getDownloadURL(task.snapshot.ref).then((url) => {
-                onComplete(url, finalStoragePath);
-            });
-        }
-    );
-
-  }).catch((tokenError) => {
-    console.error('Échec du rafraîchissement du token d\'authentification:', tokenError);
-    onError(new Error('Impossible de rafraîchir le token d\'authentification avant le téléversement.'));
-  });
-}
-
-
-// -----------------------------
 // Delete
 // -----------------------------
 export async function deleteImageFile(
   storage: FirebaseStorage,
   storagePath?: string | null
 ): Promise<void> {
-  if (!storagePath) return;
+  // Ne pas tenter de supprimer si c'est un chemin de contournement
+  if (!storagePath || storagePath === 'data_url') {
+      console.log("Suppression de fichier annulée : l'image est stockée en Data URL dans Firestore.");
+      return;
+  }
   const ref = storageRef(storage, storagePath);
   try {
     await deleteObject(ref);
@@ -215,6 +82,6 @@ export async function deleteImageFile(
       return;
     }
     console.error(`Erreur suppression ${storagePath}:`, e);
-    throw new Error(friendlyStorageError(e));
+    // Dans ce contexte, on ne relance pas l'erreur pour ne pas bloquer l'UX si seule la suppression du fichier échoue
   }
 }

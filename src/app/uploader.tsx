@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { uploadImage, deleteImageFile, fileToDataUrl } from '@/lib/storage';
+import { fileToDataUrl } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,19 +19,16 @@ import { cn } from '@/lib/utils';
 // État pour gérer le processus de téléversement
 type UploadStatus =
   | { state: 'idle' }
-  | { state: 'uploading'; progress: number }
-  | { state: 'processing' } // Firestore metadata saving
+  | { state: 'processing' } 
   | { state: 'success'; url: string; bbCode: string; htmlCode: string }
   | { state: 'error'; message: string };
 
 const looksLikeImage = (f: File) =>
   /^(image\/.*)$/i.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
 
-// Détecte si nous sommes en environnement de développement (Firebase Studio)
-const isDevelopment = process.env.NODE_ENV === 'development';
 
 export function Uploader() {
-  const { user, firestore, storage } = useFirebase();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -40,6 +37,7 @@ export function Uploader() {
   const [copied, setCopied] = useState<'url' | 'bb' | 'html' | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [isUrlLoading, setIsUrlLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
 
   const resetState = () => {
@@ -70,70 +68,44 @@ export function Uploader() {
     }
   };
 
-  // --- NOUVELLE LOGIQUE DE TÉLÉVERSEMENT ---
+  // --- NOUVELLE LOGIQUE DE TÉLÉVERSEMENT (DATA URL) ---
   const handleUpload = useCallback(async () => {
     if (!selectedFile || !user || !firestore) return;
 
-    // Affiche l'état de traitement immédiatement
+    setIsProcessing(true);
     setStatus({ state: 'processing' });
 
     try {
-        let downloadURL: string;
-        let storagePath: string | undefined;
+        // 1. Convertir le fichier en Data URL
+        const dataUrl = await fileToDataUrl(selectedFile);
 
-        if (isDevelopment) {
-            // == STRATÉGIE DE DÉVELOPPEMENT (STUDIO) : Data URL via Firestore ==
-            toast({ title: "Mode développeur", description: "Contournement de Storage via Data URL." });
-            downloadURL = await fileToDataUrl(selectedFile);
-            storagePath = 'data_url'; // Marqueur spécial pour indiquer que ce n'est pas dans Storage
-        } else {
-            // == STRATÉGIE DE PRODUCTION (SITE EN LIGNE) : SDK Firebase Storage ==
-            if (!storage) throw new Error("Le service de stockage n'est pas disponible.");
-            
-            await new Promise<void>((resolve, reject) => {
-                uploadImage(
-                    storage,
-                    user,
-                    selectedFile,
-                    customName,
-                    (progress) => setStatus({ state: 'uploading', progress }),
-                    (url, path) => {
-                        downloadURL = url;
-                        storagePath = path;
-                        setStatus({ state: 'processing' });
-                        resolve();
-                    },
-                    (error) => reject(error)
-                );
-            });
-        }
+        // 2. Préparer les métadonnées
+        const bbCode = `[img]${dataUrl}[/img]`;
+        const htmlCode = `<img src="${dataUrl}" alt="${customName || selectedFile.name}" />`;
         
-        // --- ÉTAPE COMMUNE : SAUVEGARDE DANS FIRESTORE ---
-        const bbCode = `[img]${downloadURL!}[/img]`;
-        const htmlCode = `<img src="${downloadURL!}" alt="${customName || selectedFile.name}" />`;
-        
+        // 3. Sauvegarder dans Firestore
         await saveImageMetadata(firestore, user, {
-            originalName: selectedFile.name,
-            storagePath: storagePath!,
-            directUrl: downloadURL!,
+            originalName: customName || selectedFile.name,
+            directUrl: dataUrl,
             bbCode,
             htmlCode,
             mimeType: selectedFile.type,
             fileSize: selectedFile.size,
+            storagePath: 'data_url', // Marqueur pour indiquer que ce n'est pas dans Storage
         });
 
-        setStatus({ state: 'success', url: downloadURL!, bbCode, htmlCode });
+        setStatus({ state: 'success', url: dataUrl, bbCode, htmlCode });
         toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
         resetState();
 
     } catch (error) {
         const errorMessage = (error as Error).message;
         setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
-        // En cas d'erreur en production, on pourrait essayer de supprimer le fichier orphelin,
-        // mais pour l'instant, on se contente d'afficher l'erreur.
+    } finally {
+        setIsProcessing(false);
     }
 
-  }, [selectedFile, customName, user, storage, firestore, toast]);
+  }, [selectedFile, customName, user, firestore, toast]);
 
     const handleUrlUpload = async () => {
         if (!imageUrl.trim() || !user || !firestore) return;
@@ -171,7 +143,7 @@ export function Uploader() {
     }
   };
   
-  const isUploading = status.state === 'uploading' || status.state === 'processing';
+  const isUploading = status.state === 'processing';
 
   return (
     <Card>
@@ -192,14 +164,14 @@ export function Uploader() {
             <div 
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !isUploading && fileInputRef.current?.click()}
-              aria-disabled={isUploading}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !isProcessing && fileInputRef.current?.click()}
+              aria-disabled={isProcessing}
               className={cn(
                 "border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors",
-                !isUploading && 'cursor-pointer hover:bg-muted/50',
-                isUploading && 'pointer-events-none opacity-70'
+                !isProcessing && 'cursor-pointer hover:bg-muted/50',
+                isProcessing && 'pointer-events-none opacity-70'
                 )}
-              onClick={() => !isUploading && fileInputRef.current?.click()}
+              onClick={() => !isProcessing && fileInputRef.current?.click()}
             >
               <input
                 type="file"
@@ -207,7 +179,7 @@ export function Uploader() {
                 onChange={handleFileChange}
                 className="hidden"
                 accept="image/*"
-                disabled={isUploading}
+                disabled={isProcessing}
               />
               <UploadCloud className="h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-sm font-medium text-foreground">
@@ -224,25 +196,17 @@ export function Uploader() {
                   placeholder="Nom personnalisé (optionnel)"
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
-                  disabled={isUploading}
+                  disabled={isProcessing}
                 />
                 <Button 
                   onClick={handleUpload} 
-                  disabled={isUploading || !selectedFile} 
+                  disabled={isProcessing || !selectedFile} 
                   className="w-full"
                 >
-                  {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {status.state === 'uploading'
-                    ? `Téléversement (${Math.round(status.progress)}%)...`
-                    : status.state === 'processing'
-                    ? 'Traitement...'
-                    : 'Téléverser'}
+                  {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {isProcessing ? 'Traitement...' : 'Téléverser'}
                 </Button>
               </div>
-            )}
-            
-            {status.state === 'uploading' && (
-              <Progress value={status.progress} className="w-full" />
             )}
           </TabsContent>
 
