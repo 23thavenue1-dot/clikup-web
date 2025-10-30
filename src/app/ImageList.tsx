@@ -11,7 +11,7 @@ import { type ImageMetadata, deleteImageMetadata } from '@/lib/firestore';
 import { deleteImageFile } from '@/lib/storage';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2 } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -23,6 +23,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -35,6 +43,10 @@ export function ImageList() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
+
+    const [showShareDialog, setShowShareDialog] = useState(false);
+    const [imageToShare, setImageToShare] = useState<ImageMetadata | null>(null);
+    const [copied, setCopied] = useState<boolean>(false);
 
 
     const imagesQuery = useMemoFirebase(() => {
@@ -49,17 +61,19 @@ export function ImageList() {
         setShowDeleteAlert(true);
     };
 
+    const openShareDialog = (image: ImageMetadata) => {
+        setImageToShare(image);
+        setShowShareDialog(true);
+        setCopied(false);
+    };
+
     const handleDeleteImage = async () => {
         if (!imageToDelete || !user || !storage || !firestore) return;
         
         setIsDeleting(imageToDelete.id);
 
         try {
-            // Supprimer d'abord le fichier de Storage (si applicable)
-            // La fonction deleteImageFile gère maintenant le cas 'data_url'
             await deleteImageFile(storage, imageToDelete.storagePath);
-            
-            // Ensuite, supprimer les métadonnées de Firestore
             await deleteImageMetadata(firestore, user.uid, imageToDelete.id);
 
             toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès." });
@@ -75,6 +89,17 @@ export function ImageList() {
             setIsDeleting(null);
             setShowDeleteAlert(false);
             setImageToDelete(null);
+        }
+    };
+
+    const copyToClipboard = async (text: string) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          toast({ title: "Copié !", description: "Le lien a été copié dans le presse-papiers." });
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
         }
     };
 
@@ -124,7 +149,16 @@ export function ImageList() {
                                         unoptimized // Important pour les Data URLs et celles de Storage
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                    <div className="absolute top-2 right-2 z-10">
+                                    <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => openShareDialog(image)}
+                                            aria-label="Partager l'image"
+                                        >
+                                            <Share2 size={16}/>
+                                        </Button>
                                         <Button
                                             variant="destructive"
                                             size="icon"
@@ -170,6 +204,29 @@ export function ImageList() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Partager l'image</DialogTitle>
+                    <DialogDescription>
+                        Copiez l'un des liens ci-dessous pour partager votre image.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                            <label htmlFor="directLink" className="text-sm font-medium">Lien direct</label>
+                            <div className="flex items-center gap-2">
+                                <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} className="bg-muted text-xs truncate"/>
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '')}>
+                                    {copied ? <Check className="text-green-500"/> : <Copy />}
+                                </Button>
+                            </div>
+                        </div>
+                        {/* Emplacement pour le futur lien de partage */}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
