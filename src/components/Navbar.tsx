@@ -2,16 +2,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser, useAuth } from '@/firebase';
+import { useAuth } from '@/firebase';
+import { useUserProfile } from '@/firebase/auth/use-user-profile';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User as UserIcon, Loader2, Image as ImageIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Loader2, Image as ImageIcon, Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
+import { Skeleton } from './ui/skeleton';
 
 export function Navbar() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, userProfile, isProfileLoading } = useUserProfile();
   const auth = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -39,12 +41,21 @@ export function Navbar() {
           <span>Clikup</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <ThemeToggle />
           {isUserLoading ? (
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
-            <>
+            <div className="flex items-center gap-4">
+              {isProfileLoading ? (
+                <Skeleton className="h-6 w-20" />
+              ) : userProfile ? (
+                 <div className="flex items-center gap-2" title={`${userProfile.ticketCount} tickets restants`}>
+                    <Ticket className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-bold text-primary">{userProfile.ticketCount}</span>
+                 </div>
+              ) : null}
+
               <div className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
@@ -52,7 +63,7 @@ export function Navbar() {
               <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Déconnexion">
                 <LogOut className="h-5 w-5" />
               </Button>
-            </>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               <Button asChild variant="outline">
