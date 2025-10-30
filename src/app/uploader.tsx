@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 type UploadStatus =
   | { state: 'idle' }
   | { state: 'processing' } 
-  | { state: 'success'; url: string; bbCode: string; htmlCode: string }
+  | { state: 'success'; url: string; }
   | { state: 'error'; message: string };
 
 const looksLikeImage = (f: File) =>
@@ -35,7 +35,7 @@ export function Uploader() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customName, setCustomName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [copied, setCopied] = useState<'url' | 'bb' | 'html' | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
   const [imageUrl, setImageUrl] = useState('');
   const [isUrlLoading, setIsUrlLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -46,7 +46,7 @@ export function Uploader() {
     setSelectedFile(null);
     setCustomName('');
     setImageUrl('');
-    setCopied(null);
+    setCopied(false);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -65,7 +65,7 @@ export function Uploader() {
         }
         setSelectedFile(file);
         setStatus({ state: 'idle' });
-        setCopied(null);
+        setCopied(false);
     }
   };
 
@@ -95,7 +95,7 @@ export function Uploader() {
             storagePath: 'data_url', // Marqueur pour indiquer que ce n'est pas dans Storage
         });
 
-        setStatus({ state: 'success', url: dataUrl, bbCode, htmlCode });
+        setStatus({ state: 'success', url: dataUrl });
         toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
         resetState(); // On réinitialise après le succès pour permettre un nouvel upload
 
@@ -123,7 +123,7 @@ export function Uploader() {
                 htmlCode,
             });
 
-            setStatus({ state: 'success', url: imageUrl, bbCode, htmlCode });
+            setStatus({ state: 'success', url: imageUrl });
             toast({ title: 'Succès', description: 'Image depuis URL ajoutée.' });
             resetState(); // On réinitialise après le succès
             
@@ -137,11 +137,11 @@ export function Uploader() {
     };
 
 
-  const copyToClipboard = async (text: string, type: 'url' | 'bb' | 'html') => {
+  const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(type);
-      setTimeout(() => setCopied(null), 2000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
     }
@@ -248,22 +248,11 @@ export function Uploader() {
             </div>
             
             <div className="space-y-2">
+                <label className="text-sm font-medium">Lien direct</label>
                 <div className="flex items-center gap-2">
                     <Input readOnly value={status.url} className="bg-background text-xs truncate"/>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.url, 'url')}>
-                        {copied === 'url' ? <Check className="text-green-500"/> : <Copy />}
-                    </Button>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <Input readOnly value={status.bbCode} className="bg-background text-xs truncate"/>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.bbCode, 'bb')}>
-                        {copied === 'bb' ? <Check className="text-green-500"/> : <Copy />}
-                    </Button>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <Input readOnly value={status.htmlCode} className="bg-background text-xs truncate"/>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.htmlCode, 'html')}>
-                        {copied === 'html' ? <Check className="text-green-500"/> : <Copy />}
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.url)}>
+                        {copied ? <Check className="text-green-500"/> : <Copy />}
                     </Button>
                 </div>
             </div>
