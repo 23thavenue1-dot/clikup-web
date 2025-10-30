@@ -17,6 +17,17 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 
+// Correspond à la structure dans backend.json
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  creationTimestamp: any; // Firestore Timestamp
+  ticketCount: number;
+  lastTicketRefill: any; // Firestore Timestamp
+}
+
+
 // Ce type représente la structure de données attendue pour un document d'image dans Firestore.
 // Il est crucial qu'il corresponde au schéma dans backend.json et aux règles de sécurité.
 export type ImageMetadata = {
@@ -164,4 +175,3 @@ export function saveNote(firestore: Firestore, user: User, text: string) {
     throw error;
   });
 }
-
