@@ -2,13 +2,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useStorage } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, deleteImageMetadata } from '@/lib/firestore';
-import { deleteImageFile } from '@/lib/storage';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ImageIcon, Trash2, Loader2, Share2, Copy, Check } from 'lucide-react';
@@ -37,7 +36,6 @@ import { useToast } from '@/hooks/use-toast';
 export function ImageList() {
     const { user } = useUser();
     const firestore = useFirestore();
-    const storage = useStorage();
     const { toast } = useToast();
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -68,12 +66,12 @@ export function ImageList() {
     };
 
     const handleDeleteImage = async () => {
-        if (!imageToDelete || !user || !storage || !firestore) return;
+        if (!imageToDelete || !user || !firestore) return;
         
         setIsDeleting(imageToDelete.id);
 
         try {
-            await deleteImageFile(storage, imageToDelete.storagePath);
+            // Puisque nous n'utilisons plus Storage, seule la suppression des métadonnées est nécessaire.
             await deleteImageMetadata(firestore, user.uid, imageToDelete.id);
 
             toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès." });

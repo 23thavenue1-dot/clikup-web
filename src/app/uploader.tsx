@@ -4,13 +4,13 @@
 import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
+import { fileToDataUrl } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -19,7 +19,6 @@ import { Progress } from '@/components/ui/progress';
 type UploadStatus =
   | { state: 'idle' }
   | { state: 'processing' }
-  | { state: 'uploading'; progress: number }
   | { state: 'success'; url: string; }
   | { state: 'error'; message: string };
 
@@ -28,7 +27,7 @@ const looksLikeImage = (f: File) =>
 
 
 export function Uploader() {
-  const { user, firestore, storage } = useFirebase();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
   
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
@@ -88,7 +87,7 @@ export function Uploader() {
             storagePath: 'data_url', // Marqueur pour indiquer que ce n'est pas sur Storage
         });
 
-        toast({ title: 'Succès', description: 'Votre image a été enregistrée via la méthode Data URL.' });
+        toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
         resetState();
 
     } catch (error) {
@@ -99,32 +98,6 @@ export function Uploader() {
         setIsProcessing(false);
     }
   }, [selectedFile, customName, user, firestore, toast]);
-
-  const handleStorageUpload = useCallback(async () => {
-    if (!selectedFile || !user || !storage || !firestore) return;
-
-    setIsProcessing(true);
-    try {
-      const metadata = await uploadFileAndGetMetadata(
-        storage,
-        user,
-        selectedFile,
-        customName,
-        (progress) => setStatus({ state: 'uploading', progress })
-      );
-
-      await saveImageMetadata(firestore, user, metadata);
-      
-      toast({ title: "Téléversement réussi !", description: "Votre image a été envoyée sur Firebase Storage." });
-      resetState();
-
-    } catch (error) {
-        const errorMessage = (error as Error).message;
-        setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
-        toast({ variant: 'destructive', title: 'Erreur de téléversement', description: errorMessage });
-        setIsProcessing(false); // S'assurer de réactiver le bouton en cas d'erreur
-    }
-  }, [selectedFile, customName, user, storage, firestore, toast]);
 
   const handleUrlUpload = async () => {
     if (!imageUrl.trim() || !user || !firestore) return;
@@ -149,7 +122,7 @@ export function Uploader() {
     }
   };
 
-  const renderFilePicker = (isForStorage: boolean) => (
+  const renderFilePicker = () => (
     <div 
         role="button"
         tabIndex={0}
@@ -175,7 +148,7 @@ export function Uploader() {
         {selectedFile ? `Fichier sélectionné : ${selectedFile.name}` : 'Cliquez pour choisir un fichier'}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {isForStorage ? "Tentative d'envoi direct vers le cloud." : "Contournement via Data URL."}
+          Téléversement sécurisé via Data URL.
         </p>
     </div>
   );
@@ -185,19 +158,18 @@ export function Uploader() {
       <CardHeader>
         <CardTitle>Ajouter une image</CardTitle>
         <CardDescription>
-          Choisissez votre méthode de téléversement.
+          Téléversez une image depuis votre ordinateur ou ajoutez-la depuis une URL.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="data-url" className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="data-url"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier (sécurisé)</TabsTrigger>
+        <Tabs defaultValue="file" className="w-full" onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="file"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
             <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
-            <TabsTrigger value="storage"><HardDriveUpload className="mr-2 h-4 w-4" />Via Storage (Test)</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="data-url" className="space-y-4 pt-4">
-            {renderFilePicker(false)}
+          <TabsContent value="file" className="space-y-4 pt-4">
+            {renderFilePicker()}
             {selectedFile && (
                 <div className="space-y-4">
                     <Input
@@ -229,30 +201,6 @@ export function Uploader() {
                 {isUrlLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Ajouter depuis l'URL
             </Button>
-          </TabsContent>
-
-          <TabsContent value="storage" className="space-y-4 pt-4">
-            {renderFilePicker(true)}
-            {status.state === 'uploading' && <Progress value={status.progress} className="w-full" />}
-
-            {selectedFile && (
-                <div className="space-y-4">
-                    <Input
-                    placeholder="Nom personnalisé (optionnel)"
-                    value={customName}
-                    onChange={(e) => setCustomName(e.target.value)}
-                    disabled={isProcessing}
-                    />
-                    <Button 
-                    onClick={handleStorageUpload} 
-                    disabled={isProcessing || !selectedFile} 
-                    className="w-full"
-                    >
-                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isProcessing ? 'Envoi...' : 'Téléverser sur Storage'}
-                    </Button>
-                </div>
-            )}
           </TabsContent>
 
         </Tabs>
