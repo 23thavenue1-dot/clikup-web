@@ -58,8 +58,11 @@ export async function saveImageMetadata(firestore: Firestore, user: User, metada
     };
 
     try {
+        // addDoc crée le document et on récupère la référence
         const docRef = await addDoc(imagesCollectionRef, dataToSave);
+        // On met ensuite à jour ce même document pour y ajouter son propre ID
         await updateDoc(docRef, { id: docRef.id });
+
     } catch (error) {
         console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
         const permissionError = new FirestorePermissionError({
@@ -71,6 +74,7 @@ export async function saveImageMetadata(firestore: Firestore, user: User, metada
         throw error;
     }
 }
+
 
 /**
  * Sauvegarde les métadonnées d'une image depuis une URL dans Firestore.
@@ -160,3 +164,4 @@ export function saveNote(firestore: Firestore, user: User, text: string) {
     throw error;
   });
 }
+

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
@@ -96,11 +97,12 @@ export function Uploader() {
 
         setStatus({ state: 'success', url: dataUrl, bbCode, htmlCode });
         toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
-        resetState();
+        resetState(); // On réinitialise après le succès pour permettre un nouvel upload
 
     } catch (error) {
         const errorMessage = (error as Error).message;
         setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
+        toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });
     } finally {
         setIsProcessing(false);
     }
@@ -123,10 +125,12 @@ export function Uploader() {
 
             setStatus({ state: 'success', url: imageUrl, bbCode, htmlCode });
             toast({ title: 'Succès', description: 'Image depuis URL ajoutée.' });
+            resetState(); // On réinitialise après le succès
             
         } catch (error) {
             const errorMessage = (error as Error).message;
             setStatus({ state: 'error', message: errorMessage });
+            toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });
         } finally {
             setIsUrlLoading(false);
         }
@@ -225,11 +229,11 @@ export function Uploader() {
         </Tabs>
         
         {status.state === 'error' && (
-          <p className="text-sm text-destructive">{status.message}</p>
+          <p className="mt-4 text-sm text-center text-destructive">{status.message}</p>
         )}
 
         {status.state === 'success' && (
-          <div className="space-y-3 rounded-md border bg-muted/50 p-4">
+          <div className="space-y-3 rounded-md border bg-muted/50 p-4 mt-4">
             <h4 className="font-medium text-sm">Opération réussie !</h4>
 
             <div className="relative aspect-video w-full overflow-hidden rounded-md">
