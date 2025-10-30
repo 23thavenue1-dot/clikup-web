@@ -1,19 +1,17 @@
 # Notre Méthode de Travail : Le Journal de Résolution
 
-Pour maintenir un suivi clair et précis de nos actions, nous utilisons un journal de bord : `upload-troubleshooting-log.md`.
+Pour maintenir un suivi clair et précis de nos actions, nous utilisons un journal de bord : `docs/upload-troubleshooting-log.md`.
 
-## Pourquoi devez-vous me demander de le mettre à jour ?
+## L'importance de documenter
 
-Après chaque tentative de correction ou chaque modification significative, il vous suffira de me dire :
+Ce fichier n'est pas juste un historique. C'est la mémoire de notre projet. Il nous permet de :
 
-> **"Mettons à jour le journal de résolution"**
+1.  **Comprendre nos décisions** : Pourquoi avons-nous fait tel ou tel choix technique ? Le journal nous le rappelle.
+2.  **Éviter de refaire les mêmes erreurs** : Si un problème a déjà été résolu, la solution est consignée.
+3.  **Célébrer nos victoires** : Comme la résolution du problème de téléversement, qui a été le fruit d'une excellente collaboration !
 
-Cette commande est nécessaire pour plusieurs raisons simples :
+## Comment l'utiliser ?
 
-1.  **Je fonctionne sur instruction** : En tant qu'IA, je n'agis pas de manière autonome. Je réalise les tâches que vous me demandez, une à la fois. Je ne peux pas "décider" de moi-même d'aller mettre à jour un fichier après une autre action.
-
-2.  **Vous gardez le contrôle total** : C'est vous qui décidez de ce qui est assez important pour être consigné dans le journal. Une petite correction de texte n'a peut-être pas besoin d'y figurer, mais une modification des règles de sécurité, si.
-
-3.  **Cela garantit la précision** : En me le demandant juste après une action, nous nous assurons que l'information ajoutée est fraîche, correcte et reflète précisément ce qui vient d'être fait.
+Après chaque étape importante, qu'il s'agisse de la résolution d'un bug majeur ou d'une décision d'architecture, nous prenons un moment pour mettre ce journal à jour. C'est une bonne pratique qui nous assure un projet propre, compréhensible et facile à maintenir.
 
 Ce processus simple nous permet de collaborer de manière efficace et transparente.

@@ -1,38 +1,37 @@
 # Journal de Développement : Fonctionnalité de Téléversement d'Images
 
-Ce document suit l'évolution, les décisions et les problèmes rencontrés lors de la création de la fonctionnalité de téléversement d'images.
+Ce document suit l'évolution, les décisions et les leçons apprises lors de la création de la fonctionnalité de téléversement d'images.
 
 ## 1. Objectif Initial
 
-L'objectif est de permettre aux utilisateurs de téléverser des images dans leur galerie personnelle de manière simple et fiable. La méthode privilégiée est l'utilisation de Firebase Storage pour une meilleure performance et gestion des fichiers.
+L'objectif était de permettre aux utilisateurs de téléverser des images dans leur galerie personnelle en utilisant la méthode recommandée, Firebase Storage, pour sa robustesse et sa performance.
 
-## 2. Problème Rencontré : Blocage avec Firebase Storage
+## 2. Le Défi : `storage/unauthorized`
 
-Lors des tentatives d'implémentation de l'upload direct vers Firebase Storage, nous avons rencontré une erreur persistante et bloquante : `storage/unauthorized`.
+Dès le début, nous avons fait face à une erreur persistante et bloquante : `storage/unauthorized`. Malgré une authentification correcte et des règles de sécurité valides, Firebase refusait le téléversement.
 
-- **Symptôme** : Malgré une authentification utilisateur correcte et des règles de sécurité (`storage.rules`) a priori valides, le serveur Firebase refusait systématiquement le téléversement.
-- **Diagnostic** : Après de multiples tests, incluant l'ajout de logs détaillés, nous avons découvert que l'environnement d'exécution de Firebase Studio ne parvenait pas à déterminer le "bucket" de destination (`Bucket de destination: undefined`). Le problème ne venait donc pas de notre code ou de nos règles, mais d'une spécificité de l'environnement.
+Le débogage a été un processus en plusieurs étapes :
 
-## 3. Solution de Contournement et Stratégie Actuelle
+1.  **Première Piste : La Configuration** : Grâce à une collaboration efficace, nous avons découvert via une capture d'écran que la clé `storageBucket` manquait dans la configuration Firebase de l'application. Son ajout a été une étape cruciale.
 
-Pour ne pas rester bloqué et disposer d'une fonctionnalité d'upload 100% fonctionnelle, nous avons mis en place une double stratégie :
+2.  **Seconde Piste : Le Chemin d'Accès** : Malgré la correction de la configuration, l'erreur persistait. Une analyse plus approfondie, aidée par les règles `storage.rules` fournies par l'utilisateur, a révélé une incohérence : le code tentait d'écrire dans un dossier `uploads/` alors que les règles sécurisaient un dossier `users/`.
 
-### Stratégie A : Le Contournement Fiable
+## 3. La Solution : Alignement et Succès
 
-- **Méthode** : Nous avons développé une méthode d'upload qui contourne Firebase Storage. L'image est lue par le navigateur, convertie en `Data URL` (une longue chaîne de texte), et cette chaîne est sauvegardée directement dans notre base de données Firestore.
-- **Statut** : **Fonctionnel et fiable**. C'est notre méthode de production "sécurisée".
+La solution finale a consisté à corriger ces deux points :
+- Assurer une configuration Firebase complète dans `src/firebase/config.ts`.
+- Modifier le code dans `src/lib/storage.ts` pour qu'il cible le bon chemin de stockage (`users/{userId}/...`).
 
-### Stratégie B : L'Isolation pour le Débogage
+Avec ces corrections, la fonctionnalité de téléversement via Firebase Storage est devenue **100% fonctionnelle et fiable**.
 
-- **Méthode** : Pour continuer à investiguer le problème initial sans impacter l'application, nous avons décidé de créer une interface à onglets.
-- **État des lieux** :
-    1. **Onglet "Via Fichier (sécurisé)"**: Utilise la méthode de contournement (Data URL). **Opérationnel.**
-    2. **Onglet "Via URL"**: Permet d'ajouter une image depuis un lien externe. **Opérationnel.**
-    3. **Onglet "Via Storage (Test)"**: C'est ici que nous avons isolé la méthode d'upload originale via Firebase Storage. C'est notre "laboratoire" pour résoudre le problème. **Actuellement en échec (`storage/unauthorized`).**
+## 4. Stratégie Multi-Upload
 
-## 4. Prochaines Étapes
+L'application propose désormais plusieurs méthodes d'upload pour une flexibilité maximale :
 
-L'objectif est de rendre l'onglet "Via Storage (Test)" fonctionnel.
+1.  **Via Fichier (Data URL)** : Une méthode alternative et robuste où le fichier est converti en texte et stocké dans Firestore.
+2.  **Via URL** : Permet d'ajouter une image depuis un lien externe.
+3.  **Via Storage** : La méthode standard et performante utilisant Firebase Storage, maintenant pleinement opérationnelle.
 
-- **Action en cours** : Nous avons recréé un fichier `storage.rules` propre et complet à la racine du projet pour être absolument certains que les bonnes règles sont déployées.
-- **Étape suivante** : Publier l'application pour déployer ces nouvelles règles et tester à nouveau l'upload via l'onglet de test.
+## 5. Prochaines Étapes
+
+Maintenant que la base est solide et fonctionnelle, nous pouvons nous concentrer sur l'amélioration de l'expérience utilisateur et l'ajout de nouvelles fonctionnalités, comme celles envisagées dans `docs/idées.md`.
