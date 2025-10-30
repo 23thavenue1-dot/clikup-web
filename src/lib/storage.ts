@@ -1,6 +1,11 @@
 
 'use client';
 
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask } from 'firebase/storage';
+import type { User } from 'firebase/auth';
+import type { ImageMetadata } from './firestore';
+import { useFirebase } from '@/firebase';
+
 // -----------------------------
 // Config côté client (guards)
 // -----------------------------
@@ -34,4 +39,87 @@ export function fileToDataUrl(file: File): Promise<string> {
     };
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * DEPRECATED / TEST-ONLY: Deletes a file from Firebase Storage.
+ * @param storage The Firebase Storage instance.
+ * @param filePath The full path to the file in the bucket (e.g., 'uploads/userId/image.jpg').
+ */
+export async function deleteImageFile(storagePath: string): Promise<void> {
+  const { storage } = useFirebase();
+  if (!storage) {
+    throw new Error("Firebase Storage not initialized.");
+  }
+  const fileRef = ref(storage, storagePath);
+  try {
+    await deleteObject(fileRef);
+  } catch (error) {
+    console.error("Erreur lors de la suppression du fichier sur Storage:", error);
+    // Ne pas bloquer si la suppression échoue, mais logger l'erreur.
+  }
+}
+
+/**
+ * TEST-ONLY: Uploads a file to Firebase Storage and returns its metadata.
+ * @param storage The Firebase Storage instance.
+ * @param user The authenticated user object.
+ * @param file The file to upload.
+ * @param onProgress A callback to report upload progress.
+ * @returns A promise that resolves to the metadata of the uploaded image.
+ */
+export function uploadFileAndGetMetadata(
+    storage: ReturnType<typeof getStorage>,
+    user: User,
+    file: File,
+    customName: string,
+    onProgress: (progress: number) => void
+): Promise<Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>> {
+
+    return new Promise((resolve, reject) => {
+        if (file.size > MAX_BYTES) {
+            return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
+        }
+        if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
+            return reject(new Error('Type de fichier non autorisé (images uniquement).'));
+        }
+
+        const fileName = `${Date.now()}_${file.name}`;
+        // **CORRECTION CRUCIALE**: Utilisation du chemin `users/` au lieu de `uploads/`
+        const storagePath = `users/${user.uid}/${fileName}`;
+        const storageRef: StorageReference = ref(storage, storagePath);
+        const uploadTask: UploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                // Progression
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                onProgress(progress);
+            },
+            (error) => {
+                // Erreur
+                console.error("Erreur détaillée de l'upload:", error);
+                console.error(`Code: ${error.code}, Message: ${error.message}, Nom: ${error.name}`);
+                reject(new Error(`Permission refusée: vérifiez les règles de sécurité de Storage et l'authentification de l'utilisateur.`));
+            },
+            async () => {
+                // Succès
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    const metadata = {
+                        originalName: customName || file.name,
+                        storagePath: storagePath,
+                        directUrl: downloadURL,
+                        bbCode: `[img]${downloadURL}[/img]`,
+                        htmlCode: `<img src="${downloadURL}" alt="${customName || file.name}" />`,
+                        mimeType: file.type,
+                        fileSize: file.size,
+                    };
+                    resolve(metadata);
+                } catch (error) {
+                    reject(new Error("Impossible d'obtenir l'URL de téléchargement."));
+                }
+            }
+        );
+    });
 }
