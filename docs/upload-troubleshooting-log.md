@@ -1,4 +1,6 @@
-# Journal de Résolution : Problème de Téléversement d'Images
+# Journal de Résolution : Problème de Téléversement d'Images (Archivé)
+
+**Ce document est archivé. Les informations qu'il contient ont été synthétisées et intégrées dans le journal de développement principal : `docs/feature-dev-log.md`.**
 
 Ce document retrace l'historique du problème de téléversement vers Firebase Storage, les étapes de débogage et la solution finale qui a permis de le résoudre.
 
