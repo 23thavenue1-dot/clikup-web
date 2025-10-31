@@ -73,25 +73,25 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .mid {
-    --background: 240 5% 20%; /* Gris très foncé */
-    --foreground: 240 5% 95%; /* Blanc cassé */
-    --card: 240 5% 25%; /* Gris un peu plus clair */
-    --card-foreground: 240 5% 95%;
-    --popover: 240 5% 25%;
-    --popover-foreground: 240 5% 95%;
-    --primary: 240 5% 80%; /* Gris clair pour les éléments primaires */
-    --primary-foreground: 240 5% 15%; /* Texte presque noir */
-    --secondary: 240 5% 35%; /* Gris moyen */
-    --secondary-foreground: 240 5% 95%;
-    --muted: 240 5% 30%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 240 5% 40%; /* Gris accentué */
-    --accent-foreground: 240 5% 98%;
+    --background: 220 15% 15%; /* Gris-bleu très foncé */
+    --foreground: 210 20% 95%; /* Blanc cassé tirant sur le bleu */
+    --card: 220 15% 20%; /* Gris-bleu un peu plus clair */
+    --card-foreground: 210 20% 95%;
+    --popover: 220 15% 20%;
+    --popover-foreground: 210 20% 95%;
+    --primary: 210 80% 65%; /* Bleu nuit clair pour les éléments primaires */
+    --primary-foreground: 220 15% 10%; /* Texte presque noir */
+    --secondary: 220 15% 30%; /* Gris-bleu moyen */
+    --secondary-foreground: 210 20% 95%;
+    --muted: 220 15% 25%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 210 80% 55%; /* Bleu nuit accentué */
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 72% 51%; /* Rouge vif pour le danger */
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5% 35%;
-    --input: 240 5% 35%;
-    --ring: 240 5% 80%;
+    --border: 220 15% 30%;
+    --input: 220 15% 30%;
+    --ring: 210 80% 65%;
   }
 }
 
