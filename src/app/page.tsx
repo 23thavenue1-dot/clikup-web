@@ -24,7 +24,7 @@ export default function Home() {
     return doc(firestore, `users/${user.uid}`);
   }, [user, firestore]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -82,7 +82,7 @@ export default function Home() {
           </div>
         </header>
 
-        <Uploader userProfile={userProfile} />
+        <Uploader />
 
         <ImageList />
 

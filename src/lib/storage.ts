@@ -4,7 +4,9 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import type { ImageMetadata } from './firestore';
-import { useFirebase } from '@/firebase';
+import { getApp } from 'firebase/app';
+import { initializeFirebase } from '@/firebase';
+
 
 // -----------------------------
 // Config côté client (guards)
@@ -47,7 +49,8 @@ export function fileToDataUrl(file: File): Promise<string> {
  * @param filePath The full path to the file in the bucket (e.g., 'uploads/userId/image.jpg').
  */
 export async function deleteImageFile(storagePath: string): Promise<void> {
-  const { storage } = useFirebase();
+  // Correction: Initialiser Firebase correctement pour obtenir l'instance de storage
+  const { storage } = initializeFirebase();
   if (!storage) {
     throw new Error("Firebase Storage not initialized.");
   }

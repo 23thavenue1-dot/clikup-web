@@ -1,12 +1,13 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { useFirebase } from '@/firebase';
+import { useState, useRef } from 'react';
+import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl, type UserProfile, decrementTicketCount } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
+import { doc } from 'firebase/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,10 +27,6 @@ import {
 } from "@/components/ui/dialog"
 
 
-type UploaderProps = {
-  userProfile: UserProfile | null;
-};
-
 type UploadStatus =
   | { state: 'idle' }
   | { state: 'processing' }
@@ -41,8 +38,9 @@ const looksLikeImage = (f: File) =>
   /^(image\/.*)$/i.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
 
 
-export function Uploader({ userProfile }: UploaderProps) {
-  const { user, firestore, firebaseApp } = useFirebase();
+export function Uploader() {
+  const { user, firebaseApp } = useFirebase();
+  const firestore = useFirestore();
   const { toast } = useToast();
   
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
@@ -56,6 +54,14 @@ export function Uploader({ userProfile }: UploaderProps) {
   const [imageUrl, setImageUrl] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-gestion du userProfile
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [user, firestore]);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
 
   const resetState = () => {
     setStatus({ state: 'idle' });
@@ -113,12 +119,12 @@ export function Uploader({ userProfile }: UploaderProps) {
 
 
   const handleDataUrlUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !user) return;
     setIsFileUploading(true);
     await handleUpload(async () => {
       setStatus({ state: 'processing' });
       const dataUrl = await fileToDataUrl(selectedFile);
-      await saveImageMetadata(firestore, user!, {
+      await saveImageMetadata(firestore, user, {
         originalName: customName || selectedFile.name,
         directUrl: dataUrl,
         bbCode: `[img]${dataUrl}[/img]`,
@@ -132,10 +138,10 @@ export function Uploader({ userProfile }: UploaderProps) {
   };
 
   const handleUrlUpload = async () => {
-    if (!imageUrl.trim()) return;
+    if (!imageUrl.trim() || !user) return;
     setIsUrlUploading(true);
     await handleUpload(async () => {
-      await saveImageFromUrl(firestore, user!, {
+      await saveImageFromUrl(firestore, user, {
         directUrl: imageUrl,
         bbCode: `[img]${imageUrl}[/img]`,
         htmlCode: `<img src="${imageUrl}" alt="Image depuis URL" />`,
@@ -145,18 +151,18 @@ export function Uploader({ userProfile }: UploaderProps) {
   };
   
   const handleStorageUpload = async () => {
-    if (!selectedFile || !firebaseApp) return;
+    if (!selectedFile || !firebaseApp || !user) return;
     setIsStorageUploading(true);
     const storage = getStorage(firebaseApp);
     await handleUpload(async () => {
       const metadata = await uploadFileAndGetMetadata(
           storage,
-          user!,
+          user,
           selectedFile,
           customName,
           (progress) => setStatus({ state: 'uploading', progress })
       );
-      await saveImageMetadata(firestore, user!, metadata);
+      await saveImageMetadata(firestore, user, metadata);
     });
     setIsStorageUploading(false);
   };
