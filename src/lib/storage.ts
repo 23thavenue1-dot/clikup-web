@@ -4,9 +4,7 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask, listAll } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import type { ImageMetadata } from './firestore';
-import { getApp } from 'firebase/app';
 import { initializeFirebase } from '@/firebase';
-
 
 // -----------------------------
 // Config côté client (guards)
@@ -14,21 +12,65 @@ import { initializeFirebase } from '@/firebase';
 export const MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
 export const ALLOWED_MIME = /^(image\/.*)$/i;
 const NAME_EXT_FALLBACK = /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i;
+const HEIC_MIME_TYPES = ['image/heic', 'image/heif'];
+
+
+/**
+ * Converts a HEIC/HEIF file to a JPEG File object if necessary.
+ * If the file is not a HEIC/HEIF, it returns the original file.
+ * @param file The file to potentially convert.
+ * @returns A promise that resolves with a File object (either the original or the converted one).
+ */
+export async function convertHeicToJpeg(file: File): Promise<File> {
+  const isHeic = HEIC_MIME_TYPES.includes(file.type.toLowerCase()) || 
+                 /\.(heic|heif)$/i.test(file.name);
+
+  if (!isHeic) {
+    return file; // Pas de conversion nécessaire
+  }
+
+  try {
+    // Dynamic import to ensure heic2any is only loaded on the client
+    const heic2any = (await import('heic2any')).default;
+    
+    const conversionResult = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.8, // Qualité de conversion (0.8 = 80%)
+    });
+
+    const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+    const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpeg');
+    
+    return new File([blob], newFileName, {
+      type: blob.type,
+      lastModified: file.lastModified,
+    });
+
+  } catch (error) {
+    console.error("Erreur de conversion HEIC:", error);
+    // Si la conversion échoue, on retourne le fichier original
+    // et on laisse le navigateur tenter de l'afficher.
+    return file;
+  }
+}
 
 
 /**
  * Converts a File object to a Base64-encoded Data URL.
- * This is our primary upload method, bypassing Firebase Storage due to environment issues.
+ * Handles HEIC/HEIF conversion before processing.
  * @param file The file to convert.
  * @returns A promise that resolves with the Data URL string.
  */
-export function fileToDataUrl(file: File): Promise<string> {
+export async function fileToDataUrl(file: File): Promise<string> {
+  const processedFile = await convertHeicToJpeg(file);
+
   return new Promise((resolve, reject) => {
     // Perform checks before reading the file
-    if (file.size > MAX_BYTES) {
+    if (processedFile.size > MAX_BYTES) {
       return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
     }
-    if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
+    if (!ALLOWED_MIME.test(processedFile.type) && !NAME_EXT_FALLBACK.test(processedFile.name)) {
       return reject(new Error('Type de fichier non autorisé (images uniquement).'));
     }
     
@@ -39,7 +81,7 @@ export function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = (error) => {
       reject(error);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(processedFile);
   });
 }
 
@@ -81,33 +123,36 @@ export async function deleteFolder(folderPath: string): Promise<void> {
 
 /**
  * TEST-ONLY: Uploads a file to Firebase Storage and returns its metadata.
+ * Handles HEIC/HEIF conversion before upload.
  * @param storage The Firebase Storage instance.
  * @param user The authenticated user object.
  * @param file The file to upload.
  * @param onProgress A callback to report upload progress.
  * @returns A promise that resolves to the metadata of the uploaded image.
  */
-export function uploadFileAndGetMetadata(
+export async function uploadFileAndGetMetadata(
     storage: ReturnType<typeof getStorage>,
     user: User,
     file: File,
     customName: string,
     onProgress: (progress: number) => void
 ): Promise<Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>> {
+    
+    const processedFile = await convertHeicToJpeg(file);
 
     return new Promise((resolve, reject) => {
-        if (file.size > MAX_BYTES) {
+        if (processedFile.size > MAX_BYTES) {
             return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
         }
-        if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
+        if (!ALLOWED_MIME.test(processedFile.type) && !NAME_EXT_FALLBACK.test(processedFile.name)) {
             return reject(new Error('Type de fichier non autorisé (images uniquement).'));
         }
 
-        const fileName = `${Date.now()}_${file.name}`;
+        const fileName = `${Date.now()}_${processedFile.name}`;
         // **CORRECTION CRUCIALE**: Utilisation du chemin `users/` au lieu de `uploads/`
         const storagePath = `users/${user.uid}/${fileName}`;
         const storageRef: StorageReference = ref(storage, storagePath);
-        const uploadTask: UploadTask = uploadBytesResumable(storageRef, file);
+        const uploadTask: UploadTask = uploadBytesResumable(storageRef, processedFile);
 
         uploadTask.on('state_changed',
             (snapshot) => {
@@ -126,13 +171,13 @@ export function uploadFileAndGetMetadata(
                 try {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const metadata = {
-                        originalName: customName || file.name,
+                        originalName: customName || processedFile.name,
                         storagePath: storagePath,
                         directUrl: downloadURL,
                         bbCode: `[img]${downloadURL}[/img]`,
-                        htmlCode: `<img src="${downloadURL}" alt="${customName || file.name}" />`,
-                        mimeType: file.type,
-                        fileSize: file.size,
+                        htmlCode: `<img src="${downloadURL}" alt="${customName || processedFile.name}" />`,
+                        mimeType: processedFile.type,
+                        fileSize: processedFile.size,
                     };
                     resolve(metadata);
                 } catch (error) {
