@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -9,16 +8,14 @@ service firebase.storage {
       allow write: if request.auth != null && request.auth.uid == userId; // Seul le propriétaire peut écrire
     }
 
-    // Règle pour les photos de profil
+    // Règle pour les photos de profil (avatars)
     match /avatars/{userId}/{fileName} {
       allow read: if true; // Tout le monde peut voir les avatars
-      // Seul le propriétaire peut changer son avatar (max 2Mo, image seulement)
-      allow write: if request.auth != null && request.auth.uid == userId 
-                   && request.resource.size < 2 * 1024 * 1024 
-                   && request.resource.contentType.matches('image/.*');
+      
+      // Seul le propriétaire peut écrire (changer son avatar).
+      // On retire les contraintes de taille et de type pour le débogage.
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
   }
 }
-
-    
