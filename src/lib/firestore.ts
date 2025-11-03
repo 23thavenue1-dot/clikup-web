@@ -73,31 +73,43 @@ export type Note = {
 }
 
 /**
- * Vérifie si le quota de tickets de l'utilisateur doit être rechargé et le fait si nécessaire.
+ * Vérifie et recharge les tickets (upload et IA) de l'utilisateur si nécessaire.
  * La recharge a lieu si la dernière recharge date d'un jour précédent.
  * @param firestore L'instance Firestore.
  * @param userDocRef La référence au document de l'utilisateur.
  * @param userProfile Le profil de l'utilisateur.
  */
 export async function checkAndRefillTickets(firestore: Firestore, userDocRef: DocumentReference, userProfile: UserProfile): Promise<void> {
-  if (!userProfile.lastTicketRefill) return;
+    const today = new Date();
+    const updates: { [key: string]: any } = {};
 
-  const today = new Date();
-  const lastRefillDate = userProfile.lastTicketRefill.toDate();
-
-  // On compare le début du jour de la dernière recharge avec le début du jour actuel.
-  if (isBefore(startOfDay(lastRefillDate), startOfDay(today))) {
-    try {
-      await updateDoc(userDocRef, {
-        ticketCount: 5,
-        lastTicketRefill: serverTimestamp(),
-      });
-      console.log('Tickets rechargés pour l\'utilisateur:', userProfile.id);
-    } catch (error) {
-      console.error('Erreur lors de la recharge des tickets:', error);
-      // Gérer l'erreur si nécessaire, par exemple avec un toast
+    // 1. Vérification des tickets d'upload
+    if (userProfile.lastTicketRefill) {
+        const lastRefillDate = userProfile.lastTicketRefill.toDate();
+        if (isBefore(startOfDay(lastRefillDate), startOfDay(today))) {
+            updates.ticketCount = 5;
+            updates.lastTicketRefill = serverTimestamp();
+        }
     }
-  }
+
+    // 2. Vérification des tickets IA
+    if (userProfile.lastAiTicketRefill) {
+        const lastAiRefillDate = userProfile.lastAiTicketRefill.toDate();
+        if (isBefore(startOfDay(lastAiRefillDate), startOfDay(today))) {
+            updates.aiTicketCount = 3;
+            updates.lastAiTicketRefill = serverTimestamp();
+        }
+    }
+
+    // Appliquer les mises à jour si nécessaire
+    if (Object.keys(updates).length > 0) {
+        try {
+            await updateDoc(userDocRef, updates);
+            console.log('Mise à jour des tickets effectuée pour l\'utilisateur:', userProfile.id, updates);
+        } catch (error) {
+            console.error('Erreur lors de la recharge des tickets:', error);
+        }
+    }
 }
 
 
@@ -343,3 +355,5 @@ export async function updateImageDescription(
         throw error;
     }
 }
+
+    

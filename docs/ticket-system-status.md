@@ -12,7 +12,7 @@ Ce document dresse un bilan de l'état actuel du système de tickets, retrace le
 *   **Blocage à Zéro :** Un utilisateur qui n'a plus de tickets **ne peut plus en téléverser**, et un message d'erreur clair lui est notifié.
 *   **Recharge Quotidienne :** La logique de recharge est implémentée et réinitialise le compteur à 5, une fois par période de 24 heures.
 
-## 2. Implémentation du Système de Tickets IA (En cours)
+## 2. Implémentation du Système de Tickets IA (Terminé)
 
 Nous étendons maintenant le système pour gérer la consommation des fonctionnalités d'IA.
 
@@ -34,5 +34,11 @@ Nous étendons maintenant le système pour gérer la consommation des fonctionna
 *   **Résultat :** Le système de décompte est fonctionnel. L'utilisation de l'IA est maintenant limitée par le nombre de tickets disponibles.
 
 
-### Prochaines Étapes :
-*   **Étape 3 :** Mettre en place la recharge quotidienne des tickets IA.
+### Étape 3 : Mettre en place la recharge quotidienne (Terminé)
+*   **Objectif :** Assurer que les utilisateurs reçoivent leur quota de tickets IA chaque jour.
+*   **Action Réalisée :**
+    1. La fonction `checkAndRefillTickets` dans `lib/firestore.ts` a été étendue.
+    2. Elle vérifie maintenant non seulement les tickets d'upload, mais aussi les tickets IA (`aiTicketCount`) et les recharge à 3 si plus de 24h se sont écoulées depuis la dernière recharge.
+*   **Résultat :** Le système de tickets IA est complet, autonome et durable. Les utilisateurs seront réapprovisionnés chaque jour.
+
+    
