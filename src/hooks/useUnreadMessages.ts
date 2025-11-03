@@ -40,10 +40,14 @@ export const useUnreadMessages = (userLevel: number) => {
             }
         };
 
+        const handleCustomEvent = () => checkForUnreadMessages();
+
         window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('storage-updated', handleCustomEvent);
         
         return () => {
             window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('storage-updated', handleCustomEvent);
         };
 
     }, [checkForUnreadMessages]);
@@ -55,22 +59,11 @@ export const useUnreadMessages = (userLevel: number) => {
             const updatedSeenMessages = [...seenMessages, level];
             localStorage.setItem(SEEN_MESSAGES_KEY, JSON.stringify(updatedSeenMessages));
             // Déclencher une vérification pour mettre à jour l'état immédiatement
-            checkForUnreadMessages();
+            setHasUnread(false);
             // Dispatch a custom event to notify other components in the same window
             window.dispatchEvent(new CustomEvent('storage-updated'));
         }
     };
-    
-    // Écouter l'événement personnalisé pour les mises à jour dans la même fenêtre
-    useEffect(() => {
-        const handleCustomStorageUpdate = () => {
-            checkForUnreadMessages();
-        };
-        window.addEventListener('storage-updated', handleCustomStorageUpdate);
-        return () => {
-            window.removeEventListener('storage-updated', handleCustomStorageUpdate);
-        };
-    }, [checkForUnreadMessages]);
 
     return { hasUnread, markAsRead };
 };

@@ -2,7 +2,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/firestore';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail } from 'lucide-react';
@@ -30,13 +32,18 @@ import {
 
 export function Navbar() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const { setTheme } = useTheme();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [user, firestore]);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
   
-  // Pour le moment, on simule un utilisateur de niveau 1.
-  // Plus tard, vous remplacerez `1` par `userProfile.level`
-  const userLevel = 1;
+  const userLevel = userProfile?.level ?? 1;
   const { hasUnread: hasUnreadMsgs } = useUnreadMessages(userLevel);
   const { hasNew: hasNewAchievements } = useAchievementNotification();
 
