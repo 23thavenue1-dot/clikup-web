@@ -44,9 +44,9 @@ export function NotesSection() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Test Firestore : Bloc-notes</CardTitle>
+                <CardTitle>Mon Pense-bête</CardTitle>
                 <CardDescription>
-                    Ajoutez une note pour tester l'écriture et la lecture dans la base de données.
+                    Utilisez cet espace pour noter rapidement des idées, des tâches ou toute autre information.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -76,6 +76,7 @@ export function NotesSection() {
                         {notes?.map((note) => (
                             <li key={note.id} className="p-3 bg-muted/50 rounded-md border text-sm">
                                 <p className="whitespace-pre-wrap">{note.text}</p>
+
                                 {note.createdAt && (
                                      <p className="text-xs text-muted-foreground mt-1">
                                         {formatDistanceToNow(note.createdAt.toDate(), { addSuffix: true, locale: fr })}

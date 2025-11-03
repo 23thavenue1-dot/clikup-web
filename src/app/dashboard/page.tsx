@@ -4,7 +4,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -82,6 +82,24 @@ export default function DashboardPage() {
         title: 'Curateur',
         description: 'Liker une image (fonctionnalité à venir).',
         icon: ThumbsUp,
+        unlocked: false,
+      },
+      {
+        title: 'Première Note',
+        description: 'Écrire votre première note dans le bloc-notes.',
+        icon: Pencil,
+        unlocked: false,
+      },
+      {
+        title: 'Pense-bête',
+        description: 'Écrire 5 notes dans le bloc-notes.',
+        icon: ClipboardList,
+        unlocked: false,
+      },
+      {
+        title: 'Archiviste',
+        description: 'Écrire 20 notes dans le bloc-notes.',
+        icon: Library,
         unlocked: false,
       },
   ]
