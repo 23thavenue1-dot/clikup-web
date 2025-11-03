@@ -79,10 +79,10 @@ export function ImageList() {
     
     useEffect(() => {
         if (imageToEdit) {
-            setCurrentTitle(''); // Reset title on new image
+            setCurrentTitle(imageToEdit.title || '');
             setCurrentDescription(imageToEdit.description || '');
-            setHashtagsString(''); // Reset hashtags on new image
-            setWasGeneratedByAI(false); // Reset on new image
+            setHashtagsString(imageToEdit.hashtags || '');
+            setWasGeneratedByAI(false);
         }
     }, [imageToEdit]);
     
@@ -267,9 +267,12 @@ export function ImageList() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="p-3 bg-card flex-grow">
+                                    <div className="p-3 bg-card flex-grow flex flex-col gap-1">
+                                        {image.title && (
+                                            <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
+                                        )}
                                         <p className="text-xs text-muted-foreground italic line-clamp-2">
-                                            {image.description || 'Aucune description.'}
+                                            {image.description || (image.title ? '' : 'Aucune description.')}
                                         </p>
                                     </div>
                                 </div>
@@ -434,3 +437,5 @@ export function ImageList() {
         </>
     );
 }
+
+    
