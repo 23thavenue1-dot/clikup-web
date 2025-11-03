@@ -34,6 +34,7 @@ export interface UserProfile {
   level: number;
   xp: number;
   unlockedAchievements: string[];
+  initialPhotoURL: string | null;
 }
 
 

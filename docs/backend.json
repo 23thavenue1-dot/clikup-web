@@ -128,6 +128,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "initialPhotoURL": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The user's photoURL at the time of account creation.",
+          "format": "uri"
         }
       },
       "required": [

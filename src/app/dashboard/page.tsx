@@ -2,6 +2,7 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import type { User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,22 +53,26 @@ export default function DashboardPage() {
   }, [userProfile, markAchievementsAsSeen]);
 
   const allAchievements = useMemo(() => [
-    { id: 'profile-complete', title: 'Profil Complet', description: 'Remplir votre bio et votre site web.', icon: UserCheck, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => !!(profile.bio && profile.websiteUrl) },
-    { id: 'first-upload', title: 'Premier Upload', description: 'Téléverser votre première image.', icon: Upload, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => (images?.length ?? 0) > 0 },
-    { id: 'collection-nascente', title: 'Collection Naissante', description: 'Téléverser au moins 10 images.', icon: GalleryVertical, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => (images?.length ?? 0) >= 10 },
-    { id: 'new-look', title: 'Nouveau Look', description: 'Changer votre photo de profil pour la première fois.', icon: ImageIcon, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'cameleon', title: 'Caméléon', description: 'Changer 5 fois votre photo de profil.', icon: Sparkle, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'connected', title: 'Connecté', description: 'Garder les notifications par e-mail activées.', icon: Mail, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => profile.emailNotifications === true },
-    { id: 'habitué', title: 'Habitué', description: 'Se connecter 3 jours de suite.', icon: CalendarClock, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique complexe
-    { id: 'first-share', title: 'Premier Partage', description: 'Partager une image pour la première fois.', icon: Share2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'curator', title: 'Curateur', description: 'Liker une image (fonctionnalité à venir).', icon: ThumbsUp, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false },
-    { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'pense-bete', title: 'Pense-bête', description: 'Écrire 5 notes dans le bloc-notes.', icon: ClipboardList, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
-    { id: 'archivist', title: 'Archiviste', description: 'Écrire 20 notes dans le bloc-notes.', icon: Library, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => false }, // Logique à implémenter
+    { id: 'profile-complete', title: 'Profil Complet', description: 'Remplir votre bio et votre site web.', icon: UserCheck, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => !!(profile.bio && profile.websiteUrl) },
+    { id: 'first-upload', title: 'Premier Upload', description: 'Téléverser votre première image.', icon: Upload, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => (images?.length ?? 0) > 0 },
+    { id: 'collection-nascente', title: 'Collection Naissante', description: 'Téléverser au moins 10 images.', icon: GalleryVertical, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => (images?.length ?? 0) >= 10 },
+    { id: 'new-look', title: 'Nouveau Look', description: 'Changer votre photo de profil pour la première fois.', icon: ImageIcon, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => {
+        // Condition: la photo de profil actuelle est différente de celle à l'inscription, et celle de l'inscription existe
+        return authUser?.photoURL !== profile.initialPhotoURL;
+      } 
+    },
+    { id: 'cameleon', title: 'Caméléon', description: 'Changer 5 fois votre photo de profil.', icon: Sparkle, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'connected', title: 'Connecté', description: 'Garder les notifications par e-mail activées.', icon: Mail, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => profile.emailNotifications === true },
+    { id: 'habitué', title: 'Habitué', description: 'Se connecter 3 jours de suite.', icon: CalendarClock, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique complexe
+    { id: 'first-share', title: 'Premier Partage', description: 'Partager une image pour la première fois.', icon: Share2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'curator', title: 'Curateur', description: 'Liker une image (fonctionnalité à venir).', icon: ThumbsUp, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false },
+    { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'pense-bete', title: 'Pense-bête', description: 'Écrire 5 notes dans le bloc-notes.', icon: ClipboardList, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'archivist', title: 'Archiviste', description: 'Écrire 20 notes dans le bloc-notes.', icon: Library, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
   ], []);
 
   const unlockedAchievements = useMemo(() => {
@@ -79,13 +84,13 @@ export default function DashboardPage() {
 
   // Logic to check and award achievements
   useEffect(() => {
-    if (!userProfile || !userDocRef || !firestore || isImagesLoading || !userImages) return;
+    if (!userProfile || !userDocRef || !firestore || isImagesLoading || !userImages || !user) return;
 
     const checkAndAwardAchievements = async () => {
         const newlyUnlocked: typeof allAchievements = [];
         for (const achievement of allAchievements) {
             const alreadyUnlocked = userProfile.unlockedAchievements?.includes(achievement.id);
-            if (!alreadyUnlocked && achievement.isEligible(userProfile, userImages)) {
+            if (!alreadyUnlocked && achievement.isEligible(userProfile, userImages, user)) {
                 newlyUnlocked.push(achievement);
             }
         }
@@ -123,7 +128,7 @@ export default function DashboardPage() {
 
     checkAndAwardAchievements();
 
-  }, [userProfile, userImages, userDocRef, firestore, toast, isImagesLoading, allAchievements]);
+  }, [userProfile, userImages, user, userDocRef, firestore, toast, isImagesLoading, allAchievements]);
 
 
   const currentLevel = userProfile?.level ?? 1;
