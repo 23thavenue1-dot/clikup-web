@@ -1,11 +1,13 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Check } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -47,6 +49,27 @@ export default function DashboardPage() {
     },
     // Add more badges here
   ];
+
+  const achievements = [
+      {
+        title: 'Profil Complet',
+        description: 'Remplir votre bio et votre site web.',
+        icon: UserCheck,
+        unlocked: false,
+      },
+      {
+        title: 'Collection naissante',
+        description: 'Téléverser au moins 10 images.',
+        icon: GalleryVertical,
+        unlocked: false,
+      },
+      {
+        title: 'Habitué',
+        description: 'Se connecter 3 jours de suite.',
+        icon: CalendarClock,
+        unlocked: false,
+      }
+  ]
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -96,11 +119,11 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Section Badges et Succès */}
+        {/* Section Badges */}
         <Card>
           <CardHeader>
-            <CardTitle>Badges & Succès</CardTitle>
-            <CardDescription>Collectionnez des badges en utilisant l'application.</CardDescription>
+            <CardTitle>Badges</CardTitle>
+            <CardDescription>Collectionnez des badges uniques pour votre profil.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -122,7 +145,40 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Section Succès */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Succès</CardTitle>
+            <CardDescription>Débloquez des succès en accomplissant des objectifs-clés.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {achievements.map((achievement) => (
+                <div
+                  key={achievement.title}
+                  className={`p-4 border rounded-lg flex items-center gap-4 transition-opacity ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5'}`}
+                >
+                  <div className={`p-3 rounded-md ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                    <achievement.icon className="h-6 w-6" />
+                  </div>
+                  <div className="flex-grow">
+                    <p className="font-semibold">{achievement.title}</p>
+                    <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                  </div>
+                  {achievement.unlocked ? (
+                     <Check className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <div className="text-xs font-semibold text-muted-foreground/80">(Verrouillé)</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
 }
+
