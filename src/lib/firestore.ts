@@ -56,6 +56,7 @@ export type ImageMetadata = {
   fileSize?: number;
   uploadTimestamp: Timestamp; // Changed to Timestamp for type safety
   likeCount: number;
+  generatedByAI?: boolean;
 };
 
 // Nouveau type pour les notes
@@ -285,11 +286,18 @@ export async function deleteUserAccount(firestore: Firestore, storage: Storage, 
  * @param userId L'ID de l'utilisateur.
  * @param imageId L'ID de l'image.
  * @param description La nouvelle description.
+ * @param generatedByAI Indique si la description a été générée par l'IA pour débloquer un succès.
  */
-export async function updateImageDescription(firestore: Firestore, userId: string, imageId: string, description: string): Promise<void> {
+export async function updateImageDescription(firestore: Firestore, userId: string, imageId: string, description: string, generatedByAI: boolean): Promise<void> {
     const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
+    
+    const dataToUpdate: { description: string, generatedByAI?: boolean } = { description };
+    if (generatedByAI) {
+        dataToUpdate.generatedByAI = true;
+    }
+
     try {
-        await updateDoc(imageDocRef, { description });
+        await updateDoc(imageDocRef, dataToUpdate);
     } catch (error) {
         console.error("Erreur lors de la mise à jour de la description :", error);
         const permissionError = new FirestorePermissionError({
@@ -301,3 +309,5 @@ export async function updateImageDescription(firestore: Firestore, userId: strin
         throw error;
     }
 }
+
+    

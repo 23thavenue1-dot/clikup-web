@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z }s from 'genkit/zod';
+import { z } from 'genkit';
 
 const GenerateDescriptionInputSchema = z.object({
   imageUrl: z.string().url().describe("L'URL de l'image à analyser."),
