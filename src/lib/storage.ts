@@ -57,35 +57,6 @@ export async function convertHeicToJpeg(file: File): Promise<File> {
 
 
 /**
- * Converts a File object to a Base64-encoded Data URL.
- * Handles HEIC/HEIF conversion before processing.
- * @param file The file to convert.
- * @returns A promise that resolves with the Data URL string.
- */
-export async function fileToDataUrl(file: File): Promise<string> {
-  const processedFile = await convertHeicToJpeg(file);
-
-  return new Promise((resolve, reject) => {
-    // Perform checks before reading the file
-    if (processedFile.size > MAX_BYTES) {
-      return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
-    }
-    if (!ALLOWED_MIME.test(processedFile.type) && !NAME_EXT_FALLBACK.test(processedFile.name)) {
-      return reject(new Error('Type de fichier non autorisé (images uniquement).'));
-    }
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      resolve(reader.result as string);
-    };
-    reader.onerror = (error) => {
-      reject(error);
-    };
-    reader.readAsDataURL(processedFile);
-  });
-}
-
-/**
  * DEPRECATED / TEST-ONLY: Deletes a file from Firebase Storage.
  * @param storage The Firebase Storage instance.
  * @param filePath The full path to the file in the bucket (e.g., 'uploads/userId/image.jpg').

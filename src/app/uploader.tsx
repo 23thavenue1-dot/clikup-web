@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
+import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl, type UserProfile, decrementTicketCount } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
@@ -49,9 +49,8 @@ export function Uploader() {
   const [customName, setCustomName] = useState('');
   const [description, setDescription] = useState('');
   
-  const [isFileUploading, setIsFileUploading] = useState(false);
-  const [isUrlUploading, setIsUrlUploading] = useState(false);
-  const [isStorageUploading, setIsStorageUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState('storage');
 
   const [imageUrl, setImageUrl] = useState('');
   
@@ -71,22 +70,20 @@ export function Uploader() {
     setCustomName('');
     setDescription('');
     setImageUrl('');
-    setIsFileUploading(false);
-    setIsUrlUploading(false);
-    setIsStorageUploading(false);
+    setIsUploading(false);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
   }
 
   const handleTabChange = (value: string) => {
+    setActiveTab(value);
     resetState();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-        // La vérification `looksLikeImage` est suffisante ici, la conversion se fera dans les fonctions d'upload
         if (!looksLikeImage(file)) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
             return;
@@ -108,6 +105,8 @@ export function Uploader() {
       });
       return;
     }
+    
+    setIsUploading(true);
 
     try {
       await uploadFn();
@@ -118,33 +117,14 @@ export function Uploader() {
       const errorMessage = (error as Error).message;
       setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
       toast({ variant: 'destructive', title: 'Erreur de téléversement', description: errorMessage });
+    } finally {
+        setIsUploading(false);
     }
   };
 
 
-  const handleDataUrlUpload = async () => {
-    if (!selectedFile || !user) return;
-    setIsFileUploading(true);
-    await handleUpload(async () => {
-      setStatus({ state: 'processing' });
-      const dataUrl = await fileToDataUrl(selectedFile);
-      await saveImageMetadata(firestore, user, {
-        originalName: customName || selectedFile.name.replace(/\.(heic|heif)$/i, '.jpeg'),
-        description: description,
-        directUrl: dataUrl,
-        bbCode: `[img]${dataUrl}[/img]`,
-        htmlCode: `<img src="${dataUrl}" alt="${customName || selectedFile.name}" />`,
-        mimeType: selectedFile.type,
-        fileSize: selectedFile.size,
-        storagePath: 'data_url',
-      });
-    });
-    setIsFileUploading(false);
-  };
-
   const handleUrlUpload = async () => {
     if (!imageUrl.trim() || !user) return;
-    setIsUrlUploading(true);
     await handleUpload(async () => {
       await saveImageFromUrl(firestore, user, {
         directUrl: imageUrl,
@@ -153,12 +133,10 @@ export function Uploader() {
         htmlCode: `<img src="${imageUrl}" alt="Image depuis URL" />`,
       });
     });
-    setIsUrlUploading(false);
   };
   
   const handleStorageUpload = async () => {
     if (!selectedFile || !firebaseApp || !user) return;
-    setIsStorageUploading(true);
     const storage = getStorage(firebaseApp);
     await handleUpload(async () => {
       const metadata = await uploadFileAndGetMetadata(
@@ -170,7 +148,6 @@ export function Uploader() {
       );
       await saveImageMetadata(firestore, user, { ...metadata, description });
     });
-    setIsStorageUploading(false);
   };
 
 
@@ -193,7 +170,7 @@ export function Uploader() {
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             disabled={disabled}
             />
             <UploadCloud className="h-12 w-12 text-muted-foreground" />
@@ -201,7 +178,7 @@ export function Uploader() {
             {selectedFile ? `Fichier : ${selectedFile.name}` : 'Cliquez pour choisir un fichier'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Taille max : 10 Mo.
+              Taille max : 10 Mo. Formats HEIC/HEIF acceptés.
             </p>
         </div>
 
@@ -254,47 +231,28 @@ export function Uploader() {
         </div>
       </CardHeader>
       <CardContent>
-      <Tabs defaultValue="file" className="w-full" onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="file"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier (sécurisé)</TabsTrigger>
-                <TabsTrigger value="storage"><HardDriveUpload className="mr-2 h-4 w-4"/>Via Storage</TabsTrigger>
+      <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
                 <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="file" className="space-y-4 pt-6">
-                {renderFilePicker(isFileUploading)}
-                <Textarea
-                    placeholder="Ajoutez une description (optionnel)..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={isFileUploading}
-                />
-                <Button 
-                    onClick={handleDataUrlUpload} 
-                    disabled={isFileUploading || !selectedFile} 
-                    className="w-full"
-                >
-                    {isFileUploading && status.state === 'processing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isFileUploading && status.state === 'processing' ? 'Conversion...' : 'Téléverser via Fichier'}
-                </Button>
-            </TabsContent>
 
             <TabsContent value="storage" className="space-y-4 pt-6">
-                 {renderFilePicker(isStorageUploading)}
+                 {renderFilePicker(isUploading)}
                  <Textarea
                     placeholder="Ajoutez une description (optionnel)..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    disabled={isStorageUploading}
+                    disabled={isUploading}
                  />
                  {status.state === 'uploading' && <Progress value={status.progress} className="w-full" />}
                  <Button 
                     onClick={handleStorageUpload} 
-                    disabled={isStorageUploading || !selectedFile} 
+                    disabled={isUploading || !selectedFile} 
                     className="w-full"
                  >
-                    {isStorageUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isStorageUploading ? 'Téléversement...' : 'Téléverser via Storage'}
+                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isUploading ? 'Téléversement...' : 'Téléverser le Fichier'}
                 </Button>
             </TabsContent>
 
@@ -304,16 +262,16 @@ export function Uploader() {
                     placeholder="https://example.com/image.png"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    disabled={isUrlUploading}
+                    disabled={isUploading}
                 />
                  <Textarea
                     placeholder="Ajoutez une description (optionnel)..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    disabled={isUrlUploading}
+                    disabled={isUploading}
                 />
-                <Button onClick={handleUrlUpload} disabled={isUrlUploading || !imageUrl.trim()} className="w-full">
-                    {isUrlUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                <Button onClick={handleUrlUpload} disabled={isUploading || !imageUrl.trim()} className="w-full">
+                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Ajouter depuis l'URL
                 </Button>
             </TabsContent>
@@ -327,5 +285,3 @@ export function Uploader() {
     </Card>
   );
 }
-
-    
