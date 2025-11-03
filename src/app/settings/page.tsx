@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [selectedPredefinedAvatar, setSelectedPredefinedAvatar] = useState<string | null>(null);
+  const [emailNotifications, setEmailNotifications] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +78,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (userProfile) {
       setDisplayName(userProfile.displayName || userProfile.email || '');
+      setEmailNotifications(userProfile.emailNotifications ?? false);
     }
   }, [userProfile]);
 
@@ -105,7 +107,7 @@ export default function SettingsPage() {
 
 
   const handleSaveChanges = async () => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !userDocRef) return;
     setIsSaving(true);
 
     try {
@@ -147,7 +149,7 @@ export default function SettingsPage() {
         if (Object.keys(authUpdates).length > 0) {
             await updateProfile(user, authUpdates);
         }
-        if (Object.keys(firestoreUpdates).length > 0 && userDocRef) {
+        if (Object.keys(firestoreUpdates).length > 0) {
             await updateDoc(userDocRef, firestoreUpdates);
         }
 
@@ -191,6 +193,26 @@ export default function SettingsPage() {
             description = error.message;
         }
         toast({ variant: 'destructive', title: 'Erreur', description });
+    }
+  };
+
+  const handleNotificationChange = async (checked: boolean) => {
+    if (!userDocRef) return;
+    setEmailNotifications(checked); // Update UI instantly
+
+    try {
+      await updateDoc(userDocRef, { emailNotifications: checked });
+      toast({
+        title: 'Préférences mises à jour',
+        description: `Notifications par e-mail ${checked ? 'activées' : 'désactivées'}.`
+      });
+    } catch (error: any) {
+      setEmailNotifications(!checked); // Revert on error
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: "Impossible de mettre à jour les préférences de notification."
+      });
     }
   };
   
@@ -375,7 +397,11 @@ export default function SettingsPage() {
                         <Label htmlFor="email-notifications" className="font-medium">Notifications par e-mail</Label>
                         <p className="text-sm text-muted-foreground">Recevoir des notifications sur les actualités et les mises à jour.</p>
                     </div>
-                    <Switch id="email-notifications" disabled />
+                    <Switch 
+                        id="email-notifications" 
+                        checked={emailNotifications}
+                        onCheckedChange={handleNotificationChange}
+                    />
                 </div>
             </CardContent>
         </Card>
@@ -399,5 +425,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

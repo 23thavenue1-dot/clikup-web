@@ -25,6 +25,7 @@ export interface UserProfile {
   creationTimestamp: Timestamp; 
   ticketCount: number;
   lastTicketRefill: Timestamp;
+  emailNotifications?: boolean;
 }
 
 
