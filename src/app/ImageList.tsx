@@ -154,12 +154,12 @@ export function ImageList() {
 
 
     const renderSkeleton = () => (
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-                <div key={i} class="space-y-2">
-                    <Skeleton class="aspect-square w-full rounded-lg" />
-                    <Skeleton class="h-4 w-3/4" />
-                    <Skeleton class="h-3 w-1/2" />
+                <div key={i} className="space-y-2">
+                    <Skeleton className="aspect-square w-full rounded-lg" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
                 </div>
             ))}
         </div>
@@ -178,32 +178,32 @@ export function ImageList() {
                     {isLoading && renderSkeleton()}
 
                     {!isLoading && (!images || images.length === 0) && (
-                        <div class="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                            <ImageIcon class="h-12 w-12 mb-4" />
-                            <p class="font-medium">Aucune image pour le moment.</p>
-                            <p class="text-sm">Utilisez le module ci-dessus pour en ajouter une.</p>
+                        <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                            <ImageIcon className="h-12 w-12 mb-4" />
+                            <p className="font-medium">Aucune image pour le moment.</p>
+                            <p className="text-sm">Utilisez le module ci-dessus pour en ajouter une.</p>
                         </div>
                     )}
                     
                     {!isLoading && images && images.length > 0 && (
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {images.map(image => (
-                                <div key={image.id} class="group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col">
-                                    <div class="relative aspect-square w-full">
+                                <div key={image.id} className="group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col">
+                                    <div className="relative aspect-square w-full">
                                         <Image
                                             src={image.directUrl}
                                             alt={image.originalName || 'Image téléversée'}
                                             fill
                                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                            class="object-cover bg-muted transition-transform group-hover:scale-105"
+                                            className="object-cover bg-muted transition-transform group-hover:scale-105"
                                             unoptimized // Important pour les Data URLs et celles de Storage
                                         />
-                                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                        <div class="absolute top-2 right-2 z-10 flex gap-2">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                                        <div className="absolute top-2 right-2 z-10 flex gap-2">
                                             <Button
                                                 variant="secondary"
                                                 size="icon"
-                                                class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => openEditDialog(image)}
                                                 aria-label="Modifier la description"
                                             >
@@ -212,7 +212,7 @@ export function ImageList() {
                                             <Button
                                                 variant="secondary"
                                                 size="icon"
-                                                class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => openShareDialog(image)}
                                                 aria-label="Partager l'image"
                                             >
@@ -221,30 +221,30 @@ export function ImageList() {
                                             <Button
                                                 variant="destructive"
                                                 size="icon"
-                                                class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => openDeleteDialog(image)}
                                                 disabled={isDeleting === image.id}
                                                 aria-label="Supprimer l'image"
                                             >
-                                                {isDeleting === image.id ? <Loader2 class="animate-spin" /> : <Trash2 size={16}/>}
+                                                {isDeleting === image.id ? <Loader2 className="animate-spin" /> : <Trash2 size={16}/>}
                                             </Button>
                                         </div>
-                                        <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                                             <p 
-                                            class="text-sm font-semibold truncate"
+                                            className="text-sm font-semibold truncate"
                                             title={image.originalName}
                                             >
                                                 {image.originalName || 'Image depuis URL'}
                                             </p>
                                             {image.uploadTimestamp && (
-                                                <p class="text-xs opacity-80">
+                                                <p className="text-xs opacity-80">
                                                     {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
                                                 </p>
                                             )}
                                         </div>
                                     </div>
-                                    <div class="p-3 bg-card flex-grow">
-                                        <p class="text-xs text-muted-foreground italic line-clamp-2">
+                                    <div className="p-3 bg-card flex-grow">
+                                        <p className="text-xs text-muted-foreground italic line-clamp-2">
                                             {image.description || 'Aucune description.'}
                                         </p>
                                     </div>
@@ -265,7 +265,7 @@ export function ImageList() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteImage} class="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDeleteImage} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -278,31 +278,31 @@ export function ImageList() {
                         Copiez l'un des liens ci-dessous pour partager votre image.
                     </DialogDescription>
                     </DialogHeader>
-                    <div class="space-y-4 pt-2">
-                        <div class="space-y-2">
+                    <div className="space-y-4 pt-2">
+                        <div className="space-y-2">
                             <Label htmlFor="directLink">Lien direct (URL)</Label>
-                            <div class="flex items-center gap-2">
-                                <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} class="bg-muted text-xs truncate"/>
+                            <div className="flex items-center gap-2">
+                                <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} className="bg-muted text-xs truncate"/>
                                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '', 'direct')}>
-                                    {copiedField === 'direct' ? <Check class="text-green-500"/> : <Copy />}
+                                    {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
-                         <div class="space-y-2">
+                         <div className="space-y-2">
                             <Label htmlFor="bbCodeLink">Pour forum (BBCode)</Label>
-                            <div class="flex items-center gap-2">
-                                <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} class="bg-muted text-xs truncate"/>
+                            <div className="flex items-center gap-2">
+                                <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} className="bg-muted text-xs truncate"/>
                                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.bbCode || '', 'bbcode')}>
-                                    {copiedField === 'bbcode' ? <Check class="text-green-500"/> : <Copy />}
+                                    {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
-                         <div class="space-y-2">
+                         <div className="space-y-2">
                             <Label htmlFor="htmlLink">Pour site web (HTML)</Label>
-                            <div class="flex items-center gap-2">
-                                <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} class="bg-muted text-xs truncate"/>
+                            <div className="flex items-center gap-2">
+                                <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} className="bg-muted text-xs truncate"/>
                                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.htmlCode || '', 'html')}>
-                                    {copiedField === 'html' ? <Check class="text-green-500"/> : <Copy />}
+                                    {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
@@ -318,8 +318,8 @@ export function ImageList() {
                         Modifiez la description de votre image ou laissez l'IA en générer une pour vous.
                     </DialogDescription>
                     </DialogHeader>
-                    <div class="space-y-4 py-4">
-                        <div class="space-y-2">
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea 
                                 id="description"
@@ -330,7 +330,7 @@ export function ImageList() {
                                 disabled={isGeneratingDescription || isSavingDescription}
                             />
                         </div>
-                        <div class="space-y-2">
+                        <div className="space-y-2">
                              <Button 
                                 variant="outline" 
                                 className="w-full"
@@ -338,9 +338,9 @@ export function ImageList() {
                                 onClick={handleGenerateDescription}
                             >
                                 {isGeneratingDescription ? (
-                                    <Loader2 class="mr-2 h-4 w-4 animate-spin"/>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                 ) : (
-                                    <Wand2 class="mr-2 h-4 w-4"/>
+                                    <Wand2 className="mr-2 h-4 w-4"/>
                                 )}
                                 {isGeneratingDescription ? 'Génération en cours...' : 'Générer avec l\'IA'}
                             </Button>
@@ -349,7 +349,7 @@ export function ImageList() {
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowEditDialog(false)} disabled={isSavingDescription}>Annuler</Button>
                         <Button onClick={handleSaveDescription} disabled={isSavingDescription || isGeneratingDescription}>
-                            {isSavingDescription && <Loader2 class="mr-2 h-4 w-4 animate-spin"/>}
+                            {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
                         </Button>
                     </DialogFooter>
