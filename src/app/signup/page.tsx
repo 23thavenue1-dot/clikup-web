@@ -53,9 +53,10 @@ export default function SignupPage() {
         displayName: user.displayName || user.email?.split('@')[0],
         creationTimestamp: serverTimestamp(),
         ticketCount: 5,
-        // Initialiser la date de dernière recharge avec un timestamp serveur
-        // pour assurer la cohérence des types de données dans Firestore.
-        lastTicketRefill: serverTimestamp() 
+        lastTicketRefill: serverTimestamp(),
+        level: 1,
+        xp: 0,
+        unlockedAchievements: [],
       });
 
 

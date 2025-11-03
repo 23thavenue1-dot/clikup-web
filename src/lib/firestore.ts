@@ -31,6 +31,9 @@ export interface UserProfile {
   emailNotifications?: boolean;
   bio?: string;
   websiteUrl?: string;
+  level: number;
+  xp: number;
+  unlockedAchievements: string[];
 }
 
 
