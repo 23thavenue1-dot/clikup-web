@@ -69,13 +69,20 @@ export function Navbar() {
         </div>
         
         {/* Center Section */}
-        <div className="flex items-center justify-center flex-1">
+        <div className="flex items-center justify-center flex-1 gap-2">
           {user && (
-            <Link href="/dashboard" passHref>
-              <Button variant="ghost" size="icon" aria-label="Tableau de bord">
-                <LayoutDashboard className="h-5 w-5" />
-              </Button>
-            </Link>
+            <>
+              <Link href="/dashboard" passHref>
+                <Button variant="ghost" size="icon" aria-label="Tableau de bord">
+                  <LayoutDashboard className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link href="/secret-messages" passHref>
+                <Button variant="ghost" size="icon" aria-label="Messages Secrets">
+                  <Mail className="h-5 w-5" />
+                </Button>
+              </Link>
+            </>
           )}
         </div>
 
