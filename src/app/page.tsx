@@ -34,15 +34,16 @@ export default function Home() {
 
   useEffect(() => {
     const checkAndRefillTickets = async () => {
-      // Correction : S'assurer que userProfile et lastTicketRefill existent avant de les utiliser.
+      // S'assurer que les données sont chargées et que la dernière recharge a eu lieu il y a plus d'un jour
       if (userProfile && userProfile.lastTicketRefill && userDocRef) {
         const lastRefillDate = userProfile.lastTicketRefill.toDate();
         const oneDayAgo = subDays(new Date(), 1);
 
-        if (isBefore(lastRefillDate, oneDayAgo)) {
+        // Si la dernière recharge date de plus de 24h ET que le compteur est en dessous du maximum
+        if (isBefore(lastRefillDate, oneDayAgo) && userProfile.ticketCount < 5) {
           try {
             await updateDoc(userDocRef, {
-              ticketCount: 5,
+              ticketCount: 5, // Recharger à 5
               lastTicketRefill: serverTimestamp(),
             });
             console.log('Tickets rechargés pour l\'utilisateur:', userProfile.id);
@@ -55,6 +56,7 @@ export default function Home() {
 
     checkAndRefillTickets();
   }, [userProfile, userDocRef]);
+
 
   if (isUserLoading) {
     return (
@@ -93,3 +95,4 @@ export default function Home() {
     </div>
   );
 }
+
