@@ -9,7 +9,7 @@ L'objectif était de prévenir les abus et de maîtriser les coûts via un syst�
 
 ### État Actuel
 - **Fonctionnalité Complète :** Le système de décompte, de blocage et de recharge quotidienne est 100% fonctionnel et intégré.
-- **Documentation :** Le parcours de développement est documenté dans `docs/feature-dev-log.md` et `docs/ticket-system-status.md`.
+- **Documentation :** Le parcours de développement est documenté dans `docs/feature-dev-log.md`.
 
 Ce système de "tickets" est devenu une fonctionnalité centrale de l'expérience utilisateur, offrant une base solide pour de futures évolutions (monétisation, récompenses, etc.).
 
@@ -18,7 +18,7 @@ Ce système de "tickets" est devenu une fonctionnalité centrale de l'expérienc
 Maintenant que la base de l'application est stable et sécurisée, la prochaine priorité est de transformer Clikup en un assistant de contenu intelligent.
 
 ### La Vision
-L'objectif est de mettre en œuvre la vision définie dans notre document d'idées, à savoir transformer Clikup en un **assistant complet pour la création de contenu pour les réseaux sociaux**.
+L'objectif est de mettre en œuvre la vision définie dans notre document d'idées (`docs/idées.md`), à savoir transformer Clikup en un **assistant complet pour la création de contenu pour les réseaux sociaux**.
 
 ### Plan de Développement
 Le plan technique détaillé pour cette intégration est désormais disponible dans `docs/ia-feature-plan.md`. Il est découpé en plusieurs phases :
