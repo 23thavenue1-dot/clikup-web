@@ -73,25 +73,22 @@ export default function DashboardPage() {
   }, [userProfile, markAchievementsAsSeen]);
 
   const allAchievements = useMemo(() => [
-    { id: 'profile-complete', title: 'Profil Complet', description: 'Remplir votre bio et votre site web.', icon: UserCheck, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile) => !!(profile.bio && profile.websiteUrl) },
-    { id: 'first-upload', title: 'Premier Upload', description: 'Téléverser votre première image.', icon: Upload, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => (images?.length ?? 0) > 0 },
-    { id: 'collection-nascente', title: 'Collection Naissante', description: 'Téléverser au moins 10 images.', icon: GalleryVertical, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => (images?.length ?? 0) >= 10 },
-    { id: 'new-look', title: 'Nouveau Look', description: 'Changer votre photo de profil pour la première fois.', icon: ImageIcon, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => {
-        return authUser?.photoURL !== profile.initialPhotoURL;
-      } 
-    },
-    { id: 'cameleon', title: 'Caméléon', description: 'Changer 5 fois votre photo de profil.', icon: Sparkle, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile) => (profile.profilePictureUpdateCount ?? 0) >= 5 },
-    { id: 'connected', title: 'Connecté', description: 'Garder les notifications par e-mail activées.', icon: Mail, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile) => profile.emailNotifications === true },
-    { id: 'habitué', title: 'Habitué', description: 'Se connecter 3 jours de suite.', icon: CalendarClock, xp: XP_PER_ACHIEVEMENT, isEligible: () => false }, // Logique complexe
-    { id: 'first-share', title: 'Premier Partage', description: 'Partager une image pour la première fois.', icon: Share2, xp: XP_PER_ACHIEVEMENT, isEligible: () => false }, // Logique à implémenter
-    { id: 'curator', title: 'Curateur', description: 'Liker une image (fonctionnalité à venir).', icon: ThumbsUp, xp: XP_PER_ACHIEVEMENT, isEligible: () => false },
-    { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => images?.some(image => !!image.description) },
-    { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: () => false }, // Logique à implémenter
-    { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: () => getSeenMessagesCount() >= 1 },
-    { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: () => getSeenMessagesCount() >= 5 },
-    { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) > 0 },
-    { id: 'pense-bete', title: 'Pense-bête', description: 'Écrire 5 notes dans le bloc-notes.', icon: ClipboardList, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) >= 5 },
-    { id: 'archivist', title: 'Archiviste', description: 'Écrire 20 notes dans le bloc-notes.', icon: Library, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) >= 20 },
+    { id: 'profile-complete', title: 'Profil Complet', description: 'Remplir votre bio et votre site web.', icon: UserCheck, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile) => !!(profile.bio && profile.websiteUrl), getProgress: (profile: UserProfile) => ({ current: (profile.bio ? 1 : 0) + (profile.websiteUrl ? 1 : 0), target: 2 }) },
+    { id: 'first-upload', title: 'Premier Upload', description: 'Téléverser votre première image.', icon: Upload, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => (images?.length ?? 0) > 0, getProgress: (profile: UserProfile, images: ImageMetadata[]) => ({ current: images?.length ?? 0, target: 1 }) },
+    { id: 'collection-nascente', title: 'Collection Naissante', description: 'Téléverser au moins 10 images.', icon: GalleryVertical, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => (images?.length ?? 0) >= 10, getProgress: (profile: UserProfile, images: ImageMetadata[]) => ({ current: images?.length ?? 0, target: 10 }) },
+    { id: 'new-look', title: 'Nouveau Look', description: 'Changer votre photo de profil pour la première fois.', icon: ImageIcon, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => authUser?.photoURL !== profile.initialPhotoURL, getProgress: null },
+    { id: 'cameleon', title: 'Caméléon', description: 'Changer 5 fois votre photo de profil.', icon: Sparkle, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile) => (profile.profilePictureUpdateCount ?? 0) >= 5, getProgress: (profile: UserProfile) => ({ current: profile.profilePictureUpdateCount ?? 0, target: 5 }) },
+    { id: 'connected', title: 'Connecté', description: 'Garder les notifications par e-mail activées.', icon: Mail, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile) => profile.emailNotifications === true, getProgress: null },
+    { id: 'habitué', title: 'Habitué', description: 'Se connecter 3 jours de suite.', icon: CalendarClock, xp: XP_PER_ACHIEVEMENT, isEligible: () => false, getProgress: null }, // Logique complexe
+    { id: 'first-share', title: 'Premier Partage', description: 'Partager une image pour la première fois.', icon: Share2, xp: XP_PER_ACHIEVEMENT, isEligible: () => false, getProgress: null }, // Logique à implémenter
+    { id: 'curator', title: 'Curateur', description: 'Liker une image (fonctionnalité à venir).', icon: ThumbsUp, xp: XP_PER_ACHIEVEMENT, isEligible: () => false, getProgress: null },
+    { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => images?.some(image => !!image.description), getProgress: null },
+    { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: () => false, getProgress: null }, // Logique à implémenter
+    { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: () => getSeenMessagesCount() >= 1, getProgress: () => ({ current: getSeenMessagesCount(), target: 1 }) },
+    { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: () => getSeenMessagesCount() >= 5, getProgress: () => ({ current: getSeenMessagesCount(), target: 5 }) },
+    { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) > 0, getProgress: (profile, images, authUser, notes) => ({ current: notes?.length ?? 0, target: 1 }) },
+    { id: 'pense-bete', title: 'Pense-bête', description: 'Écrire 5 notes dans le bloc-notes.', icon: ClipboardList, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) >= 5, getProgress: (profile, images, authUser, notes) => ({ current: notes?.length ?? 0, target: 5 }) },
+    { id: 'archivist', title: 'Archiviste', description: 'Écrire 20 notes dans le bloc-notes.', icon: Library, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) >= 20, getProgress: (profile, images, authUser, notes) => ({ current: notes?.length ?? 0, target: 20 }) },
   ], []);
 
   const unlockedAchievements = useMemo(() => {
@@ -288,30 +285,42 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
-                {unlockedAchievements.map((achievement) => (
-                    <Tooltip key={achievement.title}>
-                        <TooltipTrigger asChild>
-                           <div
-                            className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
-                           >
-                            <div className={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                                <achievement.icon className="h-6 w-6" />
-                            </div>
-                            <p className="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
-                            {achievement.unlocked && (
-                                <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                                    <Check className="h-3 w-3 text-white" />
+                {unlockedAchievements.map((achievement) => {
+                    const progress = !achievement.unlocked && achievement.getProgress && userProfile && userImages && userNotes && user
+                    // @ts-ignore
+                        ? achievement.getProgress(userProfile, userImages, user, userNotes)
+                        : null;
+
+                    return (
+                        <Tooltip key={achievement.title}>
+                            <TooltipTrigger asChild>
+                               <div
+                                className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
+                               >
+                                <div className={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                    <achievement.icon className="h-6 w-6" />
                                 </div>
-                            )}
-                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p className="font-semibold">{achievement.title}</p>
-                            <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                            {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
-                        </TooltipContent>
-                    </Tooltip>
-                ))}
+                                <p className="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
+                                {achievement.unlocked && (
+                                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                        <Check className="h-3 w-3 text-white" />
+                                    </div>
+                                )}
+                               </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className="font-semibold">{achievement.title}</p>
+                                <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                                {progress && progress.target > 1 && (
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Progression : {Math.min(progress.current, progress.target)} / {progress.target}
+                                    </p>
+                                )}
+                                {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                            </TooltipContent>
+                        </Tooltip>
+                    )
+                })}
               </div>
             </CardContent>
           </Card>
