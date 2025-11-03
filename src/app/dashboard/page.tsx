@@ -4,7 +4,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -52,6 +52,24 @@ export default function DashboardPage() {
         title: 'Profil Complet',
         description: 'Remplir votre bio et votre site web.',
         icon: UserCheck,
+        unlocked: false,
+      },
+       {
+        title: 'Nouveau Look',
+        description: 'Changer votre photo de profil pour la première fois.',
+        icon: ImageIcon,
+        unlocked: false,
+      },
+      {
+        title: 'Caméléon',
+        description: 'Changer 5 fois votre photo de profil.',
+        icon: Sparkle,
+        unlocked: false,
+      },
+       {
+        title: 'Connecté',
+        description: 'Garder les notifications par e-mail activées.',
+        icon: Mail,
         unlocked: false,
       },
       {
