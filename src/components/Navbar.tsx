@@ -141,7 +141,7 @@ export function Navbar() {
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                             <Sparkles className="text-primary"/>
-                            Un secret vous attend !
+                            Un tips vous attend !
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             Le premier niveau de notre système de progression est déjà débloqué. Il contient une astuce pour améliorer vos photos. <br/><br/>
