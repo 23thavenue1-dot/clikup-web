@@ -57,6 +57,7 @@ export default function SignupPage() {
         level: 1,
         xp: 0,
         unlockedAchievements: [],
+        emailNotifications: true, // Valeur par défaut ajoutée ici
       });
 
 
