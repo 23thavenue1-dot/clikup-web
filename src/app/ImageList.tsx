@@ -47,7 +47,7 @@ export function ImageList() {
 
     const [showShareDialog, setShowShareDialog] = useState(false);
     const [imageToShare, setImageToShare] = useState<ImageMetadata | null>(null);
-    const [copied, setCopied] = useState<boolean>(false);
+    const [copiedField, setCopiedField] = useState<string | null>(null);
 
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [imageToEdit, setImageToEdit] = useState<ImageMetadata | null>(null);
@@ -76,7 +76,7 @@ export function ImageList() {
     const openShareDialog = (image: ImageMetadata) => {
         setImageToShare(image);
         setShowShareDialog(true);
-        setCopied(false);
+        setCopiedField(null);
     };
     
     const openEditDialog = (image: ImageMetadata) => {
@@ -122,12 +122,12 @@ export function ImageList() {
         }
     };
 
-    const copyToClipboard = async (text: string) => {
+    const copyToClipboard = async (text: string, field: string) => {
         try {
           await navigator.clipboard.writeText(text);
-          setCopied(true);
+          setCopiedField(field);
           toast({ title: "Copié !", description: "Le lien a été copié dans le presse-papiers." });
-          setTimeout(() => setCopied(false), 2000);
+          setTimeout(() => setCopiedField(null), 2000);
         } catch {
           toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
         }
@@ -261,15 +261,32 @@ export function ImageList() {
                     </DialogHeader>
                     <div className="space-y-4 pt-2">
                         <div className="space-y-2">
-                            <label htmlFor="directLink" className="text-sm font-medium">Lien direct</label>
+                            <Label htmlFor="directLink">Lien direct (URL)</Label>
                             <div className="flex items-center gap-2">
                                 <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '')}>
-                                    {copied ? <Check className="text-green-500"/> : <Copy />}
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '', 'direct')}>
+                                    {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
-                        {/* Emplacement pour le futur lien de partage */}
+                         <div className="space-y-2">
+                            <Label htmlFor="bbCodeLink">Pour forum (BBCode)</Label>
+                            <div className="flex items-center gap-2">
+                                <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} className="bg-muted text-xs truncate"/>
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.bbCode || '', 'bbcode')}>
+                                    {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy />}
+                                </Button>
+                            </div>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="htmlLink">Pour site web (HTML)</Label>
+                            <div className="flex items-center gap-2">
+                                <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} className="bg-muted text-xs truncate"/>
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.htmlCode || '', 'html')}>
+                                    {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy />}
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -312,3 +329,5 @@ export function ImageList() {
         </>
     );
 }
+
+    
