@@ -51,6 +51,9 @@ export default function SettingsPage() {
     return null;
   }
 
+  // Utiliser l'email comme fallback si displayName n'existe pas
+  const displayName = userProfile.displayName || userProfile.email;
+
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-3xl mx-auto space-y-8">
@@ -75,7 +78,7 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="displayName">Nom d'affichage</Label>
-              <Input id="displayName" defaultValue={userProfile.displayName} disabled />
+              <Input id="displayName" value={displayName} disabled />
             </div>
              <div className="space-y-2">
               <Label htmlFor="email">Adresse e-mail</Label>
