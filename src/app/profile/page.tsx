@@ -97,7 +97,9 @@ export default function ProfilePage() {
                 const storage = getStorage(firebaseApp);
                 const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
                 const storageRef = ref(storage, filePath);
-                await uploadBytes(storageRef, profilePictureFile);
+                // Correction : Ajout des métadonnées `contentType`
+                const metadata = { contentType: profilePictureFile.type };
+                await uploadBytes(storageRef, profilePictureFile, metadata);
                 finalPhotoURL = await getDownloadURL(storageRef);
             } catch (storageError) {
                  console.error("Erreur de téléversement de l'avatar:", storageError);
