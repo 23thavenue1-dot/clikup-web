@@ -5,7 +5,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2 } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -113,6 +113,18 @@ export default function DashboardPage() {
         title: 'Futuriste',
         description: 'Générer une description avec l\'IA.',
         icon: Wand2,
+        unlocked: false,
+      },
+      {
+        title: 'Curieux',
+        description: 'Lire votre premier message secret.',
+        icon: MailOpen,
+        unlocked: false,
+      },
+      {
+        title: 'Chercheur de Secrets',
+        description: 'Lire 5 messages secrets.',
+        icon: KeyRound,
         unlocked: false,
       },
       {
@@ -265,6 +277,7 @@ export default function DashboardPage() {
     </TooltipProvider>
   );
 }
-
     
+    
+
     
