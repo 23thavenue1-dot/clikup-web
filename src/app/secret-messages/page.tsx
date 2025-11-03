@@ -1,11 +1,12 @@
 
 'use client';
 
-import { secretMessages, SecretMessage } from '@/lib/secret-messages';
+import { secretMessages } from '@/lib/secret-messages';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle, Lock, Trophy } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 // A little type trick to allow dynamic icon names
 type IconName = keyof typeof LucideIcons;
@@ -16,8 +17,18 @@ const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
 };
 
 export default function SecretMessagesPage() {
-    // Pour le futur : vous pourrez filtrer ici les messages débloqués
-    const unlockedLevel = 1; // Le niveau de l'utilisateur (sera dynamique plus tard)
+    // Pour le moment, on simule un utilisateur de niveau 1.
+    // Plus tard, vous remplacerez `1` par la vraie valeur dynamique.
+    const unlockedLevel = 1;
+    const { markAsRead } = useUnreadMessages(unlockedLevel);
+
+    const handleAccordionChange = (value: string) => {
+        if (value) {
+            const level = parseInt(value.replace('item-', ''), 10);
+            markAsRead(level);
+        }
+    };
+
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -29,7 +40,7 @@ export default function SecretMessagesPage() {
                     </p>
                 </header>
 
-                <Accordion type="single" collapsible className="w-full space-y-2">
+                <Accordion type="single" collapsible onValueChange={handleAccordionChange} className="w-full space-y-2">
                     {secretMessages.map((message) => {
                         const isUnlocked = message.level <= unlockedLevel;
                         const Icon = getIcon(message.icon);
