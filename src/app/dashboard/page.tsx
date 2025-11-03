@@ -5,7 +5,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -263,7 +263,7 @@ export default function DashboardPage() {
                         <TooltipContent>
                             <p className="font-semibold">{achievement.title}</p>
                             <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                            {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                            {!unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
                         </TooltipContent>
                     </Tooltip>
                 ))}
