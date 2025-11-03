@@ -74,7 +74,53 @@ En plus du modèle Freemium, vous pouvez vendre des "packs" pour des besoins pon
 
 ---
 
-## 3. Comment rester compétitif ?
+## 3. Analyse de Rentabilité et Seuils Critiques
+
+Pour piloter le projet, il est vital d'estimer à partir de quel moment un utilisateur n'est plus "rentable". Voici une analyse basée sur des estimations des coûts réels.
+
+**Hypothèses de Coût par Action :**
+*   **Coût d'un Upload d'Image (1 Mo) :** Inclut l'opération d'écriture sur Storage, l'écriture des métadonnées sur Firestore, et le coût de stockage passif pour un mois.
+    *   Estimation : **~0,002 € par image** (ce coût augmente avec le nombre de vues de l'image).
+*   **Coût d'une Génération IA (description + hashtags) :** Inclut l'analyse de l'image par Gemini Vision et la génération de texte.
+    *   Estimation : **~0,003 € par génération**.
+
+### Seuil de Rentabilité pour l'Offre Gratuite
+
+L'offre gratuite est financée par la publicité ou par les futurs utilisateurs payants. L'objectif est que le coût d'un utilisateur gratuit reste très bas.
+
+*   **Scénario d'un utilisateur gratuit type :**
+    *   5 uploads / jour = 150 uploads / mois.
+    *   2 générations IA / jour = 60 générations IA / mois.
+*   **Calcul du Coût Mensuel :**
+    *   Coût des uploads : 150 * 0,002 € = **0,30 €**
+    *   Coût des générations IA : 60 * 0,003 € = **0,18 €**
+    *   **Total Coût Mensuel par Utilisateur Gratuit : ~0,48 €**
+
+**Conclusion pour l'Offre Gratuite :**
+Avec le système de 5 tickets/jour, un utilisateur gratuit actif vous coûte environ **0,50 € par mois**. Ce coût est tout à fait raisonnable et peut être couvert par des revenus publicitaires modestes ou amorti par le fait qu'une fraction de ces utilisateurs passera à une offre payante. Le système de tickets est donc une excellente protection.
+
+### Seuil de Rentabilité pour l'Offre Premium (5 € / mois)
+
+Ici, le revenu est fixe (5 €). Il faut s'assurer que les coûts générés par l'utilisateur ne dépassent pas ce montant.
+
+*   **Scénario d'un utilisateur "Premium" intensif :**
+    *   **Hypothèse 1 : Focus sur l'Upload**
+        *   Un utilisateur qui n'utilise que l'upload pourrait téléverser **environ 2500 images par mois** (5 € / 0,002 €) avant de dépasser son coût d'abonnement. C'est un volume très élevé qui concerne peu d'utilisateurs.
+    *   **Hypothèse 2 : Focus sur l'IA**
+        *   Un utilisateur qui n'utilise que la génération IA pourrait faire **environ 1600 générations par mois** (5 € / 0,003 €) avant de ne plus être rentable.
+    *   **Hypothèse 3 : Usage Mixte (réaliste)**
+        *   500 uploads/mois = 1,00 €
+        *   500 générations IA/mois = 1,50 €
+        *   Coût total : 2,50 €. **Marge : 2,50 €**.
+
+**Conclusion pour l'Offre Premium :**
+Même pour un usage très intensif, un abonnement à 5 €/mois semble **très rentable**. La majorité des utilisateurs n'atteindra jamais ces seuils.
+*   **Recommandation :** Vous pourriez même proposer un nombre très élevé de tickets IA (ex: 200/mois) dans l'offre Premium sans risquer la rentabilité.
+*   **Attention :** Le coût de l'**édition d'image par IA** sera beaucoup plus élevé. Il faudra l'intégrer dans une offre "Pro" (ex: 10-15 €/mois) ou le facturer via des packs de crédits spécifiques.
+
+---
+
+## 4. Comment rester compétitif ?
 
 Vos concurrents directs (hébergeurs d'images gratuits) se financent souvent par la publicité massive. Votre avantage compétitif ne sera pas le prix (difficile de faire plus gratuit que gratuit), mais **la valeur ajoutée**.
 
@@ -84,6 +130,6 @@ Vos concurrents directs (hébergeurs d'images gratuits) se financent souvent par
 
 ### Conclusion et Prochaines Étapes
 
-1.  **Maintenez le système de tickets :** C'est votre meilleur outil de contrôle des coûts.
+1.  **Maintenez le système de tickets :** C'est votre meilleur outil de contrôle des coûts pour l'offre gratuite.
 2.  **Associez l'IA aux tickets :** Pensez à décompter un ticket pour chaque utilisation de l'IA afin de maîtriser ce nouveau coût.
 3.  **Visez le Freemium :** C'est le modèle le plus logique pour l'avenir de Clikup. Commencez par l'offre gratuite actuelle et, lorsque l'application sera plus mature, vous pourrez facilement y greffer une offre payante.
