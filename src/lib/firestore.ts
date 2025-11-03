@@ -47,7 +47,9 @@ export type ImageMetadata = {
   id: string;
   userId: string;
   originalName?: string;
+  title?: string;
   description?: string;
+  hashtags?: string;
   storagePath?: string;
   directUrl: string;
   bbCode: string;

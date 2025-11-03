@@ -41,9 +41,17 @@
           "type": "string",
           "description": "The original name of the file when uploaded."
         },
+        "title": {
+          "type": "string",
+          "description": "A user-provided or AI-generated title for the image."
+        },
         "description": {
           "type": "string",
           "description": "A user-provided or AI-generated description of the image."
+        },
+        "hashtags": {
+          "type": "string",
+          "description": "A space-separated string of user-provided or AI-generated hashtags."
         },
         "fileSize": {
           "type": "number",
