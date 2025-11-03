@@ -4,7 +4,8 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -54,6 +55,22 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
           <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
         </header>
+
+        {/* Section Progression */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Progression & Niveau</CardTitle>
+                <CardDescription>Gagnez de l'expérience en utilisant l'application pour monter en niveau.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                    <p className="font-semibold">Niveau 1</p>
+                    <p className="text-sm text-muted-foreground">Prochain niveau : 100 XP</p>
+                </div>
+                <Progress value={25} />
+                <p className="text-center text-sm text-muted-foreground">Votre progression : 25 / 100 XP</p>
+            </CardContent>
+        </Card>
 
         {/* Section Statistiques */}
         <Card>
