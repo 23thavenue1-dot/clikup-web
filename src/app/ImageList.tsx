@@ -63,7 +63,7 @@ export function ImageList() {
     
     const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
-    const [currentHashtags, setCurrentHashtags] = useState<string[]>([]);
+    const [hashtagsString, setHashtagsString] = useState('');
     
     const [isSavingDescription, setIsSavingDescription] = useState(false);
     const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -81,7 +81,7 @@ export function ImageList() {
         if (imageToEdit) {
             setCurrentTitle(''); // Reset title on new image
             setCurrentDescription(imageToEdit.description || '');
-            setCurrentHashtags([]); // Reset hashtags on new image
+            setHashtagsString(''); // Reset hashtags on new image
             setWasGeneratedByAI(false); // Reset on new image
         }
     }, [imageToEdit]);
@@ -133,7 +133,8 @@ export function ImageList() {
             const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            setCurrentHashtags(result.hashtags);
+            // On ajoute le # directement ici
+            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
              toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Vous pouvez la modifier.` });
         } catch (error) {
@@ -150,7 +151,7 @@ export function ImageList() {
         const finalDescription = [
             currentTitle,
             currentDescription,
-            currentHashtags.join(' ')
+            hashtagsString
         ].filter(Boolean).join('\n\n');
 
         try {
@@ -371,8 +372,8 @@ export function ImageList() {
                             <Textarea 
                                 id="hashtags"
                                 placeholder="#hashtags #générés #apparaîtront #ici"
-                                value={currentHashtags.join(' ')}
-                                onChange={(e) => setCurrentHashtags(e.target.value.split(' '))}
+                                value={hashtagsString}
+                                onChange={(e) => setHashtagsString(e.target.value)}
                                 rows={2}
                                 disabled={isGeneratingDescription || isSavingDescription}
                             />
