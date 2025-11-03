@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase';
@@ -8,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -72,113 +72,123 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-4xl mx-auto space-y-8">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
-          <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
-        </header>
+    <TooltipProvider>
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-4xl mx-auto space-y-8">
+          <header>
+            <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
+            <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
+          </header>
 
-        {/* Section Progression */}
-        <Card>
+          {/* Section Progression */}
+          <Card>
+              <CardHeader>
+                  <CardTitle>Progression & Niveau</CardTitle>
+                  <CardDescription>Gagnez de l'expérience en utilisant l'application pour monter en niveau.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                      <p className="font-semibold">Niveau 1</p>
+                      <p className="text-sm text-muted-foreground">Prochain niveau : 100 XP</p>
+                  </div>
+                  <Progress value={0} />
+                  <p className="text-center text-sm text-muted-foreground">Votre progression : 0 / 100 XP</p>
+              </CardContent>
+          </Card>
+
+          {/* Section Statistiques */}
+          <Card>
             <CardHeader>
-                <CardTitle>Progression & Niveau</CardTitle>
-                <CardDescription>Gagnez de l'expérience en utilisant l'application pour monter en niveau.</CardDescription>
+              <CardTitle>Statistiques d'Utilisation</CardTitle>
+              <CardDescription>Un aperçu de votre activité sur la plateforme.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                    <p className="font-semibold">Niveau 1</p>
-                    <p className="text-sm text-muted-foreground">Prochain niveau : 100 XP</p>
-                </div>
-                <Progress value={0} />
-                <p className="text-center text-sm text-muted-foreground">Votre progression : 0 / 100 XP</p>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {stats.map((stat) => (
+                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
+                    <div className="bg-primary/10 text-primary p-3 rounded-md">
+                      <stat.icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
-        </Card>
+          </Card>
 
-        {/* Section Statistiques */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Statistiques d'Utilisation</CardTitle>
-            <CardDescription>Un aperçu de votre activité sur la plateforme.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {stats.map((stat) => (
-                <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
-                  <div className="bg-primary/10 text-primary p-3 rounded-md">
-                    <stat.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Section Badges */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Badges</CardTitle>
+              <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {badges.map((badge) => (
+                  <Tooltip key={badge.title}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`aspect-square p-4 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : ''}`}
+                      >
+                        <div className={`p-3 rounded-full mb-2 ${badge.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                          <badge.icon className="h-7 w-7" />
+                        </div>
+                        <p className="text-xs font-semibold truncate max-w-full">{badge.title}</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-semibold">{badge.title}</p>
+                      <p className="text-sm text-muted-foreground">{badge.description}</p>
+                      {!badge.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Section Badges */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Badges</CardTitle>
-            <CardDescription>Collectionnez des badges uniques pour votre profil.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {badges.map((badge) => (
-                <div
-                  key={badge.title}
-                  className={`p-4 border rounded-lg flex flex-col items-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : ''}`}
-                >
-                  <div className={`p-4 rounded-full mb-3 ${badge.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
-                    <badge.icon className="h-8 w-8" />
-                  </div>
-                  <p className="font-semibold">{badge.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{badge.description}</p>
-                  {!badge.unlocked && (
-                    <div className="mt-2 text-xs font-semibold text-muted-foreground/80">(Verrouillé)</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Section Succès */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Succès</CardTitle>
+              <CardDescription>Débloquez des succès pour gagner de l'expérience.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {achievements.map((achievement) => (
+                    <Tooltip key={achievement.title}>
+                        <TooltipTrigger asChild>
+                           <div
+                            className={`relative aspect-square p-4 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
+                           >
+                            <div className={`p-3 rounded-full mb-2 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                <achievement.icon className="h-7 w-7" />
+                            </div>
+                            <p className="text-xs font-semibold truncate max-w-full">{achievement.title}</p>
+                            {achievement.unlocked && (
+                                <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                    <Check className="h-3 w-3 text-white" />
+                                </div>
+                            )}
+                           </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p className="font-semibold">{achievement.title}</p>
+                            <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                            {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                        </TooltipContent>
+                    </Tooltip>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Section Succès */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Succès</CardTitle>
-            <CardDescription>Débloquez des succès en accomplissant des objectifs-clés.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {achievements.map((achievement) => (
-                <div
-                  key={achievement.title}
-                  className={`p-4 border rounded-lg flex items-center gap-4 transition-opacity ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5'}`}
-                >
-                  <div className={`p-3 rounded-md ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                    <achievement.icon className="h-6 w-6" />
-                  </div>
-                  <div className="flex-grow">
-                    <p className="font-semibold">{achievement.title}</p>
-                    <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                  </div>
-                  {achievement.unlocked ? (
-                     <Check className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <div className="text-xs font-semibold text-muted-foreground/80">(Verrouillé)</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
-
