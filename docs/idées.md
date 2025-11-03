@@ -1,8 +1,25 @@
 # Idées d'Intégration de l'IA dans le Projet
 
-Ce document rassemble plusieurs idées pour enrichir l'application de téléversement d'images en y intégrant des fonctionnalités d'intelligence artificielle, notamment via Genkit et les modèles Gemini.
+Ce document rassemble plusieurs idées pour enrichir l'application en y intégrant des fonctionnalités d'intelligence artificielle, notamment via Genkit et les modèles Gemini.
 
-## 1. Titres et Descriptions Automatiques (Facile)
+## Vision : L'Assistant de Contenu pour Réseaux Sociaux (Avancé)
+
+-   **L'idée globale :** Transformer Clikup en un assistant complet pour la publication sur les réseaux sociaux. Le flux de travail serait :
+    1.  L'utilisateur téléverse une image.
+    2.  Il demande des **retouches en langage naturel** ("Rends le ciel plus dramatique", "Améliore la luminosité"). L'IA modifie l'image.
+    3.  Une fois l'image finale obtenue, l'IA **génère une description optimisée** (titre, texte, hashtags pertinents) pour des plateformes comme Instagram, Facebook ou X.
+    4.  L'utilisateur peut alors **partager directement** le résultat (image + texte) sur le réseau de son choix.
+-   **Avantages :**
+    -   **Flux de travail tout-en-un** : L'utilisateur gère tout son processus créatif, de l'idée à la publication, sans quitter l'application.
+    -   **Gain de temps massif** pour les créateurs de contenu.
+    -   **Valeur ajoutée spectaculaire** qui différencie Clikup de tous les autres hébergeurs d'images.
+-   **Statut :** C'est la vision à long terme qui combine et sublime toutes les autres idées.
+
+---
+
+## Idées Individuelles
+
+### 1. Titres et Descriptions Automatiques (Facile)
 
 -   **L'idée :** Au moment où un utilisateur téléverse une image, une IA (comme Gemini) analyse l'image et génère automatiquement un titre ou une description pertinente. Par exemple, pour une photo de chat, l'IA pourrait générer le nom "chat dormant sur un canapé".
 -   **Avantages :**
@@ -11,21 +28,21 @@ Ce document rassemble plusieurs idées pour enrichir l'application de télévers
     -   Enrichit les données dans Firestore avec des métadonnées de qualité.
 -   **Statut :** Excellent point de départ.
 
-## 2. Catégorisation et Taggage Intelligents (Intermédiaire)
+### 2. Catégorisation et Taggage Intelligents (Intermédiaire)
 
 -   **L'idée :** L'IA va plus loin que la simple description. Elle analyse l'image et en extrait une liste de "tags" ou d'étiquettes : `animal`, `chat`, `intérieur`, `canapé`, `repos`.
 -   **Avantages :**
     -   Permet de créer des **albums ou des catégories automatiques**.
     -   Améliore considérablement la recherche et le filtrage dans la galerie.
 
-## 3. "Critique" ou Amélioration Photo par l'IA (Intermédiaire)
+### 3. "Critique" ou Amélioration Photo par l'IA (Intermédiaire)
 
 -   **L'idée :** Après l'upload, l'IA pourrait donner un conseil sur la photo. "Superbe photo ! La composition est excellente." ou "La lumière est un peu faible, vous pourriez essayer d'augmenter la luminosité.".
 -   **Avantages :**
     -   Crée une **expérience utilisateur engageante et ludique**.
     -   Apporte une aide précieuse aux photographes amateurs.
 
-## 4. Édition d'Image par le Langage (Avancé)
+### 4. Édition d'Image par le Langage (Avancé)
 
 -   **L'idée :** L'utilisateur pourrait téléverser une photo et donner des instructions en langage naturel, comme : "Change le ciel pour un coucher de soleil." ou "Enlève la voiture rouge en arrière-plan."
 -   **Avantages :**
