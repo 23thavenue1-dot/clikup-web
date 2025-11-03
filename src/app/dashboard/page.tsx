@@ -4,7 +4,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -35,19 +35,16 @@ export default function DashboardPage() {
   ];
 
   const badges = [
-    {
-      title: 'Premier Upload',
-      description: 'Décerné pour votre toute première image téléversée.',
-      icon: Medal,
-      unlocked: false, // Placeholder
-    },
-    {
-      title: 'Fidèle de la semaine',
-      description: 'Décerné pour vous être connecté 7 jours de suite.',
-      icon: Award,
-      unlocked: false, // Placeholder
-    },
-    // Add more badges here
+    { title: 'Niv. 1 : Novice', description: 'Atteindre le niveau 1.', icon: Medal, unlocked: true },
+    { title: 'Niv. 2 : Initié', description: 'Atteindre le niveau 2.', icon: Award, unlocked: false },
+    { title: 'Niv. 3 : Habitué', description: 'Atteindre le niveau 3.', icon: Trophy, unlocked: false },
+    { title: 'Niv. 4 : Expert', description: 'Atteindre le niveau 4.', icon: Star, unlocked: false },
+    { title: 'Niv. 5 : Maître', description: 'Atteindre le niveau 5.', icon: Crown, unlocked: false },
+    { title: 'Niv. 6 : Vétéran', description: 'Atteindre le niveau 6.', icon: Gem, unlocked: false },
+    { title: 'Niv. 7 : Gardien', description: 'Atteindre le niveau 7.', icon: Shield, unlocked: false },
+    { title: 'Niv. 8 : Pionnier', description: 'Atteindre le niveau 8.', icon: Rocket, unlocked: false },
+    { title: 'Niv. 9 : Virtuose', description: 'Atteindre le niveau 9.', icon: Sparkles, unlocked: false },
+    { title: 'Niv. 10 : Icône', description: 'Atteindre le niveau 10.', icon: Sun, unlocked: false },
   ];
 
   const achievements = [
@@ -123,18 +120,23 @@ export default function DashboardPage() {
           {/* Section Badges */}
           <Card>
             <CardHeader>
-              <CardTitle>Badges</CardTitle>
+              <CardTitle>Badges de Niveau</CardTitle>
               <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
                 {badges.map((badge) => (
                   <Tooltip key={badge.title}>
                     <TooltipTrigger asChild>
                       <div
-                        className={`aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : ''}`}
+                        className={`aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
                       >
-                        <div className={`p-2 rounded-full mb-1 ${badge.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                         {badge.unlocked && (
+                            <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                <Check className="h-3 w-3 text-white" />
+                            </div>
+                        )}
+                        <div className={`p-2 rounded-full mb-1 ${badge.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                           <badge.icon className="h-6 w-6" />
                         </div>
                         <p className="text-[10px] font-semibold truncate max-w-full">{badge.title}</p>
@@ -158,7 +160,7 @@ export default function DashboardPage() {
               <CardDescription>Débloquez des succès pour gagner de l'expérience.</CardDescription>
             </CardHeader>
             <CardContent>
-               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+               <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
                 {achievements.map((achievement) => (
                     <Tooltip key={achievement.title}>
                         <TooltipTrigger asChild>
