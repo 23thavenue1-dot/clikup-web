@@ -25,6 +25,11 @@ const features = [
     description: 'Téléversez vos images en un clin d\'œil depuis votre appareil, une URL ou directement sur notre cloud sécurisé.',
   },
   {
+    icon: LinkIcon,
+    title: 'Liens de Partage Instantanés',
+    description: 'Obtenez immédiatement des liens URL, BBCode ou HTML pour partager vos images sur des forums, blogs ou réseaux sociaux.',
+  },
+  {
     icon: Gamepad2,
     title: 'Progression & Succès',
     description: 'Montez en niveau, débloquez des badges et accomplissez des succès. Votre activité est récompensée !',
@@ -117,7 +122,7 @@ export function LandingPage() {
                   Clikup
               </h1>
               <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
-                La plateforme intelligente pour héberger, gérer et sublimer vos images. Plus qu'un simple stockage, un véritable partenaire créatif.
+                La plateforme intelligente pour héberger vos images, générer des liens de partage et sublimer vos créations.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                 <Button asChild size="lg">
@@ -143,7 +148,7 @@ export function LandingPage() {
                 Des fonctionnalités pensées pour les créateurs, les développeurs et les utilisateurs de tous les jours.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature) => (
                 <Card key={feature.title} className="text-center shadow-sm hover:shadow-lg transition-shadow">
                   <CardContent className="p-8">
