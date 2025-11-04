@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -47,9 +48,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { getStorage } from 'firebase/storage';
+import { Badge } from '@/components/ui/badge';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
+
+const aiPromptSuggestions = [
+    "Donne à cette photo une ambiance 'golden hour' avec une lumière chaude et douce.",
+    "Ajoute un effet 'dreamy' avec un léger flou et une lueur douce.",
+    "Applique un grain de film et des couleurs désaturées pour un look 'film vintage'.",
+    "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
+    "Incruste un 'lens flare' cinématique pour un effet plus dramatique.",
+    "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.",
+    "Remplace l'arrière-plan par un fond de studio uni de couleur pastel.",
+    "Ajoute un reflet de la scène sur un sol comme s'il venait de pleuvoir.",
+    "Fais en sorte que le bord droit du sujet se désintègre en particules.",
+    "Applique un léger effet 'glitch' / d'interférence sur l'image."
+];
 
 export function ImageList() {
     const { user, firebaseApp } = useFirebase();
@@ -886,14 +901,14 @@ setCurrentDescription(result.description);
             </Dialog>
 
             <Dialog open={showAiEditDialog} onOpenChange={setShowAiEditDialog}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Sparkles className="text-primary"/>
                             Édition par Intelligence Artificielle
                         </DialogTitle>
                         <DialogDescription>
-                            Décrivez les modifications que vous souhaitez apporter à l'image. Un ticket IA sera utilisé.
+                            Décrivez les modifications que vous souhaitez apporter ou choisissez une suggestion. Un ticket IA sera utilisé.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -926,7 +941,7 @@ setCurrentDescription(result.description);
                                         />
                                     )}
                                     {!isGeneratingAiImage && !generatedAiImageUrl && (
-                                        <p className="text-sm text-muted-foreground">Le résultat apparaîtra ici.</p>
+                                        <p className="text-sm text-muted-foreground p-4 text-center">Le résultat de la transformation apparaîtra ici.</p>
                                     )}
                                 </div>
                             </div>
@@ -956,6 +971,25 @@ setCurrentDescription(result.description);
                                 disabled={isGeneratingAiImage || isSavingAiImage}
                             />
                         </div>
+
+                        <div className="space-y-2">
+                            <Label>Suggestions</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {aiPromptSuggestions.map((prompt, index) => (
+                                    <Button
+                                        key={index}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs"
+                                        onClick={() => setAiEditPrompt(prompt)}
+                                        disabled={isGeneratingAiImage || isSavingAiImage}
+                                    >
+                                        {prompt.split("'")[1] || prompt.split(" ")[2]}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowAiEditDialog(false)} disabled={isGeneratingAiImage || isSavingAiImage}>Annuler</Button>
@@ -971,7 +1005,7 @@ setCurrentDescription(result.description);
                             ) : (
                                 <>
                                     <Save className="mr-2"/>
-                                    Enregistrer l'image
+                                    Enregistrer
                                 </>
                             )}
                         </Button>
@@ -998,3 +1032,5 @@ setCurrentDescription(result.description);
         </TooltipProvider>
     );
 }
+
+    
