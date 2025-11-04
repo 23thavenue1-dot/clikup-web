@@ -8,7 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal } from 'lucide-react';
@@ -226,7 +226,7 @@ export function ImageList() {
         try {
             const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
             setCurrentTitle(result.title);
-setCurrentDescription(result.description);
+            setCurrentDescription(result.description);
             // On ajoute le # directement ici
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
@@ -269,12 +269,17 @@ setCurrentDescription(result.description);
     
         try {
             if (imageToAddToGallery) { // Cas image unique
-                const promises = galleries.map(gallery => {
-                    const shouldBeInGallery = selectedGalleries.has(gallery.id);
-                    // Pas besoin de vérifier si l'image y est déjà, toggleImageInGallery s'en occupe
-                    return toggleImageInGallery(firestore, user.uid, imageToAddToGallery.id, gallery.id);
-                });
-                await Promise.all(promises);
+                // This logic is now complex, better to just call addMultipleImagesToGalleries
+                await addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], Array.from(selectedGalleries));
+
+                // Also need to handle removing from galleries it was deselected from
+                const originalGalleries = galleries.filter(g => g.imageIds.includes(imageToAddToGallery.id)).map(g => g.id);
+                const galleriesToRemoveFrom = originalGalleries.filter(gId => !selectedGalleries.has(gId));
+                if (galleriesToRemoveFrom.length > 0) {
+                     const removePromises = galleriesToRemoveFrom.map(gId => addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], [], true, [gId]));
+                     await Promise.all(removePromises);
+                }
+
             } else if (selectedImages.size > 0) { // Cas sélection multiple
                 if (selectedGalleries.size > 0) {
                     await addMultipleImagesToGalleries(firestore, user.uid, Array.from(selectedImages), Array.from(selectedGalleries));
@@ -704,3 +709,5 @@ setCurrentDescription(result.description);
         </TooltipProvider>
     );
 }
+
+    

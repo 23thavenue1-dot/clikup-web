@@ -470,35 +470,6 @@ export async function deleteGallery(firestore: Firestore, userId: string, galler
 }
 
 /**
- * Ajoute ou supprime une image d'une galerie.
- * @param firestore L'instance Firestore.
- * @param userId L'ID de l'utilisateur.
- * @param imageId L'ID de l'image à ajouter/supprimer.
- * @param galleryId L'ID de la galerie.
- */
-export async function toggleImageInGallery(firestore: Firestore, userId: string, imageId: string, galleryId: string): Promise<void> {
-    const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
-    
-    try {
-        const gallerySnap = await getDoc(galleryDocRef);
-        if (!gallerySnap.exists()) {
-            throw new Error("Galerie introuvable.");
-        }
-        const galleryData = gallerySnap.data() as Gallery;
-        const isCurrentlyInGallery = galleryData.imageIds.includes(imageId);
-
-        if (isCurrentlyInGallery) {
-             await updateDoc(galleryDocRef, { imageIds: arrayRemove(imageId) });
-        } else {
-             await updateDoc(galleryDocRef, { imageIds: arrayUnion(imageId) });
-        }
-    } catch (error) {
-        console.error("Erreur lors de la mise à jour de l'image dans la galerie :", error);
-        throw error;
-    }
-}
-
-/**
  * Ajoute une image à une galerie.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
@@ -569,31 +540,49 @@ export async function removeImagesFromGallery(firestore: Firestore, userId: stri
 }
 
 /**
- * Ajoute plusieurs images à plusieurs galeries.
+ * Ajoute ou supprime plusieurs images dans plusieurs galeries.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
- * @param imageIds Les IDs des images à ajouter.
+ * @param imageIds Les IDs des images à traiter.
  * @param galleryIds Les IDs des galeries à mettre à jour.
+ * @param remove Si true, retire les images au lieu de les ajouter.
+ * @param fromGalleryIds Si remove est true, spécifie de quelles galeries retirer les images.
  */
-export async function addMultipleImagesToGalleries(firestore: Firestore, userId: string, imageIds: string[], galleryIds: string[]): Promise<void> {
-    if (imageIds.length === 0 || galleryIds.length === 0) return;
+export async function addMultipleImagesToGalleries(
+    firestore: Firestore, 
+    userId: string, 
+    imageIds: string[], 
+    galleryIds: string[],
+    remove: boolean = false,
+    fromGalleryIds: string[] = []
+): Promise<void> {
+    if (imageIds.length === 0 || (galleryIds.length === 0 && !remove)) return;
 
     const batch = writeBatch(firestore);
-
-    galleryIds.forEach(galleryId => {
-        const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
-        batch.update(galleryDocRef, {
-            imageIds: arrayUnion(...imageIds)
+    
+    if (remove) {
+        fromGalleryIds.forEach(galleryId => {
+            const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+            batch.update(galleryDocRef, {
+                imageIds: arrayRemove(...imageIds)
+            });
         });
-    });
+    } else {
+        galleryIds.forEach(galleryId => {
+            const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+            batch.update(galleryDocRef, {
+                imageIds: arrayUnion(...imageIds)
+            });
+        });
+    }
 
     try {
         await batch.commit();
     } catch (error) {
-        console.error("Erreur lors de l'ajout multiple d'images aux galeries :", error);
-        // Pour une erreur de batch, il est plus complexe de déterminer le chemin exact.
-        // On peut remonter une erreur plus générique.
-        throw new Error("Impossible d'ajouter les images aux galeries.");
+        console.error("Erreur lors de l'opération en batch sur les galeries :", error);
+        throw new Error("Impossible de mettre à jour les galeries.");
     }
 }
+    
+
     
