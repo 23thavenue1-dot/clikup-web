@@ -16,7 +16,6 @@ import { editImage } from '@/ai/flows/edit-image-flow';
 import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -31,48 +30,48 @@ const suggestionCategories = [
     {
         name: "Retouches de Portrait",
         prompts: [
-            "Adoucis la lumière sur le visage pour un rendu plus flatteur.",
-            "Lisse subtilement la peau tout en conservant sa texture naturelle.",
-            "Réduis légèrement l'apparence des cernes sous les yeux.",
-            "Rends le blanc des yeux et les dents légèrement plus éclatants.",
-            "Accentue la netteté sur les yeux, les cils et les sourcils.",
-            "Ravive subtilement la couleur naturelle des lèvres et des joues.",
-            "Donne à la peau un effet 'glow' sain et lumineux.",
-            "Atténue les reflets de brillance sur la peau.",
-            "Accentue légèrement la définition de la mâchoire.",
+            { title: "Lumière douce", prompt: "Adoucis la lumière sur le visage pour un rendu plus flatteur." },
+            { title: "Peau lissée", prompt: "Lisse subtilement la peau tout en conservant sa texture naturelle." },
+            { title: "Moins de cernes", prompt: "Réduis légèrement l'apparence des cernes sous les yeux." },
+            { title: "Sourire éclatant", prompt: "Rends le blanc des yeux et les dents légèrement plus éclatants." },
+            { title: "Regard net", prompt: "Accentue la netteté sur les yeux, les cils et les sourcils." },
+            { title: "Couleurs ravivées", prompt: "Ravive subtilement la couleur naturelle des lèvres et des joues." },
+            { title: "Effet 'Glow'", prompt: "Donne à la peau un effet 'glow' sain et lumineux." },
+            { title: "Anti-brillance", prompt: "Atténue les reflets de brillance sur la peau." },
+            { title: "Mâchoire définie", prompt: "Accentue légèrement la définition de la mâchoire." },
         ],
     },
     {
         name: "Changements de Fond",
         prompts: [
-            "Remplace l'arrière-plan par une plage de sable blanc et mer turquoise.",
-            "Change le fond pour un paysage de montagnes enneigées.",
-            "Place le sujet dans une rue de Tokyo la nuit, avec des néons.",
-            "Remplace le fond par un fond de studio professionnel gris.",
-            "Change le fond pour une forêt mystérieuse et enchantée.",
-            "Remplace le fond par un champ de lavande au coucher du soleil.",
-            "Change l'arrière-plan pour un fond abstrait peint à l'aquarelle.",
-            "Place le sujet dans l'espace, avec des étoiles et des nébuleuses.",
-            "Remplace le fond par un paysage urbain post-apocalyptique.",
+            { title: "Plage", prompt: "Remplace l'arrière-plan par une plage de sable blanc et mer turquoise." },
+            { title: "Montagnes", prompt: "Change le fond pour un paysage de montagnes enneigées." },
+            { title: "Tokyo (nuit)", prompt: "Place le sujet dans une rue de Tokyo la nuit, avec des néons." },
+            { title: "Studio", prompt: "Remplace le fond par un fond de studio professionnel gris." },
+            { title: "Forêt enchantée", prompt: "Change le fond pour une forêt mystérieuse et enchantée." },
+            { title: "Champ de lavande", prompt: "Remplace le fond par un champ de lavande au coucher du soleil." },
+            { title: "Aquarelle", prompt: "Change l'arrière-plan pour un fond abstrait peint à l'aquarelle." },
+            { title: "Espace", prompt: "Place le sujet dans l'espace, avec des étoiles et des nébuleuses." },
+            { title: "Post-apocalyptique", prompt: "Remplace le fond par un paysage urbain post-apocalyptique." },
         ]
     },
     {
         name: "Ambiance & Style",
         prompts: [
-            "Donne à l'image un look cinématographique avec des couleurs intenses.",
-            "Rends l'image en noir et blanc avec un fort contraste.",
-            "Augmente le contraste et la saturation pour un look 'couverture de magazine'.",
-            "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
+            { title: "Cinématographique", prompt: "Donne à l'image un look cinématographique avec des couleurs intenses." },
+            { title: "Noir & Blanc", prompt: "Rends l'image en noir et blanc avec un fort contraste." },
+            { title: "Look Magazine", prompt: "Augmente le contraste et la saturation pour un look 'couverture de magazine'." },
+            { title: "Style Cyberpunk", prompt: "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'." },
         ]
     },
     {
         name: "Effets Spéciaux & Créatifs",
         prompts: [
-            "Ajoute des rayons de soleil qui traversent l'image.",
-            "Ajoute un effet de pluie et des reflets sur le sol.",
-            "Donne à l'image un effet maquette / miniature (tilt-shift).",
-            "Fais en sorte que le bord du sujet se désintègre en particules.",
-            "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.",
+            { title: "Rayons de soleil", prompt: "Ajoute des rayons de soleil qui traversent l'image." },
+            { title: "Effet de pluie", prompt: "Ajoute un effet de pluie et des reflets sur le sol." },
+            { title: "Effet maquette", prompt: "Donne à l'image un effet maquette / miniature (tilt-shift)." },
+            { title: "Désintégration", prompt: "Fais en sorte que le bord du sujet se désintègre en particules." },
+            { title: "Zoom en mouvement", prompt: "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre." },
         ]
     }
 ];
@@ -178,7 +177,7 @@ export default function EditImagePage() {
     return (
         <div className="bg-muted/20 min-h-screen">
             {/* -- HEADER -- */}
-            <header className="sticky top-16 md:top-0 bg-background/80 backdrop-blur-sm border-b z-20">
+            <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
                 <div className="container mx-auto p-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="sm" asChild>
@@ -196,7 +195,7 @@ export default function EditImagePage() {
                        </Badge>
                        <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                            Enregistrer
+                            Enregistrer la création
                         </Button>
                     </div>
                 </div>
@@ -253,7 +252,7 @@ export default function EditImagePage() {
                             {/* Suggestions Area */}
                             <div className="flex flex-col space-y-3">
                                 <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
-                                <ScrollArea className="flex-grow w-full rounded-md border p-2 bg-muted/40">
+                                <div className="flex-grow w-full rounded-md border p-2 bg-muted/40 overflow-y-auto">
                                     <Accordion type="single" collapsible className="w-full">
                                         {suggestionCategories.map(category => (
                                             <AccordionItem value={category.name} key={category.name}>
@@ -261,8 +260,8 @@ export default function EditImagePage() {
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {category.prompts.map(p => (
-                                                            <Button key={p} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
-                                                                {p}
+                                                            <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                {p.title}
                                                             </Button>
                                                         ))}
                                                     </div>
@@ -270,7 +269,7 @@ export default function EditImagePage() {
                                             </AccordionItem>
                                         ))}
                                     </Accordion>
-                                </ScrollArea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -279,5 +278,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-    
