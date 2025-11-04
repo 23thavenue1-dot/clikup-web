@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
@@ -35,10 +35,10 @@ const suggestionCategories = [
             { title: "Astronaute", prompt: "Place-moi dans l'espace, avec un casque d'astronaute et un fond de nébuleuses." },
             { title: "Cyberpunk", prompt: "Donne à ce selfie une ambiance cyberpunk avec des néons et une atmosphère de nuit pluvieuse." },
             { title: "Aventurier dans la jungle", prompt: "Transforme-moi en aventurier dans une jungle dense et mystérieuse." },
-            { title: "Nature sauvage", prompt: "Remplace l'arrière-plan par un paysage de nature sauvage." },
             { title: "Style bande dessinée", prompt: "Applique un style de bande dessinée (comic book) à ce selfie, avec des contours marqués." },
             { title: "Personnage de jeu vidéo", prompt: "Fais de ce selfie le portrait d'un personnage de jeu vidéo fantaisie." },
             { title: "Double exposition", prompt: "Crée un effet de double exposition en superposant mon visage avec un paysage de forêt." },
+            { title: "Nature sauvage", prompt: "Remplace l'arrière-plan par un paysage de nature sauvage." },
         ],
     },
     {
