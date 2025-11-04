@@ -230,10 +230,17 @@
         },
         "imageIds": {
           "type": "array",
-          "description": "An ordered list of image IDs included in the gallery.",
+          "description": "An ordered list of ALL image IDs included in the gallery.",
           "items": {
             "type": "string"
           }
+        },
+        "pinnedImageIds": {
+            "type": "array",
+            "description": "A list of image IDs from this gallery that are 'pinned' or marked as favorites.",
+            "items": {
+                "type": "string"
+            }
         },
         "createdAt": {
           "type": "string",
