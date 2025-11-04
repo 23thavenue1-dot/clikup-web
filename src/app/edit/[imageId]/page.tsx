@@ -123,7 +123,7 @@ export default function EditImagePage() {
     const handleGenerate = async () => {
         if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
         if (userProfile.aiTicketCount <= 0) {
-            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: 'Plus de tickets ? Achetez-en plus !' });
+            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: 'Plus de tickets ? Rechargez ici !' });
             return;
         }
         setIsGenerating(true);
@@ -244,7 +244,7 @@ export default function EditImagePage() {
                         </Button>
                         {!hasAiTickets && !isGenerating && (
                             <p className="text-center text-xs text-destructive font-semibold cursor-pointer hover:underline">
-                                Plus de tickets ? Achetez-en plus !
+                                Plus de tickets ? Rechargez ici !
                             </p>
                         )}
                     </div>

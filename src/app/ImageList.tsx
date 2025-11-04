@@ -186,7 +186,7 @@ export function ImageList() {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: 'Plus de tickets ? Achetez-en plus !',
+                description: 'Plus de tickets ? Rechargez ici !',
             });
             return;
         }
@@ -629,7 +629,7 @@ setCurrentDescription(result.description);
                                     </TooltipTrigger>
                                     {!hasAiTickets && (
                                         <TooltipContent>
-                                            <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Achetez-en plus !</p>
+                                            <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Rechargez ici !</p>
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
