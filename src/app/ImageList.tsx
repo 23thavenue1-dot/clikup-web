@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
@@ -41,12 +42,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
-import { editImage } from '@/ai/flows/edit-image-flow';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { getStorage } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,56 +53,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
-const aiPromptSuggestions = [
-  {
-    category: "Retouches de Portrait",
-    prompts: [
-      { label: "Lumière Douce", value: "Adoucis la lumière sur le visage pour un rendu plus flatteur." },
-      { label: "Peau Naturelle", value: "Lisse subtilement la peau tout en conservant sa texture naturelle." },
-      { label: "Anti-Cernes", value: "Réduis légèrement l'apparence des cernes et des poches sous les yeux." },
-      { label: "Sourire Éclatant", value: "Rends le blanc des yeux et les dents légèrement plus éclatants." },
-      { label: "Regard Intense", value: "Accentue la netteté sur les yeux, les cils et les sourcils pour intensifier le regard." },
-      { label: "Bonne Mine", value: "Ravive subtilement la couleur naturelle des lèvres et des joues." },
-      { label: "Effet 'Glow'", value: "Donne à la peau un effet 'glow' sain et lumineux." },
-      { label: "Anti-Brillance", value: "Atténue les reflets de brillance sur la peau (front, nez, menton)." },
-      { label: "Visage Structuré", value: "Accentue légèrement la définition de la mâchoire pour un visage plus structuré." },
-    ]
-  },
-  {
-    category: "Changements de Fond",
-    prompts: [
-      { label: "Plage Tropicale", value: "Remplace l'arrière-plan par une plage de sable blanc avec des palmiers et une mer turquoise." },
-      { label: "Montagnes Enneigées", value: "Change le fond pour un paysage de montagnes enneigées majestueuses sous un ciel bleu." },
-      { label: "Rue de Tokyo", value: "Place le sujet dans une rue de Tokyo la nuit, avec des néons lumineux et l'ambiance de la ville." },
-      { label: "Fond de Studio", value: "Remplace l'arrière-plan par un fond de studio professionnel gris uni." },
-      { label: "Forêt Enchantée", value: "Change le fond pour une forêt mystérieuse et enchantée, avec des rayons de lumière qui filtrent à travers les arbres." },
-      { label: "Champ de Lavande", value: "Remplace l'arrière-plan par un champ de lavande en Provence au coucher du soleil." },
-      { label: "Style Aquarelle", value: "Change l'arrière-plan pour un fond abstrait peint à l'aquarelle dans des tons pastel." },
-      { label: "Voyage dans l'Espace", value: "Place le sujet dans l'espace, avec des étoiles, des nébuleuses et la Terre en arrière-plan." },
-      { label: "Décor Post-Apo", value: "Remplace le fond par un paysage urbain post-apocalyptique et abandonné." },
-    ]
-  },
-  {
-    category: "Ambiance & Style",
-    prompts: [
-      { label: "Look Cinéma", value: "Donne à l'image un look cinématographique avec des couleurs plus intenses." },
-      { label: "Look Magazine", value: "Augmente le contraste et la saturation pour un look 'couverture de magazine'." },
-      { label: "Noir & Blanc Contraste", value: "Rends l'image en noir et blanc avec un fort contraste." },
-      { label: "Style Cyberpunk", value: "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'." },
-    ]
-  },
-  {
-    category: "Effets Spéciaux & Créatifs",
-    prompts: [
-      { label: "Rayons de Soleil", value: "Ajoute des rayons de soleil qui traversent les arbres/nuages." },
-      { label: "Effet Pluie", value: "Ajoute un effet de pluie et des reflets sur le sol." },
-      { label: "Effet Miniature", value: "Donne à l'image un effet maquette / miniature (tilt-shift)." },
-      { label: "Zoom en Mouvement", value: "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre." },
-      { label: "Désintégration", value: "Fais en sorte que le bord droit du sujet se désintègre en particules." },
-      { label: "Explosion de Poudre", value: "Change le fond pour une explosion de poudre colorée, style festival Holi." },
-    ]
-  }
-];
 
 export function ImageList() {
     const { user, firebaseApp } = useFirebase();
@@ -148,14 +97,6 @@ export function ImageList() {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
 
-    // State for AI image editing
-    const [showAiEditDialog, setShowAiEditDialog] = useState(false);
-    const [imageToAiEdit, setImageToAiEdit] = useState<ImageMetadata | null>(null);
-    const [aiEditPrompt, setAiEditPrompt] = useState('');
-    const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
-    const [generatedAiImageUrl, setGeneratedAiImageUrl] = useState<string | null>(null);
-    const [isSavingAiImage, setIsSavingAiImage] = useState(false);
-
 
     const imagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -199,13 +140,6 @@ export function ImageList() {
         setImageToShowDetails(image);
         setShowDetailsDialog(true);
         setCopiedField(null);
-    };
-    
-    const openAiEditDialog = (image: ImageMetadata) => {
-        setImageToAiEdit(image);
-        setShowAiEditDialog(true);
-        setAiEditPrompt('');
-        setGeneratedAiImageUrl(null);
     };
 
     const openAddToGalleryDialog = (image: ImageMetadata | null) => {
@@ -383,86 +317,6 @@ setCurrentDescription(result.description);
         });
     };
 
-    const handleAiImageEdit = async () => {
-        if (!imageToAiEdit || !aiEditPrompt.trim() || !user || !firestore || !userProfile) return;
-
-        if (userProfile.aiTicketCount <= 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Tickets IA épuisés',
-                description: 'Revenez demain pour obtenir plus de tickets.',
-            });
-            return;
-        }
-
-        setIsGeneratingAiImage(true);
-        setGeneratedAiImageUrl(null);
-        try {
-            const result = await editImage({
-                imageUrl: imageToAiEdit.directUrl,
-                prompt: aiEditPrompt,
-            });
-
-            if (result.newImageUrl) {
-                setGeneratedAiImageUrl(result.newImageUrl);
-                await decrementAiTicketCount(firestore, user.uid);
-                toast({
-                    title: 'Image générée !',
-                    description: 'Un ticket IA a été utilisé.',
-                });
-            } else {
-                throw new Error("L'IA n'a pas retourné d'image.");
-            }
-        } catch (error) {
-            console.error("Erreur d'édition IA:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur de génération',
-                description: (error as Error).message || "Une erreur est survenue lors de l'édition par IA.",
-            });
-        } finally {
-            setIsGeneratingAiImage(false);
-        }
-    };
-    
-    const handleSaveAiImage = async () => {
-        if (!generatedAiImageUrl || !user || !firestore || !firebaseApp) return;
-
-        setIsSavingAiImage(true);
-        try {
-            const response = await fetch(generatedAiImageUrl);
-            const blob = await response.blob();
-            const newFileName = `ai_edited_${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: 'image/png' });
-
-            const storage = getStorage(firebaseApp);
-            const metadata = await uploadFileAndGetMetadata(
-                storage,
-                user,
-                imageFile,
-                `Édition IA : ${aiEditPrompt.substring(0, 30)}...`,
-                () => {} // Pas de suivi de progression pour la sauvegarde
-            );
-
-            await saveImageMetadata(firestore, user, metadata);
-
-            toast({
-                title: 'Image sauvegardée !',
-                description: 'Votre création a été ajoutée à votre galerie.',
-            });
-            setShowAiEditDialog(false); // Fermer la modale après sauvegarde
-        } catch (error) {
-             console.error("Erreur lors de la sauvegarde de l'image IA :", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur de sauvegarde',
-                description: (error as Error).message || "Une erreur est survenue lors de l'enregistrement de l'image.",
-            });
-        } finally {
-            setIsSavingAiImage(false);
-        }
-    };
-
 
     const renderSkeleton = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -570,10 +424,12 @@ setCurrentDescription(result.description);
                                                     variant="secondary"
                                                     size="icon"
                                                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => openAiEditDialog(image)}
+                                                    asChild
                                                     aria-label="Éditer avec l'IA"
                                                 >
-                                                    <Sparkles size={16}/>
+                                                    <Link href={`/edit/${image.id}`}>
+                                                        <Sparkles size={16}/>
+                                                    </Link>
                                                 </Button>
                                                 <Button
                                                     variant="secondary"
@@ -939,150 +795,6 @@ setCurrentDescription(result.description);
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={showAiEditDialog} onOpenChange={setShowAiEditDialog}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sparkles className="text-primary"/>
-                            Édition par Intelligence Artificielle
-                        </DialogTitle>
-                        <DialogDescription>
-                            Décrivez les modifications que vous souhaitez apporter ou choisissez une suggestion. Un ticket IA sera utilisé.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid grid-rows-[auto_1fr_auto] gap-4 py-4 h-[70vh]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                            <div className="space-y-2">
-                                <Label>Avant</Label>
-                                <div className="relative aspect-square w-full overflow-hidden rounded-md border bg-muted">
-                                    {imageToAiEdit && (
-                                        <Image
-                                            src={imageToAiEdit.directUrl}
-                                            alt={imageToAiEdit.originalName || 'Image à éditer'}
-                                            fill
-                                            className="object-contain"
-                                            unoptimized
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Après</Label>
-                                <div className="relative aspect-square w-full overflow-hidden rounded-md border bg-muted flex items-center justify-center">
-                                    {isGeneratingAiImage && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-                                    {!isGeneratingAiImage && generatedAiImageUrl && (
-                                        <Image
-                                            src={generatedAiImageUrl}
-                                            alt="Image générée par l'IA"
-                                            fill
-                                            className="object-contain"
-                                            unoptimized
-                                        />
-                                    )}
-                                    {!isGeneratingAiImage && !generatedAiImageUrl && (
-                                        <p className="text-sm text-muted-foreground p-4 text-center">Le résultat de la transformation apparaîtra ici.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <ScrollArea className="flex-grow">
-                             <div className="space-y-4 pr-6">
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="ai-prompt">Votre instruction</Label>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                                    <Ticket className="h-4 w-4" />
-                                                    <span>{userProfile?.aiTicketCount ?? 0}</span>
-                                                </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{userProfile?.aiTicketCount ?? 0} tickets IA restants</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </div>
-                                    <Textarea 
-                                        id="ai-prompt"
-                                        placeholder="Ex: 'Rends le ciel plus dramatique', 'Transforme en peinture à l'huile'..."
-                                        value={aiEditPrompt}
-                                        onChange={(e) => setAiEditPrompt(e.target.value)}
-                                        rows={2}
-                                        disabled={isGeneratingAiImage || isSavingAiImage}
-                                    />
-                                </div>
-
-                                {aiPromptSuggestions.length > 0 && (
-                                    <div className="space-y-6">
-                                        {aiPromptSuggestions.map((category) => (
-                                            <div key={category.category}>
-                                                <Label className="font-semibold">{category.category}</Label>
-                                                <div className="flex flex-wrap gap-2 mt-2">
-                                                    {category.prompts.map((prompt) => (
-                                                        <Button
-                                                            key={prompt.label}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="text-xs h-auto py-1 px-2"
-                                                            onClick={() => setAiEditPrompt(prompt.value)}
-                                                            disabled={isGeneratingAiImage || isSavingAiImage}
-                                                        >
-                                                            {prompt.label}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                             </div>
-                        </ScrollArea>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="secondary" onClick={() => setShowAiEditDialog(false)} disabled={isGeneratingAiImage || isSavingAiImage}>Annuler</Button>
-                        <Button 
-                            onClick={handleSaveAiImage}
-                            disabled={!generatedAiImageUrl || isSavingAiImage || isGeneratingAiImage}
-                        >
-                            {isSavingAiImage ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                    Enregistrement...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="mr-2"/>
-                                    Enregistrer
-                                </>
-                            )}
-                        </Button>
-                        <Button 
-                            onClick={handleAiImageEdit} 
-                            disabled={isGeneratingAiImage || !aiEditPrompt.trim() || !hasAiTickets || isSavingAiImage}
-                        >
-                            {isGeneratingAiImage ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                    Génération...
-                                </>
-                            ) : (
-                                <>
-                                    <Wand2 className="mr-2"/>
-                                    Générer
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
         </TooltipProvider>
     );
 }
-
-    
-    
-
-    
-
