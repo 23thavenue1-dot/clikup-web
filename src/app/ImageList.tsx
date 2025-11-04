@@ -206,7 +206,7 @@ export function ImageList() {
             link.href = url;
 
             const fileExtension = image.mimeType?.split('/')[1] || 'jpg';
-            const fileName = image.originalName || image.title || `clikup-image-${image.id}`;
+            const fileName = image.title || image.originalName || `clikup-image-${image.id}`;
             link.setAttribute('download', `${fileName}.${fileExtension}`);
     
             document.body.appendChild(link);
@@ -487,15 +487,20 @@ setCurrentDescription(result.description);
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => openEditDialog(image)}>
                                                             <Pencil className="mr-2 h-4 w-4" />
-                                                            <span>Modifier</span>
+                                                            <span>Modifier la description</span>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => openAddToGalleryDialog(image)}>
                                                             <CopyPlus className="mr-2 h-4 w-4" />
                                                             <span>Ajouter à la galerie</span>
                                                         </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => openDetailsDialog(image)}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            <span>Détails et Copie</span>
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => openShareDialog(image)}>
                                                             <Share2 className="mr-2 h-4 w-4" />
-                                                            <span>Partager</span>
+                                                            <span>Partager les liens</span>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleDownload(image)} disabled={isDownloading === image.id}>
                                                             {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
@@ -845,6 +850,8 @@ setCurrentDescription(result.description);
 
 
 
+
+    
 
     
 
