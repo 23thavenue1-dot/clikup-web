@@ -1,16 +1,313 @@
 
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import type { ImageMetadata, UserProfile } from '@/lib/firestore';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { ArrowLeft, Loader2, Sparkles, Wand2, Save } from 'lucide-react';
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { editImage } from '@/ai/flows/edit-image-flow';
+import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
+import { getStorage } from 'firebase/storage';
+import { uploadFileAndGetMetadata } from '@/lib/storage';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+
+// --- Helper pour convertir Data URI en Blob ---
+async function dataUriToBlob(dataUri: string): Promise<Blob> {
+    const response = await fetch(dataUri);
+    const blob = await response.blob();
+    return blob;
+}
+
+const suggestionCategories = [
+    {
+        name: "Retouches de Portrait",
+        prompts: [
+            "Adoucis la lumière sur le visage pour un rendu plus flatteur.",
+            "Lisse subtilement la peau tout en conservant sa texture naturelle.",
+            "Réduis légèrement l'apparence des cernes sous les yeux.",
+            "Rends le blanc des yeux et les dents légèrement plus éclatants.",
+            "Accentue la netteté sur les yeux, les cils et les sourcils.",
+            "Ravive subtilement la couleur naturelle des lèvres et des joues.",
+            "Donne à la peau un effet 'glow' sain et lumineux.",
+            "Atténue les reflets de brillance sur la peau.",
+            "Accentue légèrement la définition de la mâchoire.",
+        ],
+    },
+    {
+        name: "Changements de Fond",
+        prompts: [
+            "Remplace l'arrière-plan par une plage de sable blanc et mer turquoise.",
+            "Change le fond pour un paysage de montagnes enneigées.",
+            "Place le sujet dans une rue de Tokyo la nuit, avec des néons.",
+            "Remplace l'arrière-plan par un fond de studio professionnel gris.",
+            "Change le fond pour une forêt mystérieuse et enchantée.",
+            "Remplace le fond par un champ de lavande au coucher du soleil.",
+            "Change l'arrière-plan pour un fond abstrait peint à l'aquarelle.",
+            "Place le sujet dans l'espace, avec des étoiles et des nébuleuses.",
+            "Remplace le fond par un paysage urbain post-apocalyptique.",
+        ]
+    },
+    {
+        name: "Ambiance & Style",
+        prompts: [
+            "Donne à l'image un look cinématographique avec des couleurs intenses.",
+            "Rends l'image en noir et blanc avec un fort contraste.",
+            "Applique un filtre vintage, comme une vieille photo des années 70.",
+            "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
+            "Augmente le contraste et la saturation pour un look 'couverture de magazine'.",
+        ]
+    },
+    {
+        name: "Effets Spéciaux & Créatifs",
+        prompts: [
+            "Ajoute des rayons de soleil qui traversent l'image.",
+            "Ajoute un effet de pluie et des reflets sur le sol.",
+            "Donne à l'image un effet maquette / miniature (tilt-shift).",
+            "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.",
+            "Fais en sorte que le bord du sujet se désintègre en particules.",
+        ]
+    }
+];
 
 export default function EditImagePage() {
     const params = useParams();
+    const router = useRouter();
     const imageId = params.imageId as string;
 
+    const { user, isUserLoading, firebaseApp } = useFirebase();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const [prompt, setPrompt] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
+    // --- Data Fetching ---
+    const imageDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}/images`, imageId);
+    }, [user, firestore, imageId]);
+    const { data: originalImage, isLoading: isImageLoading } = useDoc<ImageMetadata>(imageDocRef);
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+    // --- Effects ---
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.push('/login');
+        }
+    }, [isUserLoading, user, router]);
+
+    // --- Handlers ---
+    const handleGenerate = async () => {
+        if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
+
+        if (userProfile.aiTicketCount <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: 'Revenez demain pour obtenir plus de tickets !',
+            });
+            return;
+        }
+
+        setIsGenerating(true);
+        setGeneratedImageUrl(null);
+        try {
+            const result = await editImage({ imageUrl: originalImage.directUrl, prompt });
+            setGeneratedImageUrl(result.newImageUrl);
+            await decrementAiTicketCount(firestore, user.uid);
+            toast({
+                title: 'Image générée !',
+                description: 'Un ticket IA a été utilisé. Vous pouvez maintenant enregistrer votre création.',
+            });
+        } catch (error) {
+            console.error(error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de génération',
+                description: "L'IA n'a pas pu traiter votre demande. Essayez une autre instruction ou une autre image.",
+            });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+    
+    const handleSaveAiImage = async () => {
+        if (!generatedImageUrl || !user || !firebaseApp || !firestore) return;
+        setIsSaving(true);
+        try {
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(generatedImageUrl);
+            // Give it a unique name
+            const newFileName = `ai-edited-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const metadata = await uploadFileAndGetMetadata(
+                storage,
+                user,
+                imageFile,
+                `IA: ${prompt}`,
+                () => {} // Pas de suivi de progression nécessaire ici
+            );
+
+            await saveImageMetadata(firestore, user, { ...metadata, description: `Image originale modifiée avec l'instruction : "${prompt}"` });
+
+            toast({
+                title: "Création enregistrée !",
+                description: "Votre nouvelle image a été ajoutée à votre galerie.",
+            });
+            router.push('/');
+
+        } catch (error) {
+            console.error("Erreur lors de la sauvegarde de l'image IA :", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de sauvegarde',
+                description: "Impossible d'enregistrer la nouvelle image.",
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+
+    // --- Render Logic ---
+    if (isUserLoading || isImageLoading || isProfileLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    if (!originalImage) {
+         return (
+            <div className="container mx-auto p-8 text-center">
+                 <h1 className="text-2xl font-bold">Image introuvable</h1>
+                 <p className="text-muted-foreground">L'image que vous essayez de modifier n'existe pas ou vous n'y avez pas accès.</p>
+                 <Button asChild className="mt-4">
+                    <Link href="/">Retour à l'accueil</Link>
+                 </Button>
+            </div>
+        );
+    }
+
+    const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
+
     return (
-        <div className="container mx-auto p-8">
-            <h1 className="text-2xl font-bold">Page d'édition d'image</h1>
-            <p className="text-muted-foreground">Bientôt disponible. ID de l'image : {imageId}</p>
+        <div className="flex flex-col h-full">
+            <header className="flex-shrink-0 border-b">
+                 <div className="container mx-auto p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/">
+                                <ArrowLeft className="mr-2 h-4 w-4"/>
+                                Retour
+                            </Link>
+                        </Button>
+                        <div>
+                             <h1 className="text-lg font-semibold tracking-tight">Édition par IA</h1>
+                             <p className="text-sm text-muted-foreground hidden sm:block">Modifiez votre image avec une simple instruction.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                       <Badge variant="outline" className="h-8 text-sm">
+                          <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                           {userProfile?.aiTicketCount ?? 0} Tickets IA restants
+                       </Badge>
+                       <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                            Enregistrer l'image
+                        </Button>
+                    </div>
+                </div>
+            </header>
+            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-px bg-border">
+                {/* Image Panel */}
+                <div className="lg:col-span-2 bg-muted/30 p-4 sm:p-8 flex flex-col items-center justify-center gap-4">
+                     <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                         <div className="flex flex-col items-center gap-2">
+                             <p className="text-sm font-semibold text-muted-foreground">AVANT</p>
+                             <div className="aspect-square w-full relative rounded-lg border overflow-hidden">
+                                 <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+                             </div>
+                         </div>
+                         <div className="flex flex-col items-center gap-2">
+                              <p className="text-sm font-semibold text-muted-foreground">APRÈS</p>
+                             <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center">
+                                 {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                 {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                 {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/50"/>}
+                             </div>
+                         </div>
+                     </div>
+                </div>
+
+                {/* Controls Panel */}
+                <div className="lg:col-span-1 bg-background flex flex-col h-full">
+                     <ScrollArea className="flex-1">
+                        <div className="p-4 sm:p-6 space-y-6">
+                            <div>
+                                <h2 className="text-base font-semibold mb-2">1. Donnez votre instruction</h2>
+                                <Textarea
+                                    placeholder="Ex : 'Rends le ciel plus dramatique et ajoute des éclairs.'"
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    rows={3}
+                                    disabled={isGenerating || isSaving}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <h2 className="text-base font-semibold">2. Ou choisissez une suggestion</h2>
+                                {suggestionCategories.map(category => (
+                                    <div key={category.name}>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">{category.name}</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {category.prompts.map(p => (
+                                                <Button key={p} variant="outline" size="sm" className="text-xs h-auto py-1" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
+                                                    {p}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </ScrollArea>
+                    <div className="p-4 sm:p-6 border-t mt-auto">
+                         <Button 
+                            className="w-full" 
+                            size="lg"
+                            onClick={handleGenerate}
+                            disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                        >
+                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                            {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                         </Button>
+                         {!hasAiTickets && (
+                            <p className="text-center text-sm text-destructive mt-2">Vous n'avez plus de tickets IA. Revenez demain !</p>
+                         )}
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }
+
+    
