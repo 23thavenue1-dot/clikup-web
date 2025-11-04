@@ -14,7 +14,7 @@ Ce document sert de point de sauvegarde et de journal de bord pour les grandes �
 
 ## 2. Résolution des Défis Majeurs
 
-Le chemin vers la stabilité a été marqué par la résolution de plusieurs problèmes critiques qui ont renforcé la qualité du code.
+Le chemin vers la stabilité a été marqué par la résolution de plusieurs problèmes critiques qui ont ont renforcé la qualité du code.
 
 ### Le Mystère de "Storage/Unauthorized"
 
@@ -45,8 +45,16 @@ Le chemin vers la stabilité a été marqué par la résolution de plusieurs pro
     3.  **Améliorations UX :** Ajout de la possibilité de retirer et d'ajouter des images (y compris par sélection multiple) directement depuis l'interface de gestion de la galerie, pour une expérience utilisateur plus fluide.
 *   **Résultat :** Un système de galeries complet, stable et intuitif, permettant une organisation puissante des images.
 
-## 3. Prochaines Étapes : L'Innovation IA
+### L'Éradication des Bugs d'Interface
+
+*   **Problème :** Plusieurs erreurs "Invalid DOM property `class`. Did you mean `className`?" ont été détectées par Next.js, causant des avertissements dans la console et indiquant une mauvaise pratique en JSX.
+*   **Solution Appliquée :**
+    1.  **Correction Systématique :** Nous avons passé en revue plusieurs fichiers, notamment `dropdown-menu.tsx`, `card.tsx`, `ImageList.tsx` et `edit/[imageId]/page.tsx`, pour remplacer toutes les occurrences de l'attribut `class` par `className`.
+    2.  **Correction d'Importation :** Une erreur de build a été causée par une mauvaise importation (`useFirestore` importé depuis `lib/firestore` au lieu de `@/firebase`). Elle a été corrigée dans `edit/[imageId]/page.tsx`.
+*   **Résultat :** Une base de code plus propre, sans avertissements, et conforme aux standards de React/JSX.
+
+## 3. Prochaines Étapes : L'Innovation Continue
 
 Maintenant que la base technique est solide, sécurisée et maîtrisée, la voie est libre pour nous concentrer sur les fonctionnalités innovantes prévues dans notre feuille de route (`docs/roadmap.md`) et nos idées (`docs/idées.md`).
 
-Le prochain grand chapitre sera l'intégration de l'intelligence artificielle (Genkit) pour enrichir l'expérience utilisateur, en commençant par l'édition d'image par langage naturel.
+Le prochain grand chapitre sera l'amélioration de l'expérience utilisateur et l'intégration de nouvelles fonctionnalités IA.
