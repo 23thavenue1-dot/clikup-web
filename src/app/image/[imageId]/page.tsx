@@ -107,7 +107,14 @@ export default function ImageDetailPage() {
                                 unoptimized
                             />
                         </div>
-                        <CardTitle className="text-3xl break-words">{image.title || 'Sans titre'}</CardTitle>
+                        <div className="group/copy-item relative">
+                            <CardTitle className="text-3xl break-words pr-10">{image.title || 'Sans titre'}</CardTitle>
+                             {image.title && (
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.title!, 'details-title', 'Titre copié !')}>
+                                    {copiedField === 'details-title' ? <Check className="text-green-500" /> : <Copy size={16} />}
+                                </Button>
+                            )}
+                        </div>
                         <CardDescription>
                             Téléversée {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
                         </CardDescription>
