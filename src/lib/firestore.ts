@@ -263,32 +263,74 @@ export async function deleteImageMetadata(firestore: Firestore, userId: string, 
  * @param user L'objet utilisateur authentifié.
  * @param text Le contenu de la note.
  */
-export function saveNote(firestore: Firestore, user: User, text: string) {
+export async function saveNote(firestore: Firestore, user: User, text: string): Promise<void> {
   const notesCollectionRef = collection(firestore, 'users', user.uid, 'notes');
   
-  const dataToSave: Omit<Note, 'id' | 'createdAt'> = {
+  const dataToSave = {
     userId: user.uid,
     text: text,
+    createdAt: serverTimestamp(),
   };
 
-  const dataWithTimestamp = {
-      ...dataToSave,
-      createdAt: serverTimestamp(),
-  };
-
-  // addDoc crée un document avec un ID généré automatiquement.
-  return addDoc(notesCollectionRef, dataWithTimestamp).catch((error) => {
+  try {
+    const docRef = await addDoc(notesCollectionRef, dataToSave);
+    await updateDoc(docRef, { id: docRef.id });
+  } catch (error) {
     console.error("Erreur lors de la sauvegarde de la note :", error);
     const permissionError = new FirestorePermissionError({
-      path: notesCollectionRef.path, // Le chemin de la collection où l'ajout a échoué
+      path: notesCollectionRef.path,
       operation: 'create',
-      requestResourceData: dataWithTimestamp,
+      requestResourceData: dataToSave,
     });
 
     errorEmitter.emit('permission-error', permissionError);
-    // Renvoyer l'erreur pour que le composant puisse la gérer
     throw error;
-  });
+  }
+}
+
+/**
+ * Met à jour le contenu d'une note existante.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param noteId L'ID de la note à mettre à jour.
+ * @param newText Le nouveau texte de la note.
+ */
+export async function updateNote(firestore: Firestore, userId: string, noteId: string, newText: string): Promise<void> {
+    const noteDocRef = doc(firestore, 'users', userId, 'notes', noteId);
+    const dataToUpdate = { text: newText };
+    try {
+        await updateDoc(noteDocRef, dataToUpdate);
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour de la note :", error);
+        const permissionError = new FirestorePermissionError({
+            path: noteDocRef.path,
+            operation: 'update',
+            requestResourceData: dataToUpdate,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
+/**
+ * Supprime une note.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param noteId L'ID de la note à supprimer.
+ */
+export async function deleteNote(firestore: Firestore, userId: string, noteId: string): Promise<void> {
+    const noteDocRef = doc(firestore, 'users', userId, 'notes', noteId);
+    try {
+        await deleteDoc(noteDocRef);
+    } catch (error) {
+        console.error("Erreur lors de la suppression de la note :", error);
+        const permissionError = new FirestorePermissionError({
+            path: noteDocRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
 }
 
 
