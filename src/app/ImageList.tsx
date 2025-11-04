@@ -49,6 +49,7 @@ import { cn } from '@/lib/utils';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { getStorage } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
@@ -949,11 +950,11 @@ setCurrentDescription(result.description);
                             Décrivez les modifications que vous souhaitez apporter ou choisissez une suggestion. Un ticket IA sera utilisé.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="grid grid-rows-[auto_1fr_auto] gap-4 py-4 h-[70vh]">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                             <div className="space-y-2">
                                 <Label>Avant</Label>
-                                <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                                <div className="relative aspect-square w-full overflow-hidden rounded-md border bg-muted">
                                     {imageToAiEdit && (
                                         <Image
                                             src={imageToAiEdit.directUrl}
@@ -967,7 +968,7 @@ setCurrentDescription(result.description);
                             </div>
                             <div className="space-y-2">
                                 <Label>Après</Label>
-                                <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted flex items-center justify-center">
+                                <div className="relative aspect-square w-full overflow-hidden rounded-md border bg-muted flex items-center justify-center">
                                     {isGeneratingAiImage && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
                                     {!isGeneratingAiImage && generatedAiImageUrl && (
                                         <Image
@@ -985,55 +986,58 @@ setCurrentDescription(result.description);
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="ai-prompt">Votre instruction</Label>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                            <Ticket className="h-4 w-4" />
-                                            <span>{userProfile?.aiTicketCount ?? 0}</span>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{userProfile?.aiTicketCount ?? 0} tickets IA restants</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </div>
-                            <Textarea 
-                                id="ai-prompt"
-                                placeholder="Ex: 'Rends le ciel plus dramatique', 'Transforme en peinture à l'huile'..."
-                                value={aiEditPrompt}
-                                onChange={(e) => setAiEditPrompt(e.target.value)}
-                                rows={2}
-                                disabled={isGeneratingAiImage || isSavingAiImage}
-                            />
-                        </div>
-
-                        {aiPromptSuggestions.length > 0 && (
-                            <div className="space-y-6">
-                                {aiPromptSuggestions.map((category) => (
-                                    <div key={category.category}>
-                                        <Label className="font-semibold">{category.category}</Label>
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {category.prompts.map((prompt) => (
-                                                <Button
-                                                    key={prompt.label}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-xs h-auto py-1 px-2"
-                                                    onClick={() => setAiEditPrompt(prompt.value)}
-                                                    disabled={isGeneratingAiImage || isSavingAiImage}
-                                                >
-                                                    {prompt.label}
-                                                </Button>
-                                            ))}
-                                        </div>
+                        <ScrollArea className="flex-grow">
+                             <div className="space-y-4 pr-6">
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="ai-prompt">Votre instruction</Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                                    <Ticket className="h-4 w-4" />
+                                                    <span>{userProfile?.aiTicketCount ?? 0}</span>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{userProfile?.aiTicketCount ?? 0} tickets IA restants</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    <Textarea 
+                                        id="ai-prompt"
+                                        placeholder="Ex: 'Rends le ciel plus dramatique', 'Transforme en peinture à l'huile'..."
+                                        value={aiEditPrompt}
+                                        onChange={(e) => setAiEditPrompt(e.target.value)}
+                                        rows={2}
+                                        disabled={isGeneratingAiImage || isSavingAiImage}
+                                    />
+                                </div>
 
+                                {aiPromptSuggestions.length > 0 && (
+                                    <div className="space-y-6">
+                                        {aiPromptSuggestions.map((category) => (
+                                            <div key={category.category}>
+                                                <Label className="font-semibold">{category.category}</Label>
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {category.prompts.map((prompt) => (
+                                                        <Button
+                                                            key={prompt.label}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-xs h-auto py-1 px-2"
+                                                            onClick={() => setAiEditPrompt(prompt.value)}
+                                                            disabled={isGeneratingAiImage || isSavingAiImage}
+                                                        >
+                                                            {prompt.label}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                             </div>
+                        </ScrollArea>
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowAiEditDialog(false)} disabled={isGeneratingAiImage || isSavingAiImage}>Annuler</Button>
@@ -1081,3 +1085,4 @@ setCurrentDescription(result.description);
     
 
     
+
