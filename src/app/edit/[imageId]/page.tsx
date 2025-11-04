@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
@@ -77,6 +77,7 @@ const suggestionCategories = [
         ]
     }
 ];
+
 
 export default function EditImagePage() {
     const params = useParams();
@@ -176,9 +177,9 @@ export default function EditImagePage() {
     const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex flex-col bg-muted/20">
+        <div className="bg-muted/20 min-h-screen">
             {/* -- HEADER -- */}
-            <header className="flex-shrink-0 border-b bg-background z-10">
+            <header className="sticky top-16 md:top-0 bg-background/80 backdrop-blur-sm border-b z-20">
                 <div className="container mx-auto p-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="sm" asChild>
@@ -187,7 +188,7 @@ export default function EditImagePage() {
                                 Retour
                             </Link>
                         </Button>
-                        <h1 className="text-lg font-semibold tracking-tight">Édition par IA</h1>
+                        <h1 className="text-lg font-semibold tracking-tight hidden sm:block">Édition par IA</h1>
                     </div>
                     <div className="flex items-center gap-4">
                        <Badge variant="outline" className="h-8 text-sm">
@@ -202,81 +203,80 @@ export default function EditImagePage() {
                 </div>
             </header>
             
-            {/* -- MAIN CONTENT -- */}
-            <main className="flex-1 flex flex-col overflow-hidden">
-                {/* -- IMAGE PREVIEW PANEL -- */}
-                <div className="flex-1 container mx-auto py-4 sm:py-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-items-center">
-                    <div className="w-full max-w-md flex flex-col items-center gap-2">
-                        <p className="text-sm font-semibold text-muted-foreground">AVANT</p>
-                        <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
-                            <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+            <div className="container mx-auto">
+                <main className="py-6 space-y-6">
+                    {/* -- IMAGE PREVIEW PANEL -- */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-items-center">
+                        <div className="w-full max-w-md flex flex-col items-center gap-2">
+                            <p className="text-sm font-semibold text-muted-foreground">AVANT</p>
+                            <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
+                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+                            </div>
+                        </div>
+                        <div className="w-full max-w-md flex flex-col items-center gap-2">
+                            <p className="text-sm font-semibold text-muted-foreground">APRÈS</p>
+                            <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
+                                {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+                            </div>
                         </div>
                     </div>
-                    <div className="w-full max-w-md flex flex-col items-center gap-2">
-                        <p className="text-sm font-semibold text-muted-foreground">APRÈS</p>
-                        <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
-                            {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                            {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                            {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-                        </div>
-                    </div>
-                </div>
 
-                {/* -- CONTROLS PANEL -- */}
-                <div className="flex-shrink-0 border-t bg-background/95 backdrop-blur-sm">
-                    <div className="container mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                        {/* Prompt Input Area */}
-                        <div className="space-y-3">
-                             <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
-                             <Textarea
-                                placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                rows={4}
-                                disabled={isGenerating || isSaving}
-                                className="h-28"
-                            />
-                            <Button 
-                                className="w-full" 
-                                size="lg"
-                                onClick={handleGenerate}
-                                disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
-                            >
-                                {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                                {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                            </Button>
-                            {!hasAiTickets && !isGenerating && (
-                               <p className="text-center text-xs text-destructive mt-1">Vous n'avez plus de tickets IA. Revenez demain !</p>
-                            )}
-                        </div>
+                    {/* -- CONTROLS PANEL -- */}
+                    <div className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-sm">
+                        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                            {/* Prompt Input Area */}
+                            <div className="space-y-3">
+                                 <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
+                                 <Textarea
+                                    placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    rows={4}
+                                    disabled={isGenerating || isSaving}
+                                    className="h-28"
+                                />
+                                <Button 
+                                    className="w-full" 
+                                    size="lg"
+                                    onClick={handleGenerate}
+                                    disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                                >
+                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                                    {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                                </Button>
+                                {!hasAiTickets && !isGenerating && (
+                                   <p className="text-center text-xs text-destructive mt-1">Vous n'avez plus de tickets IA. Revenez demain !</p>
+                                )}
+                            </div>
 
-                        {/* Suggestions Area */}
-                        <div className="space-y-3">
-                            <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
-                            <ScrollArea className="h-40 w-full rounded-md border p-2 bg-muted/40">
-                                <Accordion type="single" collapsible className="w-full">
-                                    {suggestionCategories.map(category => (
-                                        <AccordionItem value={category.name} key={category.name}>
-                                            <AccordionTrigger className="text-sm py-2">{category.name}</AccordionTrigger>
-                                            <AccordionContent>
-                                                <div className="flex flex-wrap gap-2 pt-2">
-                                                    {category.prompts.map(p => (
-                                                        <Button key={p} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
-                                                            {p}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
-                            </ScrollArea>
+                            {/* Suggestions Area */}
+                            <div className="space-y-3">
+                                <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
+                                <ScrollArea className="h-40 w-full rounded-md border p-2 bg-muted/40">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        {suggestionCategories.map(category => (
+                                            <AccordionItem value={category.name} key={category.name}>
+                                                <AccordionTrigger className="text-sm py-2">{category.name}</AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                        {category.prompts.map(p => (
+                                                            <Button key={p} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
+                                                                {p}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </ScrollArea>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     );
 }
-
-    
