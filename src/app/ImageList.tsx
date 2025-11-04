@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -472,7 +472,7 @@ export function ImageList() {
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem asChild>
                                                             <Link href={`/image/${image.id}`}>
-                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                <Share2 className="mr-2 h-4 w-4" />
                                                                 <span>Détails et Partage</span>
                                                             </Link>
                                                         </DropdownMenuItem>

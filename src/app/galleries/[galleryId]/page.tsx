@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
 import { type Gallery, type ImageMetadata, type UserProfile, getImagesForGallery, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Eye, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket } from 'lucide-react';
+import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -438,7 +438,7 @@ export default function GalleryDetailPage() {
                                                                 <DropdownMenuItem onClick={() => openEditDialog(image)}><Pencil className="mr-2 h-4 w-4" /><span>Modifier la description</span></DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem asChild>
-                                                                    <Link href={`/image/${image.id}`}><Eye className="mr-2 h-4 w-4" /><span>Détails et Copie</span></Link>
+                                                                    <Link href={`/image/${image.id}`}><Share2 className="mr-2 h-4 w-4" /><span>Détails et Partage</span></Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => handleDownload(image)} disabled={isDownloading === image.id}>
                                                                     {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
