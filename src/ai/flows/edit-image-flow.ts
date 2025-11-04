@@ -46,15 +46,14 @@ const editImageFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt }) => {
     
+    // Simplification de l'appel pour correspondre aux exigences du modèle
     const { media } = await ai.generate({
-        // Utilisation d'un modèle capable d'édition d'image
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
             { media: { url: imageUrl } },
             { text: prompt },
         ],
         config: {
-            // Le modèle doit pouvoir retourner du texte et une image
             responseModalities: ['TEXT', 'IMAGE'],
         },
     });
