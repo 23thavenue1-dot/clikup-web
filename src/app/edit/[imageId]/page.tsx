@@ -61,7 +61,6 @@ const suggestionCategories = [
         prompts: [
             "Donne à l'image un look cinématographique avec des couleurs intenses.",
             "Rends l'image en noir et blanc avec un fort contraste.",
-            "Applique un filtre vintage, comme une vieille photo des années 70.",
             "Augmente le contraste et la saturation pour un look 'couverture de magazine'.",
             "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
         ]
@@ -156,7 +155,7 @@ export default function EditImagePage() {
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+            <div className="flex items-center justify-center min-h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
@@ -225,9 +224,9 @@ export default function EditImagePage() {
 
                     {/* -- CONTROLS PANEL -- */}
                     <div className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-sm">
-                        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
                             {/* Prompt Input Area */}
-                            <div className="space-y-3">
+                            <div className="flex flex-col space-y-3">
                                  <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
                                  <Textarea
                                     placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
@@ -235,7 +234,7 @@ export default function EditImagePage() {
                                     onChange={(e) => setPrompt(e.target.value)}
                                     rows={4}
                                     disabled={isGenerating || isSaving}
-                                    className="h-28"
+                                    className="flex-grow"
                                 />
                                 <Button 
                                     className="w-full" 
@@ -254,7 +253,7 @@ export default function EditImagePage() {
                             {/* Suggestions Area */}
                             <div className="space-y-3">
                                 <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
-                                <ScrollArea className="h-40 w-full rounded-md border p-2 bg-muted/40">
+                                <ScrollArea className="h-full w-full rounded-md border p-2 bg-muted/40" style={{minHeight: '196px'}}>
                                     <Accordion type="single" collapsible className="w-full">
                                         {suggestionCategories.map(category => (
                                             <AccordionItem value={category.name} key={category.name}>
