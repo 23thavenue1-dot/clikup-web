@@ -473,7 +473,7 @@ export function ImageList() {
                                                         <DropdownMenuItem asChild>
                                                             <Link href={`/image/${image.id}`}>
                                                                 <Eye className="mr-2 h-4 w-4" />
-                                                                <span>Détails et Copie</span>
+                                                                <span>Détails et Partage</span>
                                                             </Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleDownload(image)} disabled={isDownloading === image.id}>
