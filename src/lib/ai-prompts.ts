@@ -28,6 +28,7 @@ export const suggestionCategories: PromptCategory[] = [
             { title: "Nature sauvage", prompt: "Détoure le sujet de la photo et remplace l'arrière-plan par un paysage de nature sauvage." },
             { title: "Jouet Collector", prompt: "Détoure le sujet et transforme-le en jouet collector (type figurine) dans son emballage d'origine." },
             { title: "Homme/Femme d'affaires", prompt: "Détoure le sujet, habille-le avec un costume élégant (costard) et donne-lui une expression qui inspire confiance." },
+            { title: "Look Sportif", prompt: "Détoure le sujet, donne-lui une tenue de sport et une allure athlétique et affirmée." },
         ],
     },
     {
