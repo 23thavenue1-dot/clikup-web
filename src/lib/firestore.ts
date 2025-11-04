@@ -84,6 +84,7 @@ export type Gallery = {
   name: string;
   description: string;
   imageIds: string[];
+  pinnedImageIds?: string[];
   createdAt: Timestamp;
 };
 
@@ -429,6 +430,7 @@ export async function createGallery(firestore: Firestore, userId: string, name: 
         name,
         description,
         imageIds: [],
+        pinnedImageIds: [],
         createdAt: serverTimestamp(),
     };
 
@@ -486,6 +488,32 @@ export async function addImageToGallery(firestore: Firestore, userId: string, im
     }
 }
 
+/**
+ * Épingle ou désépingle une image dans une galerie.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param galleryId L'ID de la galerie.
+ * @param imageId L'ID de l'image.
+ * @param pin `true` pour épingler, `false` pour désépingler.
+ */
+export async function toggleImagePinInGallery(firestore: Firestore, userId: string, galleryId: string, imageId: string, pin: boolean): Promise<void> {
+    const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+    try {
+        await updateDoc(galleryDocRef, {
+            pinnedImageIds: pin ? arrayUnion(imageId) : arrayRemove(imageId)
+        });
+    } catch (error) {
+        console.error(`Erreur lors de ${pin ? "l'épinglage" : "du désépinglage"} de l'image:`, error);
+        const permissionError = new FirestorePermissionError({
+            path: galleryDocRef.path,
+            operation: 'update',
+            requestResourceData: { imageIdToToggle: imageId },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
 
 /**
  * Récupère toutes les images d'une galerie spécifique.
@@ -525,7 +553,8 @@ export async function removeImagesFromGallery(firestore: Firestore, userId: stri
     const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
     try {
         await updateDoc(galleryDocRef, {
-            imageIds: arrayRemove(...imageIds)
+            imageIds: arrayRemove(...imageIds),
+            pinnedImageIds: arrayRemove(...imageIds) // Also remove from pinned
         });
     } catch (error) {
         console.error("Erreur lors du retrait des images de la galerie :", error);

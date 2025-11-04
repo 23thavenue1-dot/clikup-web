@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -140,3 +141,4 @@ export default function GalleriesPage() {
     </div>
   );
 }
+

@@ -1,12 +1,13 @@
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
-import { type Gallery, type ImageMetadata, type UserProfile, getImagesForGallery, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket } from 'lucide-react';
+import { type Gallery, type ImageMetadata, type UserProfile, getImagesForGallery, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImagePinInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
+import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket, Pin, PinOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -104,6 +105,15 @@ export default function GalleryDetailPage() {
                 
                 if (galleryData.imageIds.length > 0) {
                     const galleryImages = await getImagesForGallery(firestore, user.uid, galleryData.imageIds);
+                    // Trier les images : épinglées d'abord
+                    const pinnedIds = new Set(galleryData.pinnedImageIds || []);
+                    galleryImages.sort((a, b) => {
+                        const aIsPinned = pinnedIds.has(a.id);
+                        const bIsPinned = pinnedIds.has(b.id);
+                        if (aIsPinned && !bIsPinned) return -1;
+                        if (!aIsPinned && bIsPinned) return 1;
+                        return 0; // Conserver l'ordre original sinon
+                    });
                     setImages(galleryImages);
                 } else {
                     setImages([]);
@@ -236,6 +246,23 @@ export default function GalleryDetailPage() {
             setImageToDelete(null);
         }
     };
+
+    const handleTogglePin = async (imageId: string) => {
+        if (!user || !firestore || !gallery) return;
+
+        const isCurrentlyPinned = gallery.pinnedImageIds?.includes(imageId) ?? false;
+
+        try {
+            await toggleImagePinInGallery(firestore, user.uid, gallery.id, imageId, !isCurrentlyPinned);
+            toast({
+                title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée',
+            });
+            await fetchGalleryData(); // Re-fetch to get new order
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de modifier l'épingle." });
+        }
+    };
+
 
     const handleDownload = async (image: ImageMetadata) => {
         setIsDownloading(image.id);
@@ -393,7 +420,9 @@ export default function GalleryDetailPage() {
                             )}
                             {images.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {images.map(image => (
+                                    {images.map(image => {
+                                        const isPinned = gallery?.pinnedImageIds?.includes(image.id) ?? false;
+                                        return (
                                         <div 
                                             key={image.id}
                                             onClick={() => isRemoveSelectionMode && toggleRemovalSelection(image.id)}
@@ -411,6 +440,11 @@ export default function GalleryDetailPage() {
                                                     )}>
                                                         {selectedImagesForRemoval.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
                                                     </div>
+                                                </div>
+                                            )}
+                                            {isPinned && !isRemoveSelectionMode && (
+                                                <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
+                                                    <Pin className="w-3 h-3 text-primary"/>
                                                 </div>
                                             )}
                                             <div className="relative aspect-square w-full">
@@ -432,6 +466,11 @@ export default function GalleryDetailPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => handleTogglePin(image.id)}>
+                                                                    {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                                                    <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
                                                                 <DropdownMenuItem asChild>
                                                                     <Link href={`/edit/${image.id}`}><Sparkles className="mr-2 h-4 w-4" /><span>Éditer avec l'IA</span></Link>
                                                                 </DropdownMenuItem>
@@ -463,7 +502,7 @@ export default function GalleryDetailPage() {
                                                 <p className="text-xs text-muted-foreground italic line-clamp-2">{image.description || (image.title ? '' : 'Aucune description.')}</p>
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             ) : (
                                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
