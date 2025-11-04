@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
@@ -510,3 +510,4 @@ export default function GalleryDetailPage() {
     );
 
     
+
