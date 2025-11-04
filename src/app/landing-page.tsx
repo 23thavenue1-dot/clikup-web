@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket } from 'lucide-react';
+import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
@@ -20,26 +20,50 @@ import {
 
 const features = [
   {
-    icon: UploadCloud,
-    title: 'Hébergement Facile',
-    description: 'Téléversez vos images en un clin d\'œil depuis votre appareil, une URL ou directement sur notre cloud sécurisé.',
+    icon: Wand2,
+    title: 'Assistant IA Créatif',
+    description: 'Générez des descriptions, éditez vos photos en langage naturel et sublimez vos créations sans effort.',
+  },
+  {
+    icon: Library,
+    title: 'Organisation Puissante',
+    description: 'Structurez vos images dans des galeries personnalisées et retrouvez-les facilement.',
   },
   {
     icon: LinkIcon,
-    title: 'Liens de Partage Instantanés',
-    description: 'Obtenez immédiatement des liens URL, BBCode ou HTML pour partager vos images sur des forums, blogs ou réseaux sociaux.',
+    title: 'Partage Universel',
+    description: 'Obtenez instantanément des liens URL, BBCode ou HTML pour tous vos besoins de partage.',
   },
   {
-    icon: Gamepad2,
-    title: 'Progression & Succès',
-    description: 'Montez en niveau, débloquez des badges et accomplissez des succès. Votre activité est récompensée !',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Contrôle & Sécurité',
-    description: 'Grâce à notre système de tickets quotidiens, profitez d\'un service gratuit et équitable, tout en gardant le contrôle.',
+    icon: Ticket,
+    title: 'Système Équitable',
+    description: 'Profitez d\'un service gratuit et maîtrisé grâce à notre système de tickets quotidiens.',
   },
 ];
+
+const targetUsers = [
+    {
+        icon: Users,
+        title: "Créateurs de Contenu",
+        description: "Gagnez un temps précieux en générant des descriptions optimisées et des hashtags pertinents pour vos réseaux sociaux."
+    },
+    {
+        icon: Code,
+        title: "Développeurs & Intégrateurs",
+        description: "Hébergez rapidement vos ressources graphiques et obtenez des liens stables pour vos projets web sans configuration complexe."
+    },
+    {
+        icon: Gamepad2,
+        title: "Amateurs & Curieux",
+        description: "Stockez vos photos, progressez grâce à notre système de succès et expérimentez avec des outils d'édition IA amusants."
+    },
+     {
+        icon: ShieldCheck,
+        title: "Utilisateurs de Forums",
+        description: "Partagez facilement vos images sur les forums et les blogs avec des liens BBCode et HTML prêts à l'emploi."
+    }
+]
+
 
 function UploaderDemo() {
     return (
@@ -119,10 +143,10 @@ export function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h1 className="text-5xl md:text-6xl font-bold tracking-tighter">
-                  Clikup
+                  L'Hébergement d'Images. <span className="text-primary">Réinventé.</span>
               </h1>
               <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
-                La plateforme intelligente pour héberger vos images, générer des liens de partage et sublimer vos créations.
+                Ne vous contentez pas de stocker vos images. Donnez-leur une nouvelle vie avec notre assistant créatif intelligent.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                 <Button asChild size="lg">
@@ -143,20 +167,20 @@ export function LandingPage() {
         <section className="py-20 sm:py-24 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">Tout ce dont vous avez besoin.</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Plus qu'un simple hébergeur.</h2>
               <p className="mt-3 max-w-xl mx-auto text-muted-foreground">
-                Des fonctionnalités pensées pour les créateurs, les développeurs et les utilisateurs de tous les jours.
+                Des fonctionnalités conçues pour simplifier votre travail et décupler votre créativité.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature) => (
-                <Card key={feature.title} className="text-center shadow-sm hover:shadow-lg transition-shadow">
-                  <CardContent className="p-8">
+                <Card key={feature.title} className="text-center shadow-sm hover:shadow-lg transition-shadow border-t-primary border-t-2 pt-4">
+                  <CardContent className="p-6">
                     <div className="inline-block p-4 bg-primary/10 text-primary rounded-full mb-4">
                       <feature.icon className="h-8 w-8" />
                     </div>
                     <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <p className="text-muted-foreground text-sm">{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -164,10 +188,36 @@ export function LandingPage() {
           </div>
         </section>
 
-         {/* Call to Action Section */}
+        {/* Target Users Section */}
         <section className="py-20 sm:py-24">
+             <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl md:text-4xl font-bold">Conçu pour vous.</h2>
+                    <p className="mt-3 max-w-xl mx-auto text-muted-foreground">
+                        Que vous soyez un créateur aguerri, un développeur, ou simplement à la recherche d'un outil fiable.
+                    </p>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {targetUsers.map((user) => (
+                        <div key={user.title} className="flex items-start gap-4 p-6 rounded-lg bg-muted/20">
+                           <div className="p-3 bg-primary/10 text-primary rounded-lg mt-1">
+                                <user.icon className="h-6 w-6" />
+                           </div>
+                           <div>
+                                <h3 className="text-lg font-semibold">{user.title}</h3>
+                                <p className="text-muted-foreground mt-1">{user.description}</p>
+                           </div>
+                        </div>
+                    ))}
+                 </div>
+             </div>
+        </section>
+
+
+         {/* Call to Action Section */}
+        <section className="py-20 sm:py-24 bg-muted/30">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Prêt à donner vie à vos images ?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Prêt à passer au niveau supérieur ?</h2>
             <p className="mt-3 text-lg text-muted-foreground">
               Créez votre compte gratuit en quelques secondes et découvrez un nouvel univers pour vos créations.
             </p>
