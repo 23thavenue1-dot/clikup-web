@@ -55,6 +55,16 @@ const editImageFlow = ai.defineFlow(
         ],
         config: {
             responseModalities: ['TEXT', 'IMAGE'],
+             safetySettings: [
+                {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    threshold: 'BLOCK_NONE',
+                },
+                {
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    threshold: 'BLOCK_NONE',
+                },
+            ],
         },
     });
 
