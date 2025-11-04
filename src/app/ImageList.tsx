@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils';
 import { getStorage } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
@@ -59,6 +60,7 @@ export function ImageList() {
     const { user, firebaseApp } = useFirebase();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -183,28 +185,34 @@ export function ImageList() {
 
     const handleDownload = async (image: ImageMetadata) => {
         setIsDownloading(image.id);
+    
+        // Comportement pour mobile
+        if (isMobile) {
+            window.open(image.directUrl, '_blank');
+            toast({
+                title: 'Ouvrir l\'image',
+                description: 'Appuyez longuement sur l\'image pour l\'enregistrer.',
+            });
+            setIsDownloading(null);
+            return;
+        }
+    
+        // Comportement pour ordinateur
         try {
-            // Fetch the image data
             const response = await fetch(image.directUrl);
-            if (!response.ok) {
-                throw new Error('Network response was not ok.');
-            }
+            if (!response.ok) throw new Error('Network response was not ok.');
             const blob = await response.blob();
     
-            // Create a temporary link to trigger the download
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            // Use original name or a fallback name
             const fileName = image.originalName || `clikup-image-${image.id}.jpg`;
             link.setAttribute('download', fileName);
     
-            // Append to the document, click, and then remove
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
     
-            // Revoke the object URL to free up memory
             window.URL.revokeObjectURL(url);
             toast({ title: 'Téléchargement lancé', description: `Votre image "${fileName}" est en cours de téléchargement.` });
         } catch (error) {
@@ -836,3 +844,6 @@ setCurrentDescription(result.description);
     
 
 
+
+
+    
