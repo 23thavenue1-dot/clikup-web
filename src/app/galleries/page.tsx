@@ -4,9 +4,9 @@
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, PlusCircle, Image as ImageIcon, Trash2, MoreHorizontal } from 'lucide-react';
+import { Loader2, PlusCircle, Image as ImageIcon } from 'lucide-react';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,30 +18,12 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { type Gallery, createGallery, deleteGallery } from '@/lib/firestore';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import Link from 'next/link';
+import { type Gallery, createGallery } from '@/lib/firestore';
+import { GalleryCard } from './GalleryCard';
 
 export default function GalleriesPage() {
   const { user, isUserLoading } = useUser();
@@ -53,9 +35,6 @@ export default function GalleriesPage() {
   const [newGalleryName, setNewGalleryName] = useState('');
   const [newGalleryDescription, setNewGalleryDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  const [galleryToDelete, setGalleryToDelete] = useState<Gallery | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -86,20 +65,6 @@ export default function GalleriesPage() {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de créer la galerie.' });
     } finally {
         setIsSaving(false);
-    }
-  };
-
-  const handleDeleteGallery = async () => {
-    if (!user || !firestore || !galleryToDelete) return;
-    setIsDeleting(true);
-    try {
-        await deleteGallery(firestore, user.uid, galleryToDelete.id);
-        toast({ title: 'Galerie supprimée', description: `La galerie "${galleryToDelete.name}" a été supprimée.` });
-        setGalleryToDelete(null);
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer la galerie.' });
-    } finally {
-        setIsDeleting(false);
     }
   };
 
@@ -161,38 +126,7 @@ export default function GalleriesPage() {
         ) : galleries && galleries.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {galleries.map(gallery => (
-                    <Card key={gallery.id} className="flex flex-col">
-                      <Link href={`/galleries/${gallery.id}`} className="block hover:bg-muted/30 transition-colors rounded-t-lg">
-                        <CardHeader>
-                            <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
-                                <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                            <CardTitle className="text-lg">{gallery.name}</CardTitle>
-                            <CardDescription className="line-clamp-2 mt-1">{gallery.description || 'Aucune description'}</CardDescription>
-                        </CardContent>
-                      </Link>
-                      <CardFooter className="flex justify-between items-center text-xs text-muted-foreground mt-auto pt-4 border-t">
-                            <span>{gallery.imageIds.length} image(s)</span>
-                            {gallery.createdAt && <span>{formatDistanceToNow(gallery.createdAt.toDate(), { addSuffix: true, locale: fr })}</span>}
-                            
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4"/>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => setGalleryToDelete(gallery)} className="text-red-500 focus:text-red-500">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Supprimer
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-
-                        </CardFooter>
-                    </Card>
+                    <GalleryCard key={gallery.id} gallery={gallery} />
                 ))}
             </div>
         ) : (
@@ -203,24 +137,6 @@ export default function GalleriesPage() {
             </div>
         )}
       </div>
-
-       <AlertDialog open={!!galleryToDelete} onOpenChange={(open) => !open && setGalleryToDelete(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer la galerie "{galleryToDelete?.name}" ?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Cette action est irréversible. Les images de la galerie ne seront pas supprimées de votre bibliothèque, mais la galerie elle-même le sera.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteGallery} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Supprimer
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
     </div>
   );
 }
