@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Image as ImageIcon, Select, Trash2, X, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -152,7 +152,7 @@ export default function GalleryDetailPage() {
                        </div>
                        {images.length > 0 && (
                             <Button variant="outline" onClick={handleToggleSelectionMode}>
-                                {isSelectionMode ? <X className="mr-2 h-4 w-4"/> : <Select className="mr-2 h-4 w-4"/>}
+                                {isSelectionMode ? <X className="mr-2 h-4 w-4"/> : <BoxSelect className="mr-2 h-4 w-4"/>}
                                 {isSelectionMode ? 'Annuler' : 'Sélectionner'}
                            </Button>
                        )}
