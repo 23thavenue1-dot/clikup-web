@@ -13,7 +13,6 @@ import { z } from 'genkit';
 const EditImageInputSchema = z.object({
   imageUrl: z
     .string()
-    .url()
     .describe(
       "L'URL de l'image source à modifier, doit être un data URI ou une URL accessible publiquement."
     ),
@@ -29,7 +28,6 @@ export type EditImageInput = z.infer<typeof EditImageInputSchema>;
 const EditImageOutputSchema = z.object({
   newImageUrl: z
     .string()
-    .url()
     .describe(
       "L'URL de la nouvelle image générée, encodée en data URI (base64)."
     ),
@@ -48,7 +46,7 @@ const editImageFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt }) => {
     
-    const { media } = await ai.generate({
+    const { output } = await ai.generate({
         // Utilisation d'un modèle capable d'édition d'image
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -61,12 +59,14 @@ const editImageFlow = ai.defineFlow(
         },
     });
 
-    if (!media || !media.url) {
+    const imagePart = output?.content.find(part => part.media);
+
+    if (!imagePart || !imagePart.media?.url) {
         throw new Error("L'IA n'a pas pu générer une nouvelle image.");
     }
     
     return {
-      newImageUrl: media.url,
+      newImageUrl: imagePart.media.url,
     };
   }
 );
