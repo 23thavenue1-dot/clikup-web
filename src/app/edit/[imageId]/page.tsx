@@ -28,6 +28,19 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
 
 const suggestionCategories = [
     {
+        name: "Selfie",
+        prompts: [
+            { title: "Héros de film d'action", prompt: "Transforme ce selfie en affiche de film d'action, avec des explosions en arrière-plan et un éclairage dramatique." },
+            { title: "Portrait d'art", prompt: "Transforme ce selfie en une peinture à l'huile de style classique." },
+            { title: "Astronaute", prompt: "Place-moi dans l'espace, avec un casque d'astronaute et un fond de nébuleuses." },
+            { title: "Cyberpunk", prompt: "Donne à ce selfie une ambiance cyberpunk avec des néons et une atmosphère de nuit pluvieuse." },
+            { title: "Aventurier dans la jungle", prompt: "Transforme-moi en aventurier dans une jungle dense et mystérieuse." },
+            { title: "Style bande dessinée", prompt: "Applique un style de bande dessinée (comic book) à ce selfie, avec des contours marqués." },
+            { title: "Personnage de jeu vidéo", prompt: "Fais de ce selfie le portrait d'un personnage de jeu vidéo fantaisie." },
+            { title: "Double exposition", prompt: "Crée un effet de double exposition en superposant mon visage avec un paysage de forêt." },
+        ],
+    },
+    {
         name: "Retouches de Portrait",
         prompts: [
             { title: "Lumière douce", prompt: "Adoucis la lumière sur le visage pour un rendu plus flatteur." },
