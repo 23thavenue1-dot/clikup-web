@@ -33,8 +33,20 @@ Le chemin vers la stabilité a été marqué par la résolution de plusieurs pro
     2.  **Implémentation de la Recharge (`app/page.tsx`) :** La logique de recharge quotidienne a été ajoutée. Le compteur de l'utilisateur est maintenant réinitialisé à 5 tickets toutes les 24 heures.
 *   **Résultat :** Le système de tickets est désormais complet et autonome.
 
-## 3. Prochaines Étapes : L'Innovation
+### La Construction Robuste des Galeries d'Images
+
+*   **Objectif :** Mettre en place une fonctionnalité complète de gestion de galeries (albums).
+*   **Défis Rencontrés :**
+    1.  **Erreur 404 :** Après avoir rendu les galeries cliquables, la page de détail n'existait pas, causant une erreur 404.
+    2.  **Boucle de Rendu Infinie :** Sur la page de détail, un `useEffect` mal optimisé entraînait un chargement infini.
+*   **Solutions Appliquées :**
+    1.  **Création de la Page de Détail :** Mise en place d'une page dynamique `[galleryId]/page.tsx` pour afficher le contenu de chaque galerie.
+    2.  **Optimisation avec `useCallback` :** La fonction de récupération des données a été "mémorisée" avec `useCallback` pour stopper la boucle de rendu.
+    3.  **Améliorations UX :** Ajout de la possibilité de retirer et d'ajouter des images (y compris par sélection multiple) directement depuis l'interface de gestion de la galerie, pour une expérience utilisateur plus fluide.
+*   **Résultat :** Un système de galeries complet, stable et intuitif, permettant une organisation puissante des images.
+
+## 3. Prochaines Étapes : L'Innovation IA
 
 Maintenant que la base technique est solide, sécurisée et maîtrisée, la voie est libre pour nous concentrer sur les fonctionnalités innovantes prévues dans notre feuille de route (`docs/roadmap.md`) et nos idées (`docs/idées.md`).
 
-Le prochain grand chapitre sera l'intégration de l'intelligence artificielle (Genkit) pour enrichir l'expérience utilisateur.
+Le prochain grand chapitre sera l'intégration de l'intelligence artificielle (Genkit) pour enrichir l'expérience utilisateur, en commençant par l'édition d'image par langage naturel.

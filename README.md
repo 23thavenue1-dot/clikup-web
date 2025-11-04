@@ -13,12 +13,16 @@
     *   **Profil Public Personnalisable :** Chaque utilisateur peut modifier son nom d'affichage, sa biographie, ajouter un site web et choisir un avatar parmi une sélection ou téléverser le sien.
     *   **Paramètres de Compte Avancés :** Gestion du mot de passe, des préférences de notification et une option sécurisée pour supprimer complètement son compte et ses données.
 
-*   **Gestion d'Images :**
+*   **Organisation d'Images Puissante :**
     *   **Téléversement Polyvalent :** Trois méthodes d'upload sont disponibles : depuis un fichier local (rapide et sécurisé), via une URL externe ou directement sur le cloud (Firebase Storage).
-    *   **Galerie Personnelle :** Toutes les images téléversées sont affichées dans une galerie privée où l'utilisateur peut les consulter, les supprimer et copier des liens de partage.
+    *   **Galerie Personnelle :** Toutes les images téléversées sont affichées dans une galerie privée où l'utilisateur peut les consulter et les gérer.
+    *   **Organisation par Galeries (Albums) :** Les utilisateurs peuvent créer des galeries personnalisées, y ajouter des images (individuellement ou par sélection multiple) et les retirer, offrant une organisation complète de leur bibliothèque visuelle.
 
 *   **Système de Tickets Équitable :**
-    *   Pour garantir une utilisation équitable et maîtriser les coûts, chaque utilisateur reçoit **5 tickets de téléversement par jour**. Ce système prévient les abus tout en offrant un accès quotidien gratuit et prévisible.
+    *   Pour garantir une utilisation équitable et maîtriser les coûts, chaque utilisateur reçoit **5 tickets de téléversement** et **3 tickets IA** par jour. Ce système prévient les abus tout en offrant un accès quotidien gratuit et prévisible.
+
+*   **Premières Fonctionnalités IA :**
+    *   **Analyse et Description :** L'IA peut générer des titres, descriptions et hashtags pertinents pour une image, optimisés pour différentes plateformes de réseaux sociaux.
 
 *   **Interface Soignée et Personnalisable :**
     *   Une interface utilisateur réactive et agréable, avec la possibilité de choisir entre trois thèmes visuels (Clair, Nuit et Mid).
@@ -30,9 +34,8 @@
 La base actuelle n'est qu'un début. Notre vision est de transformer Clikup en un service d'hébergement "intelligent" qui assiste l'utilisateur à chaque étape de son processus créatif. La prochaine grande étape est l'intégration de l'intelligence artificielle (via Genkit et les modèles Gemini de Google).
 
 **Fonctionnalités Futures :**
-1.  **Analyse et Description Automatique :** L'IA générera automatiquement des titres, des descriptions et des mots-clés (tags) pertinents pour chaque image téléversée, rendant les galeries consultables et mieux organisées sans effort.
+1.  **Édition d'Image par le Langage Naturel :** L'utilisateur pourra demander des modifications complexes simplement en les décrivant : "Rends le ciel plus dramatique", "Enlève l'objet en arrière-plan", "Transforme cette photo en peinture à l'huile".
 2.  **Critique et Conseil Photo :** L'IA pourra fournir des conseils pour améliorer la composition, la lumière ou le cadrage d'une photo.
-3.  **Édition d'Image par le Langage Naturel :** L'utilisateur pourra demander des modifications complexes simplement en les décrivant : "Rends le ciel plus dramatique", "Enlève l'objet en arrière-plan", "Transforme cette photo en peinture à l'huile".
 
 **Vision Finale :** Devenir la plateforme de référence où les images ne sont pas seulement stockées, mais comprises, enrichies et transformées, offrant des possibilités créatives sans précédent directement depuis le navigateur.
 

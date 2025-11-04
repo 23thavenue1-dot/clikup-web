@@ -57,10 +57,10 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
     -   Crée une **expérience utilisateur engageante et ludique**.
     -   Apporte une aide précieuse aux photographes amateurs.
 
-### 5. Édition d'Image par le Langage (Avancé)
+### 5. Édition d'Image par le Langage (En Cours)
 
 -   **L'idée :** L'utilisateur pourrait téléverser une photo et donner des instructions en langage naturel, comme : "Change le ciel pour un coucher de soleil." ou "Enlève la voiture rouge en arrière-plan."
 -   **Avantages :**
     -   Fonctionnalité **spectaculaire et très moderne**.
     -   Ouvre des possibilités créatives infinies pour l'utilisateur.
--   **Statut :** Prochaine grande étape d'innovation à explorer.
+-   **Statut :** Prochaine grande étape d'innovation. Le flow Genkit `editImageFlow` est déjà créé.

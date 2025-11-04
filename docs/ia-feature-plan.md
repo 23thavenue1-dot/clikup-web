@@ -2,33 +2,17 @@
 
 Ce document détaille les étapes techniques pour transformer "Clikup" en un assistant de contenu intelligent, comme défini dans `docs/idées.md`.
 
-## Phase 1 : Génération de Description par IA (Court Terme)
+## Phase 1 : Génération de Description par IA (Terminé)
 
-**Objectif :** Permettre à l'IA de générer une description pour une image, et ainsi activer le succès "Futuriste".
+**Objectif :** Permettre à l'IA de générer une description, un titre et des hashtags pour une image, afin d'enrichir le contenu et d'activer le succès "Futuriste".
 
 **Technologies Clés :**
 *   **Genkit** : Pour créer le flow d'IA.
 *   **Modèle Gemini** : Pour l'analyse d'image et la génération de texte.
 
-**Étapes d'Implémentation :**
+**État :** Terminé. Le flow `generateImageDescriptionFlow` est fonctionnel et intégré à l'interface de modification d'image. Le système de tickets IA est également en place pour réguler son utilisation.
 
-1.  **Créer un Flow Genkit `generateImageDescriptionFlow` :**
-    *   **Fichier :** `src/ai/flows/generate-description-flow.ts`
-    *   **Input :** `{ imageUrl: string }`
-    *   **Output :** `{ description: string, title: string, hashtags: string[] }`
-    *   **Logique :** Le flow prendra l'URL d'une image en entrée, utilisera le modèle Gemini pour l'analyser et générera une description textuelle, un titre et une liste de hashtags pertinents.
-
-2.  **Mettre à jour l'Interface Utilisateur (`src/app/ImageList.tsx`) :**
-    *   Dans la fenêtre de dialogue "Modifier la description", activer le bouton "Générer avec l'IA".
-    *   Au clic, appeler le nouveau flow Genkit avec l'URL de l'image sélectionnée.
-    *   Afficher un état de chargement pendant que l'IA travaille.
-    *   Remplir le champ de texte de la description avec le résultat généré par l'IA.
-    *   L'utilisateur peut alors accepter ou modifier le texte avant de sauvegarder.
-
-3.  **Activer le Succès "Futuriste" (`src/app/dashboard/page.tsx`) :**
-    *   Le succès se débloquera lorsqu'un utilisateur sauvegardera une description qui a été initialement générée par l'IA. Il faudra ajouter un marqueur (par exemple, un champ `generatedByAI: true` temporaire) pour le détecter.
-
-## Phase 2 : Retouche d'Image par IA (Moyen Terme)
+## Phase 2 : Retouche d'Image par IA (En Cours)
 
 **Objectif :** Permettre à l'utilisateur de modifier une image en décrivant les changements en langage naturel.
 
@@ -38,15 +22,17 @@ Ce document détaille les étapes techniques pour transformer "Clikup" en un ass
 
 **Étapes d'Implémentation :**
 
-1.  **Créer un Flow Genkit `editImageFlow` :**
+1.  **Créer un Flow Genkit `editImageFlow` (Terminé) :**
+    *   **Fichier :** `src/ai/flows/edit-image-flow.ts`
     *   **Input :** `{ imageUrl: string, prompt: string }` (où `prompt` est l'instruction de l'utilisateur, ex: "Rends le ciel plus dramatique").
-    *   **Output :** `{ newImageUrl: string }` (l'URL de la nouvelle image générée).
+    *   **Output :** `{ newImageUrl: string }` (l'URL de la nouvelle image générée, encodée en data URI).
+    *   **Statut :** Le "moteur" de la fonctionnalité est en place.
 
-2.  **Mettre à jour l'Interface Utilisateur :**
-    *   Créer une nouvelle section ou un nouveau dialogue d'édition avancé.
+2.  **Mettre à jour l'Interface Utilisateur (À Faire) :**
+    *   Créer une nouvelle section ou un nouveau dialogue d'édition avancé dans l'application.
     *   L'utilisateur pourra voir son image et écrire une instruction dans un champ de texte.
     *   Après la génération, afficher l'image "avant" et "après" pour comparaison.
-    *   Permettre à l'utilisateur de sauvegarder la nouvelle version de l'image.
+    *   Permettre à l'utilisateur de sauvegarder la nouvelle version de l'image, ce qui consommera un ticket IA.
 
 ## Phase 3 : Partage Simplifié vers les Réseaux Sociaux (Long Terme)
 
