@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -35,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from '@/components/ui/input';
@@ -459,64 +460,46 @@ setCurrentDescription(result.description);
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                                         {!isSelectionMode && (
                                             <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    asChild
-                                                    aria-label="Éditer avec l'IA"
-                                                >
-                                                    <Link href={`/edit/${image.id}`}>
-                                                        <Sparkles size={16}/>
-                                                    </Link>
-                                                </Button>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => openEditDialog(image)}
-                                                    aria-label="Modifier la description"
-                                                >
-                                                    <Pencil size={16}/>
-                                                </Button>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => openAddToGalleryDialog(image)}
-                                                    aria-label="Ajouter à une galerie"
-                                                >
-                                                    <CopyPlus size={16}/>
-                                                </Button>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => openShareDialog(image)}
-                                                    aria-label="Partager l'image"
-                                                >
-                                                    <Share2 size={16}/>
-                                                </Button>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => handleDownload(image)}
-                                                    disabled={isDownloading === image.id}
-                                                    aria-label="Télécharger l'image"
-                                                >
-                                                    {isDownloading === image.id ? <Loader2 className="animate-spin" /> : <Download size={16}/>}
-                                                </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => openDeleteDialog(image)}
-                                                    disabled={isDeleting === image.id}
-                                                    aria-label="Supprimer l'image"
-                                                >
-                                                    {isDeleting === image.id ? <Loader2 className="animate-spin" /> : <Trash2 size={16}/>}
-                                                </Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="icon"
+                                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <MoreHorizontal size={16} />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/edit/${image.id}`}>
+                                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                                <span>Éditer avec l'IA</span>
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openEditDialog(image)}>
+                                                            <Pencil className="mr-2 h-4 w-4" />
+                                                            <span>Modifier</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openAddToGalleryDialog(image)}>
+                                                            <CopyPlus className="mr-2 h-4 w-4" />
+                                                            <span>Ajouter à la galerie</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openShareDialog(image)}>
+                                                            <Share2 className="mr-2 h-4 w-4" />
+                                                            <span>Partager</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDownload(image)} disabled={isDownloading === image.id}>
+                                                            {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                            <span>Télécharger</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => openDeleteDialog(image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
+                                                            {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                                            <span>Supprimer</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         )}
                                         <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
@@ -851,4 +834,5 @@ setCurrentDescription(result.description);
     
 
     
+
 
