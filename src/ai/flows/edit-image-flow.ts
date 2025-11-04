@@ -46,7 +46,7 @@ const editImageFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt }) => {
     
-    const { output } = await ai.generate({
+    const { media } = await ai.generate({
         // Utilisation d'un modèle capable d'édition d'image
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -59,14 +59,12 @@ const editImageFlow = ai.defineFlow(
         },
     });
 
-    const imagePart = output?.content.find(part => part.media);
-
-    if (!imagePart || !imagePart.media?.url) {
+    if (!media || !media.url) {
         throw new Error("L'IA n'a pas pu générer une nouvelle image.");
     }
     
     return {
-      newImageUrl: imagePart.media.url,
+      newImageUrl: media.url,
     };
   }
 );
