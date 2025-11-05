@@ -189,12 +189,12 @@ export function LandingPage() {
         {/* AI Edit Showcase Section */}
         <section className="py-20 sm:py-24">
             <div className="container mx-auto px-4">
-                <div className="max-w-xl mx-auto">
+                <div className="max-w-lg mx-auto">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-4xl font-bold">D'un simple selfie à une œuvre d'art.</h2>
                         <p className="mt-3 max-w-2xl mx-auto text-muted-foreground">
                             Décrivez la transformation que vous souhaitez en langage naturel. Notre IA s'occupe du reste.
-                            <br/>Prompt utilisé ici : <span className="font-semibold text-primary">"Transforme ce portrait pour le rendre plus attractif et charismatique. Optimise la lumière, lisse la peau et donne une expression de confiance."</span>
+                            <br/>Prompt utilisé ici : <span className="font-semibold text-primary">Selfie du personnage dans un paysage de nature sauvage (réaliste, naturel).</span>
                         </p>
                     </div>
 
