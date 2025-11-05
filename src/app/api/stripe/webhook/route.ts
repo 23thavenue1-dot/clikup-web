@@ -34,8 +34,8 @@ export async function POST(req: Request) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-        console.error("Erreur: La clé secrète du webhook Stripe n'est pas définie.");
-        return new NextResponse('Webhook secret non configuré.', { status: 500 });
+        console.error("Erreur: La clé secrète du webhook Stripe n'est pas définie dans les variables d'environnement.");
+        return new NextResponse('Webhook secret non configuré côté serveur.', { status: 500 });
     }
 
     let event: Stripe.Event;
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
         const priceId = session.metadata?.priceId;
 
         if (!firebaseUID || !priceId) {
-            console.error("Métadonnées manquantes dans la session Stripe.");
-            return new NextResponse('Métadonnées manquantes.', { status: 400 });
+            console.error("Métadonnées manquantes (firebaseUID ou priceId) dans la session Stripe.");
+            return new NextResponse('Métadonnées de session Stripe manquantes.', { status: 400 });
         }
 
         const userDocRef = doc(firestore, 'users', firebaseUID);
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
             }
 
         } catch (error) {
-            console.error("Erreur lors de la mise à jour du profil utilisateur:", error);
+            console.error("Erreur lors de la mise à jour du profil utilisateur via webhook:", error);
             return new NextResponse('Erreur interne lors de la mise à jour du compte.', { status: 500 });
         }
     }
