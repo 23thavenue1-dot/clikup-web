@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -13,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -22,10 +23,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import Link from 'next/link';
 
 
 type UploadStatus =
@@ -63,6 +66,15 @@ export function Uploader() {
   }, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
+  const totalUploadTickets = useMemo(() => {
+    if (!userProfile) return 0;
+    // Les abonnements "pro" et "master" ont des uploads illimités.
+    if (userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'master') {
+      return Infinity;
+    }
+    return (userProfile.ticketCount || 0) + (userProfile.subscriptionUploadTickets || 0) + (userProfile.packUploadTickets || 0);
+  }, [userProfile]);
+
 
   const resetState = () => {
     setStatus({ state: 'idle' });
@@ -97,11 +109,11 @@ export function Uploader() {
   const handleUpload = async (uploadFn: () => Promise<void>) => {
     if (!user || !firestore || !userProfile) return;
 
-    if (userProfile.ticketCount <= 0) {
+    if (totalUploadTickets <= 0 && totalUploadTickets !== Infinity) {
       toast({
         variant: 'destructive',
         title: 'Tickets épuisés',
-        description: 'Vous n\'avez plus de tickets pour téléverser des images. Revenez demain !',
+        description: 'Vous n\'avez plus de tickets pour téléverser des images. Rechargez dans la boutique !',
       });
       return;
     }
@@ -110,7 +122,8 @@ export function Uploader() {
 
     try {
       await uploadFn();
-      await decrementTicketCount(firestore, user.uid);
+      // La décrémentation est maintenant plus intelligente
+      await decrementTicketCount(firestore, user.uid, userProfile);
       toast({ title: 'Succès', description: 'Votre image a été enregistrée et 1 ticket a été utilisé.' });
       resetState();
     } catch (error) {
@@ -206,25 +219,40 @@ export function Uploader() {
             {userProfile !== undefined ? (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${userProfile?.ticketCount ?? '?'} tickets restants`}>
+                    <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${totalUploadTickets} tickets restants`}>
                         <Ticket className="h-5 w-5" />
-                        <span>{userProfile?.ticketCount ?? '?'}</span>
+                        <span>{totalUploadTickets === Infinity ? '∞' : totalUploadTickets}</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Système de Tickets</DialogTitle>
+                      <DialogTitle>Détail de vos Tickets d'Upload</DialogTitle>
                       <DialogDescription>
-                        Pour assurer un service équitable et maîtriser les coûts, chaque utilisateur dispose de 5 tickets de téléversement par jour.
+                        Vos tickets sont utilisés dans cet ordre : gratuits, abonnements, puis packs achetés.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 text-center">
-                        <div className="text-4xl font-bold">{userProfile?.ticketCount ?? 0}</div>
-                        <div className="text-muted-foreground">tickets restants</div>
+                    <div className="py-4 space-y-3">
+                        <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md">
+                            <span>Tickets gratuits (rechargés chaque jour)</span>
+                            <span className="font-bold">{userProfile?.ticketCount ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md">
+                            <span>Tickets d'abonnement (rechargés chaque mois)</span>
+                            <span className="font-bold">{userProfile?.subscriptionTier === 'pro' || userProfile?.subscriptionTier === 'master' ? 'Illimités' : (userProfile?.subscriptionUploadTickets ?? 0)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md">
+                            <span>Tickets de packs (achetés, n'expirent pas)</span>
+                            <span className="font-bold">{userProfile?.packUploadTickets ?? 0}</span>
+                        </div>
                     </div>
-                    <p className="text-sm text-center text-muted-foreground">
-                        Votre quota est réinitialisé à 5 tickets chaque jour. Revenez demain pour en avoir plus !
-                    </p>
+                     <DialogFooter>
+                        <Button asChild>
+                            <Link href="/shop">
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Visiter la boutique
+                            </Link>
+                        </Button>
+                    </DialogFooter>
                   </DialogContent>
                 </Dialog>
             ) : <Skeleton className="h-8 w-20 rounded-full" /> }

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -110,6 +111,11 @@ export function ImageList() {
         return query(collection(firestore, `users/${user.uid}/galleries`), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
     const { data: galleries } = useCollection<Gallery>(galleriesQuery);
+
+     const totalAiTickets = useMemo(() => {
+        if (!userProfile) return 0;
+        return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
+    }, [userProfile]);
     
     const sortedImages = useMemo(() => {
         if (!images) return [];
@@ -260,7 +266,7 @@ export function ImageList() {
     const handleGenerateDescription = async (platform: Platform) => {
         if (!imageToEdit || !user || !userProfile) return;
 
-        if (userProfile.aiTicketCount <= 0) {
+        if (totalAiTickets <= 0) {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
@@ -279,8 +285,7 @@ export function ImageList() {
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
             
-            // Décompte du ticket IA
-            await decrementAiTicketCount(firestore, user.uid);
+            await decrementAiTicketCount(firestore, user.uid, userProfile);
             
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
@@ -406,7 +411,7 @@ export function ImageList() {
     };
 
     const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && (userProfile?.aiTicketCount ?? 0) === 0;
-    const nextRefillDate = format(addMonths(startOfMonth(new Date()), 1), "d MMMM", { locale: fr });
+    const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
 
     const renderSkeleton = () => (
@@ -421,7 +426,7 @@ export function ImageList() {
         </div>
     );
 
-    const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
+    const hasAiTickets = totalAiTickets > 0;
 
 
     return (
@@ -699,7 +704,7 @@ export function ImageList() {
                                 <Label>Génération par IA</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
-                                    <span>{userProfile?.aiTicketCount ?? 0} restants</span>
+                                    <span>{totalAiTickets} restants</span>
                                 </div>
                             </div>
                             {monthlyLimitReached ? (
@@ -838,3 +843,4 @@ export function ImageList() {
     
 
     
+

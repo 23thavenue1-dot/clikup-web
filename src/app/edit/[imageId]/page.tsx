@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
@@ -55,6 +56,11 @@ export default function EditImagePage() {
     }, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
+    const totalAiTickets = useMemo(() => {
+        if (!userProfile) return 0;
+        return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
+    }, [userProfile]);
+
     useEffect(() => {
         if (!isUserLoading && !user) {
             router.push('/login');
@@ -63,7 +69,7 @@ export default function EditImagePage() {
 
     const handleGenerate = async () => {
         if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
-        if (userProfile.aiTicketCount <= 0) {
+        if (totalAiTickets <= 0) {
             toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: 'Rechargez dans la boutique !' });
             return;
         }
@@ -72,7 +78,7 @@ export default function EditImagePage() {
         try {
             const result = await editImage({ imageUrl: originalImage.directUrl, prompt });
             setGeneratedImageUrl(result.newImageUrl);
-            await decrementAiTicketCount(firestore, user.uid);
+            await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant enregistrer votre création.' });
         } catch (error) {
             console.error(error);
@@ -128,9 +134,10 @@ export default function EditImagePage() {
         );
     }
 
-    const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
-    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && !hasAiTickets;
-    const nextRefillDate = format(addMonths(startOfMonth(new Date()), 1), "d MMMM", { locale: fr });
+    const hasAiTickets = totalAiTickets > 0;
+    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && (userProfile?.aiTicketCount ?? 0) === 0;
+    const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
+
 
     return (
         <div className="bg-muted/20 min-h-screen">
@@ -149,7 +156,7 @@ export default function EditImagePage() {
                     <div className="flex items-center gap-4">
                        <Badge variant="outline" className="h-8 text-sm">
                           <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                           {userProfile?.aiTicketCount ?? 0} Tickets IA
+                           {totalAiTickets} Tickets IA
                        </Badge>
                        <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}

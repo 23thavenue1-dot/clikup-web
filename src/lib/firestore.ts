@@ -34,12 +34,15 @@ export interface UserProfile {
   email: string;
   displayName: string;
   creationTimestamp: Timestamp; 
+  // Tickets gratuits
   ticketCount: number;
   lastTicketRefill: Timestamp;
   aiTicketCount: number;
   lastAiTicketRefill: Timestamp;
+  // Limites mensuelles
   aiTicketMonthlyCount: number;
   aiTicketMonthlyReset: Timestamp;
+  // Notifications et profil
   emailNotifications?: boolean;
   bio?: string;
   websiteUrl?: string;
@@ -49,6 +52,13 @@ export interface UserProfile {
   pinnedImageIds?: string[];
   initialPhotoURL: string | null;
   profilePictureUpdateCount: number;
+  // Nouveaux champs pour la boutique
+  packUploadTickets: number;
+  packAiTickets: number;
+  subscriptionUploadTickets: number;
+  subscriptionAiTickets: number;
+  subscriptionTier: 'none' | 'creator' | 'pro' | 'master';
+  subscriptionRenewalDate: Timestamp | null;
 }
 
 
@@ -107,7 +117,6 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     const updates: { [key: string]: any } = {};
 
     // --- Gestion des Tickets Mensuels (doit être fait avant les tickets journaliers) ---
-    // Correction : Gérer le cas où aiTicketMonthlyReset est undefined pour les anciens utilisateurs
     const lastMonthlyReset = userProfile.aiTicketMonthlyReset ? userProfile.aiTicketMonthlyReset.toDate() : new Date(0);
     if (isBefore(startOfMonth(lastMonthlyReset), startOfMonth(now))) {
         updates.aiTicketMonthlyCount = 0;
@@ -122,8 +131,7 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     }
 
     // --- Gestion des Tickets Journaliers IA (avec la limite mensuelle) ---
-    const lastAiRefill = userProfile.lastAiTicketRefill.toDate();
-    // Correction : Gérer le cas où aiTicketMonthlyCount est undefined
+    const lastAiRefill = userProfile.lastAiTicketRefill ? userProfile.lastAiTicketRefill.toDate() : new Date(0);
     const currentMonthlyCount = 'aiTicketMonthlyCount' in updates 
         ? 0 
         : (userProfile.aiTicketMonthlyCount ?? 0);
@@ -191,36 +199,62 @@ export async function saveImageMetadata(firestore: Firestore, user: User, metada
 
 
 /**
- * Décrémente le compteur de tickets de l'utilisateur de 1.
+ * Décrémente le compteur de tickets d'upload de l'utilisateur en respectant la hiérarchie.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
+ * @param profile Le profil complet de l'utilisateur.
  */
-export async function decrementTicketCount(firestore: Firestore, userId: string): Promise<void> {
+export async function decrementTicketCount(firestore: Firestore, userId: string, profile: UserProfile): Promise<void> {
   const userDocRef = doc(firestore, 'users', userId);
+  const updates: { [key: string]: any } = {};
+
+  if (profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'master') {
+      // Les abonnements Pro et Maître ont des uploads illimités, on ne fait rien.
+      return;
+  }
+
+  if (profile.ticketCount > 0) {
+      updates.ticketCount = increment(-1);
+  } else if (profile.subscriptionUploadTickets > 0) {
+      updates.subscriptionUploadTickets = increment(-1);
+  } else if (profile.packUploadTickets > 0) {
+      updates.packUploadTickets = increment(-1);
+  } else {
+      // Théoriquement, ce cas est déjà bloqué par l'interface, mais c'est une sécurité.
+      throw new Error("Aucun ticket d'upload disponible.");
+  }
+
   try {
-    await updateDoc(userDocRef, {
-      ticketCount: increment(-1),
-    });
+    await updateDoc(userDocRef, updates);
   } catch (error) {
     console.error("Erreur lors du décompte du ticket:", error);
-    // On ne propage pas l'erreur de permission ici pour ne pas interrompre le flux principal
-    // si seul le décompte échoue. Une surveillance côté backend pourrait être envisagée.
-    throw error; // Ou gérer silencieusement
+    throw error;
   }
 }
 
 
 /**
- * Décrémente le compteur de tickets IA de l'utilisateur de 1.
+ * Décrémente le compteur de tickets IA de l'utilisateur en respectant la hiérarchie.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
+ * @param profile Le profil complet de l'utilisateur.
  */
-export async function decrementAiTicketCount(firestore: Firestore, userId: string): Promise<void> {
+export async function decrementAiTicketCount(firestore: Firestore, userId: string, profile: UserProfile): Promise<void> {
   const userDocRef = doc(firestore, 'users', userId);
+  const updates: { [key: string]: any } = {};
+  
+  if (profile.aiTicketCount > 0) {
+      updates.aiTicketCount = increment(-1);
+  } else if (profile.subscriptionAiTickets > 0) {
+      updates.subscriptionAiTickets = increment(-1);
+  } else if (profile.packAiTickets > 0) {
+      updates.packAiTickets = increment(-1);
+  } else {
+      throw new Error("Aucun ticket IA disponible.");
+  }
+
   try {
-    await updateDoc(userDocRef, {
-      aiTicketCount: increment(-1),
-    });
+    await updateDoc(userDocRef, updates);
   } catch (error) {
     console.error("Erreur lors du décompte du ticket IA:", error);
     throw error;
