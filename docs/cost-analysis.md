@@ -94,7 +94,51 @@ Pour les utilisateurs (gratuits ou abonnés) qui ont un besoin ponctuel et inten
 *   **Rentabilité :** Les prix proposés pour les abonnements et les packs sont structurés pour couvrir largement les coûts opérationnels estimés (stockage, bande passante, appels API IA), même pour un usage intensif, tout en assurant une marge brute saine pour financer les utilisateurs gratuits et le développement futur.
 *   **Positionnement :** Cette structure tarifaire positionne Clikup comme une solution "premium" mais accessible. Contrairement aux hébergeurs gratuits financés par la publicité, Clikup vend de la **valeur ajoutée** (puissance de l'IA, gain de temps, organisation) et de la **commodité** (limites élevées, stockage étendu). Notre cible n'est pas l'utilisateur qui cherche le "tout gratuit", mais celui qui cherche le **meilleur outil**.
 
-### Prochaines Étapes Techniques :
+---
+
+## 4. Logique Technique du Système de Tickets
+
+Pour intégrer la monétisation, il est crucial de distinguer les tickets gratuits (rechargés quotidiennement) des tickets achetés (persistants).
+
+### a) Évolution du Modèle de Données
+Le document utilisateur dans Firestore devra être enrichi pour séparer ces deux types de soldes.
+
+*   **Tickets Gratuits (existants) :**
+    *   `ticketCount` : Nombre de tickets d'upload gratuits restants pour la journée.
+    *   `aiTicketCount` : Nombre de tickets IA gratuits restants pour la journée.
+    *   `lastTicketRefill` et `lastAiTicketRefill` : Timestamps pour gérer la recharge quotidienne.
+
+*   **Tickets Achetés (à ajouter) :**
+    *   `packUploadTickets` (nombre) : Solde de tickets d'upload achetés via des packs.
+    *   `packAiTickets` (nombre) : Solde de tickets IA achetés via des packs.
+
+*   **Tickets d'Abonnement (à ajouter) :**
+    *   `subscriptionUploadTickets` (nombre) : Quota mensuel de tickets d'upload lié à un abonnement.
+    *   `subscriptionAiTickets` (nombre) : Quota mensuel de tickets IA lié à un abonnement.
+    *   `subscriptionTier` (chaîne) : Niveau d'abonnement actuel (ex: "creator", "pro").
+    *   `subscriptionRenewalDate` (date) : Date du prochain renouvellement et de la recharge des tickets d'abonnement.
+
+### b) Logique de Consommation
+Lorsqu'un utilisateur effectue une action payante, le système doit décompter les tickets dans un ordre précis et avantageux pour lui.
+
+**Ordre de priorité pour un décompte :**
+1.  **Tickets Gratuits Quotidiens :** Le système utilise toujours en priorité les tickets qui "expirent" à la fin de la journée.
+2.  **Tickets d'Abonnement Mensuels :** Si les tickets gratuits sont épuisés, le système puise dans le quota mensuel de l'abonnement.
+3.  **Tickets Achetés (Packs) :** En dernier recours, si tous les autres soldes sont à zéro, le système utilise les tickets achetés, qui n'ont pas de date d'expiration.
+
+**Exemple :** Un utilisateur abonné "Créateur" achète un pack de 20 tickets IA.
+*   Son solde de départ est : `aiTicketCount: 3` (gratuit), `subscriptionAiTickets: 50` (abo), `packAiTickets: 20` (pack).
+*   Il utilise 5 fois l'IA.
+*   **Décompte :** Le système utilise les 3 tickets gratuits, puis 2 tickets de son abonnement.
+*   **Nouveau solde :** `aiTicketCount: 0`, `subscriptionAiTickets: 48`, `packAiTickets: 20`.
+*   Le lendemain, son `aiTicketCount` sera rechargé à 3, les autres soldes restant inchangés.
+
+Cette architecture garantit que l'utilisateur ne perd jamais ce qu'il a payé tout en profitant des avantages gratuits de la plateforme.
+
+---
+
+## 5. Prochaines Étapes Techniques :
 1.  **Créer la page "Boutique" :** Concevoir l'interface où toutes ces offres seront présentées de manière claire et attractive.
 2.  **Intégrer une solution de paiement :** Mettre en place un service comme Stripe pour gérer les abonnements récurrents et les paiements uniques.
 3.  **Mettre à jour la logique des tickets :** Modifier le code pour que le système puisse gérer les tickets mensuels (pour les abonnés), les quotas de stockage et l'ajout de tickets achetés via les packs.
+4.  **Modifier le modèle de données utilisateur (`backend.json`)** pour inclure les nouveaux champs de tickets.
