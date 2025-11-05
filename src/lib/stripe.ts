@@ -4,7 +4,8 @@
 
 import { Stripe } from 'stripe';
 import { headers } from 'next/headers';
-import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
+// IMPORTANT: Utilisation de 'firebase-admin' pour le côté serveur
+import type { Firestore } from 'firebase-admin/firestore';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-04-10',
@@ -19,17 +20,17 @@ type UserInfo = {
 }
 
 /**
- * Récupère l'ID client Stripe d'un utilisateur depuis Firestore ou en crée un nouveau.
- * @param firestore - Instance de Firestore.
+ * Récupère l'ID client Stripe d'un utilisateur depuis Firestore ou en crée un nouveau, en utilisant le SDK Admin.
+ * @param firestore - Instance de Firestore Admin.
  * @param user - L'objet contenant les informations de l'utilisateur.
  * @returns L'ID du client Stripe (cus_...).
  */
 async function getOrCreateCustomer(firestore: Firestore, user: UserInfo): Promise<string> {
-    const customerDocRef = doc(firestore, 'customers', user.uid);
-    const customerSnap = await getDoc(customerDocRef);
+    const customerDocRef = firestore.collection('customers').doc(user.uid);
+    const customerSnap = await customerDocRef.get();
 
-    if (customerSnap.exists() && customerSnap.data().stripeId) {
-        return customerSnap.data().stripeId;
+    if (customerSnap.exists && customerSnap.data()?.stripeId) {
+        return customerSnap.data()!.stripeId;
     }
 
     // Crée un nouveau client dans Stripe
@@ -42,7 +43,7 @@ async function getOrCreateCustomer(firestore: Firestore, user: UserInfo): Promis
     });
 
     // Sauvegarde le nouvel ID client dans Firestore
-    await setDoc(customerDocRef, { 
+    await customerDocRef.set({ 
         stripeId: customer.id,
         firebaseUID: user.uid,
     });
@@ -54,7 +55,7 @@ async function getOrCreateCustomer(firestore: Firestore, user: UserInfo): Promis
 /**
  * Crée une session de paiement Stripe Checkout.
  * @param priceId - L'ID du prix de l'article dans Stripe.
- * @param firestore - Instance de Firestore.
+ * @param firestore - Instance de Firestore Admin.
  * @param user - L'objet contenant les informations de l'utilisateur.
  * @param mode - 'payment' pour un achat unique, 'subscription' pour un abonnement.
  * @returns La session de paiement Stripe.
