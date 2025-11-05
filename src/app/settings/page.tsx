@@ -2,17 +2,18 @@
 'use client';
 
 import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+import { doc, updateDoc, increment } from 'firebase/firestore';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser, updateProfile } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { type UserProfile, deleteUserAccount } from '@/lib/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -21,7 +22,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const passwordFormSchema = z.object({
     currentPassword: z.string().min(1, { message: 'Le mot de passe actuel est requis.' }),
@@ -36,43 +42,239 @@ const deleteAccountFormSchema = z.object({
   password: z.string().min(1, { message: 'Le mot de passe est requis pour la suppression.' }),
 });
 
-
-export default function SettingsPage() {
-  const { user, isUserLoading, firebaseApp } = useFirebase();
+// --- Profile Tab Component ---
+function ProfileTab() {
+  const { user, firebaseApp } = useFirebase();
   const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
+  
+  const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+  const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [selectedPredefinedAvatar, setSelectedPredefinedAvatar] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (userProfile) {
+      setDisplayName(userProfile.displayName || userProfile.email || '');
+      setBio(userProfile.bio || '');
+      setWebsiteUrl(userProfile.websiteUrl || '');
+    }
+  }, [userProfile]);
+
+  const getInitials = (email?: string | null, name?: string | null) => {
+    if (name) return name.charAt(0).toUpperCase();
+    if (email) return email.charAt(0).toUpperCase();
+    return '?';
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Seules les images sont autorisées.' });
+        return;
+      }
+      setSelectedPredefinedAvatar(null);
+      setProfilePictureFile(file);
+    }
+  };
+
+  const handleSelectPredefinedAvatar = (imageUrl: string) => {
+    setProfilePictureFile(null);
+    setSelectedPredefinedAvatar(imageUrl);
+  };
+  
+  const handleSaveChanges = async () => {
+    if (!user || !firestore || !userDocRef) return;
+    setIsSaving(true);
+
+    try {
+        const authUpdates: { displayName?: string, photoURL?: string } = {};
+        const firestoreUpdates: Partial<UserProfile> & { profilePictureUpdateCount?: any } = {};
+        
+        let finalPhotoURL = user.photoURL;
+
+        if (selectedPredefinedAvatar) {
+            finalPhotoURL = selectedPredefinedAvatar;
+        } else if (profilePictureFile && firebaseApp) {
+            try {
+                const storage = getStorage(firebaseApp);
+                const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
+                const storageRef = ref(storage, filePath);
+                const metadata = { contentType: profilePictureFile.type };
+                await uploadBytes(storageRef, profilePictureFile, metadata);
+                finalPhotoURL = await getDownloadURL(storageRef);
+            } catch (storageError) {
+                 console.error("Erreur de téléversement de l'avatar:", storageError);
+                 toast({
+                    variant: 'destructive',
+                    title: 'Erreur de téléversement',
+                    description: "Impossible de téléverser le nouvel avatar. Veuillez réessayer plus tard."
+                 });
+                 setIsSaving(false);
+                 return;
+            }
+        }
+
+        if (finalPhotoURL !== user.photoURL) {
+            authUpdates.photoURL = finalPhotoURL;
+            firestoreUpdates.profilePictureUpdateCount = increment(1);
+        }
+
+        if (displayName !== (userProfile?.displayName || '')) {
+            authUpdates.displayName = displayName;
+            firestoreUpdates.displayName = displayName;
+        }
+
+        if (bio !== (userProfile?.bio || '')) {
+            firestoreUpdates.bio = bio;
+        }
+
+        if (websiteUrl !== (userProfile?.websiteUrl || '')) {
+            firestoreUpdates.websiteUrl = websiteUrl;
+        }
+
+        if (Object.keys(authUpdates).length > 0 && auth.currentUser) {
+            await updateProfile(auth.currentUser, authUpdates);
+        }
+        if (Object.keys(firestoreUpdates).length > 0) {
+            await updateDoc(userDocRef, firestoreUpdates);
+        }
+
+        toast({ title: 'Succès', description: 'Votre profil a été mis à jour.' });
+        setProfilePictureFile(null);
+        setSelectedPredefinedAvatar(null);
+
+    } catch (error: any) {
+        console.error("Erreur lors de la mise à jour du profil:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erreur',
+            description: error.message || 'Une erreur est survenue lors de la sauvegarde.'
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
+  if (!userProfile || !user) return <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />;
+  
+  const isChanged = displayName !== (userProfile?.displayName || userProfile.email) ||
+                    bio !== (userProfile?.bio || '') ||
+                    websiteUrl !== (userProfile?.websiteUrl || '') ||
+                    profilePictureFile !== null ||
+                    selectedPredefinedAvatar !== null;
+
+  let avatarPreviewSrc: string | undefined = user.photoURL || undefined;
+  if (profilePictureFile) {
+    avatarPreviewSrc = URL.createObjectURL(profilePictureFile);
+  } else if (selectedPredefinedAvatar) {
+    avatarPreviewSrc = selectedPredefinedAvatar;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Profil Public</CardTitle>
+        <CardDescription>Ces informations sont visibles par les autres utilisateurs.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+            <Label>Avatar</Label>
+            <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20 border">
+                    <AvatarImage src={avatarPreviewSrc} alt="Avatar" />
+                    <AvatarFallback>{getInitials(user.email, displayName)}</AvatarFallback>
+                </Avatar>
+                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>Changer la photo</Button>
+            </div>
+            <div>
+                <p className="text-sm text-muted-foreground mb-2">Ou choisissez un avatar prédéfini :</p>
+                <TooltipProvider>
+                    <div className="flex flex-wrap gap-2">
+                        {PlaceHolderImages.map((image) => (
+                        <Tooltip key={image.id}>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={() => handleSelectPredefinedAvatar(image.imageUrl)}
+                                    className={cn(
+                                    "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all",
+                                    selectedPredefinedAvatar === image.imageUrl ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-primary/50"
+                                    )}
+                                    disabled={isSaving}
+                                >
+                                    <Image src={image.imageUrl} alt={image.description} fill sizes="64px" className="object-cover" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{image.description}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        ))}
+                    </div>
+                </TooltipProvider>
+            </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="displayName">Nom d'affichage</Label>
+          <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={isSaving} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="bio">Bio</Label>
+          <Textarea id="bio" placeholder="Parlez un peu de vous..." value={bio} onChange={(e) => setBio(e.target.value)} disabled={isSaving} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="websiteUrl">Site web</Label>
+          <Input id="websiteUrl" placeholder="https://votre-site.com" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={isSaving} />
+        </div>
+         <div className="space-y-2">
+          <Label htmlFor="email">Adresse e-mail</Label>
+          <Input id="email" type="email" value={userProfile.email} disabled />
+          <p className="text-xs text-muted-foreground">L'adresse e-mail est utilisée pour la connexion et ne peut pas être modifiée.</p>
+        </div>
+      </CardContent>
+      <CardFooter className="border-t px-6 py-4">
+        <div className="flex w-full justify-end">
+            <Button onClick={handleSaveChanges} disabled={!isChanged || isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enregistrer les modifications
+            </Button>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+}
+
+// --- Account Tab Component ---
+function AccountTab() {
+  const { user, firebaseApp } = useFirebase();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, `users/${user.uid}`);
-  }, [user, firestore]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+  const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
     resolver: zodResolver(passwordFormSchema),
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    },
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   });
 
   const deleteAccountForm = useForm<z.infer<typeof deleteAccountFormSchema>>({
     resolver: zodResolver(deleteAccountFormSchema),
     defaultValues: { password: '' },
   });
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     if (userProfile) {
@@ -109,7 +311,7 @@ export default function SettingsPage() {
 
   const handleNotificationChange = async (checked: boolean) => {
     if (!userDocRef) return;
-    setEmailNotifications(checked); // Update UI instantly
+    setEmailNotifications(checked);
 
     try {
       await updateDoc(userDocRef, { emailNotifications: checked });
@@ -118,7 +320,7 @@ export default function SettingsPage() {
         description: `Notifications par e-mail ${checked ? 'activées' : 'désactivées'}.`
       });
     } catch (error: any) {
-      setEmailNotifications(!checked); // Revert on error
+      setEmailNotifications(!checked);
       toast({
         variant: 'destructive',
         title: 'Erreur',
@@ -136,20 +338,12 @@ export default function SettingsPage() {
 
     try {
         await reauthenticateWithCredential(user, credential);
-
-        // Maintenant que la réauthentification a réussi, on procède à la suppression
         const userId = user.uid;
         const storage = getStorage(firebaseApp);
-        
-        // 1. Supprimer toutes les données (Firestore, Storage)
         await deleteUserAccount(firestore, storage, userId);
-
-        // 2. Supprimer l'utilisateur d'Authentication
         await deleteUser(user);
-
         toast({ title: 'Compte supprimé', description: 'Votre compte et toutes vos données ont été effacés.' });
-        router.push('/signup'); // Rediriger vers la page d'inscription
-
+        router.push('/signup');
     } catch (error: any) {
         let description = "Une erreur est survenue lors de la suppression du compte.";
         if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -163,8 +357,123 @@ export default function SettingsPage() {
         setIsDeleting(false);
     }
   };
-  
-  if (isUserLoading || isProfileLoading) {
+
+  if (!userProfile) return <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />;
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Sécurité</CardTitle>
+          <CardDescription>Gérez les paramètres de sécurité de votre compte.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+            <DialogTrigger asChild>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Mot de passe : **********</p>
+                <Button variant="outline">Changer</Button>
+              </div>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Changer le mot de passe</DialogTitle>
+                <DialogDescription>Pour des raisons de sécurité, veuillez d'abord entrer votre mot de passe actuel.</DialogDescription>
+              </DialogHeader>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="space-y-4 py-4">
+                  <FormField control={passwordForm.control} name="currentPassword" render={({ field }) => ( <FormItem><FormLabel>Mot de passe actuel</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={passwordForm.control} name="newPassword" render={({ field }) => ( <FormItem><FormLabel>Nouveau mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirmer le nouveau mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="secondary">Annuler</Button></DialogClose>
+                    <Button type="submit" disabled={passwordForm.formState.isSubmitting}>{passwordForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enregistrer</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>Choisissez comment vous souhaitez être notifié.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label htmlFor="email-notifications" className="font-medium">Notifications par e-mail</Label>
+              <p className="text-sm text-muted-foreground">Recevoir des notifications sur les actualités et les mises à jour.</p>
+            </div>
+            <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={handleNotificationChange} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Zone de danger</CardTitle>
+          <CardDescription>Ces actions sont irréversibles. Soyez certain de votre choix.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Supprimer le compte</p>
+                  <p className="text-sm text-muted-foreground">Toutes vos données seront définitivement effacées.</p>
+                </div>
+                <Button variant="destructive" disabled={isDeleting}>{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Supprimer mon compte</Button>
+              </div>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Êtes-vous absolument certain ?</AlertDialogTitle>
+                <AlertDialogDescription>Cette action est irréversible. Toutes vos données, y compris vos images et votre profil, seront définitivement supprimées.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <Dialog>
+                  <DialogTrigger asChild><AlertDialogAction className="bg-destructive hover:bg-destructive/90">Oui, supprimer mon compte</AlertDialogAction></DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Confirmation Finale</DialogTitle>
+                      <DialogDescription>Pour des raisons de sécurité, veuillez entrer votre mot de passe pour confirmer la suppression de votre compte.</DialogDescription>
+                    </DialogHeader>
+                    <Form {...deleteAccountForm}>
+                      <form onSubmit={deleteAccountForm.handleSubmit(handleDeleteAccount)} className="space-y-4 py-4">
+                        <FormField control={deleteAccountForm.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Votre mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <DialogFooter>
+                          <DialogClose asChild><Button type="button" variant="secondary">Annuler</Button></DialogClose>
+                          <Button type="submit" variant="destructive" disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Supprimer définitivement</Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+// --- Main Settings Page Component ---
+export default function SettingsPage() {
+  const { user, isUserLoading } = useFirebase();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -172,187 +481,26 @@ export default function SettingsPage() {
     );
   }
 
-  if (!user || !userProfile) {
-    return null;
-  }
-
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-3xl mx-auto space-y-8">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight">Paramètres du Compte</h1>
-          <p className="text-muted-foreground mt-1">Gérez les paramètres techniques et de sécurité de votre compte.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
+          <p className="text-muted-foreground mt-1">Gérez votre profil public et les paramètres de votre compte.</p>
         </header>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Sécurité</CardTitle>
-                <CardDescription>Gérez les paramètres de sécurité de votre compte.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-                    <DialogTrigger asChild>
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground">Mot de passe : **********</p>
-                            <Button variant="outline">Changer</Button>
-                        </div>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Changer le mot de passe</DialogTitle>
-                            <DialogDescription>
-                                Pour des raisons de sécurité, veuillez d'abord entrer votre mot de passe actuel.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <Form {...passwordForm}>
-                            <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="space-y-4 py-4">
-                                <FormField
-                                    control={passwordForm.control}
-                                    name="currentPassword"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Mot de passe actuel</FormLabel>
-                                            <FormControl>
-                                                <Input type="password" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={passwordForm.control}
-                                    name="newPassword"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nouveau mot de passe</FormLabel>
-                                            <FormControl>
-                                                <Input type="password" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                 <FormField
-                                    control={passwordForm.control}
-                                    name="confirmPassword"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Confirmer le nouveau mot de passe</FormLabel>
-                                            <FormControl>
-                                                <Input type="password" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button type="button" variant="secondary">Annuler</Button>
-                                    </DialogClose>
-                                    <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
-                                        {passwordForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Enregistrer
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>Choisissez comment vous souhaitez être notifié.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                        <Label htmlFor="email-notifications" className="font-medium">Notifications par e-mail</Label>
-                        <p className="text-sm text-muted-foreground">Recevoir des notifications sur les actualités et les mises à jour.</p>
-                    </div>
-                    <Switch 
-                        id="email-notifications" 
-                        checked={emailNotifications}
-                        onCheckedChange={handleNotificationChange}
-                    />
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Zone de danger</CardTitle>
-            <CardDescription>Ces actions sont irréversibles. Soyez certain de votre choix.</CardDescription>
-          </CardHeader>
-          <CardContent>
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="font-medium">Supprimer le compte</p>
-                            <p className="text-sm text-muted-foreground">Toutes vos données seront définitivement effacées.</p>
-                        </div>
-                        <Button variant="destructive" disabled={isDeleting}>
-                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Supprimer mon compte
-                        </Button>
-                    </div>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Êtes-vous absolument certain ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action est irréversible. Toutes vos données, y compris vos images et votre profil, seront définitivement supprimées.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90">
-                                    Oui, supprimer mon compte
-                                </AlertDialogAction>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Confirmation Finale</DialogTitle>
-                                    <DialogDescription>
-                                        Pour des raisons de sécurité, veuillez entrer votre mot de passe pour confirmer la suppression de votre compte.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <Form {...deleteAccountForm}>
-                                    <form onSubmit={deleteAccountForm.handleSubmit(handleDeleteAccount)} className="space-y-4 py-4">
-                                        <FormField
-                                            control={deleteAccountForm.control}
-                                            name="password"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Votre mot de passe</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="password" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <DialogFooter>
-                                            <DialogClose asChild><Button type="button" variant="secondary">Annuler</Button></DialogClose>
-                                            <Button type="submit" variant="destructive" disabled={isDeleting}>
-                                                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Supprimer définitivement
-                                            </Button>
-                                        </DialogFooter>
-                                    </form>
-                                </Form>
-                            </DialogContent>
-                        </Dialog>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="profile">Profil</TabsTrigger>
+            <TabsTrigger value="account">Compte</TabsTrigger>
+          </TabsList>
+          <TabsContent value="profile" className="pt-6">
+            <ProfileTab />
+          </TabsContent>
+          <TabsContent value="account" className="space-y-8 pt-6">
+            <AccountTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
