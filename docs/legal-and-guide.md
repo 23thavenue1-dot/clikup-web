@@ -59,10 +59,10 @@ Nous croyons en une communication transparente. Si vous êtes déçu par un rés
 3.  **Consommez un autre ticket :** Chaque génération est unique. Une nouvelle tentative peut produire un résultat complètement différent et plus satisfaisant.
 
 ### b) Comment nous contacter ?
-Pour tout problème technique, question ou suggestion, la méthode la plus efficace est de nous contacter en créant un "ticket" sur notre page de support.
+Pour tout problème technique, question ou suggestion, la méthode la plus efficace est de créer un "ticket" sur la page "Issues" de notre projet GitHub.
 
 Cela garantit que votre demande est bien enregistrée, suivie et ne se perdra pas. C'est la méthode la plus directe pour obtenir de l'aide de notre part.
 
-*   **Lien vers le support :** `[Le lien sera de la forme : https://github.com/VOTRE_NOM_UTILISATEUR/NOM_DU_PROJET/issues]`
+*   **Lien vers le support :** `https://github.com/23thavenue1-dot/clikup-web/issues`
 
 Merci de faire partie de l'aventure Clikup !
