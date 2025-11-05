@@ -187,7 +187,7 @@
      "Note": {
       "title": "Note",
       "type": "object",
-      "description": "Represents a simple text note created by a user.",
+      "description": "Represents a simple text note created by a user, which can be marked as completed.",
       "properties": {
         "id": {
           "type": "string",
@@ -201,6 +201,10 @@
           "type": "string",
           "description": "The content of the note."
         },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the note/task has been completed."
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp of when the note was created.",
@@ -211,6 +215,7 @@
         "id",
         "userId",
         "text",
+        "completed",
         "createdAt"
       ]
     },

@@ -75,6 +75,7 @@ export type Note = {
   id: string;
   userId: string;
   text: string;
+  completed: boolean;
   createdAt: Timestamp; // Changed to Timestamp
 }
 
@@ -324,6 +325,7 @@ export async function saveNote(firestore: Firestore, user: User, text: string): 
   const dataToSave = {
     userId: user.uid,
     text: text,
+    completed: false,
     createdAt: serverTimestamp(),
   };
 
@@ -382,6 +384,30 @@ export async function deleteNote(firestore: Firestore, userId: string, noteId: s
         const permissionError = new FirestorePermissionError({
             path: noteDocRef.path,
             operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
+/**
+ * Met à jour le statut "complété" d'une note.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param noteId L'ID de la note.
+ * @param completed Le nouveau statut.
+ */
+export async function toggleNoteCompletion(firestore: Firestore, userId: string, noteId: string, completed: boolean): Promise<void> {
+    const noteDocRef = doc(firestore, 'users', userId, 'notes', noteId);
+    const dataToUpdate = { completed };
+    try {
+        await updateDoc(noteDocRef, dataToUpdate);
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour du statut de la note :", error);
+        const permissionError = new FirestorePermissionError({
+            path: noteDocRef.path,
+            operation: 'update',
+            requestResourceData: dataToUpdate,
         });
         errorEmitter.emit('permission-error', permissionError);
         throw error;

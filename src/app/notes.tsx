@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { saveNote, updateNote, deleteNote, type Note } from '@/lib/firestore';
+import { saveNote, updateNote, deleteNote, type Note, toggleNoteCompletion } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -23,6 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 export function NotesSection() {
     const { user } = useUser();
@@ -100,6 +102,15 @@ export function NotesSection() {
             setIsDeleting(false);
         }
     };
+    
+    const handleToggleCompletion = async (note: Note) => {
+        if (!user || !firestore) return;
+        try {
+            await toggleNoteCompletion(firestore, user.uid, note.id, !note.completed);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour la tâche.' });
+        }
+    };
 
 
     return (
@@ -158,19 +169,35 @@ export function NotesSection() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div>
-                                        <p className="whitespace-pre-wrap">{note.text}</p>
-                                        <div className="flex items-center justify-between mt-2">
-                                            <p className="text-xs text-muted-foreground">
-                                                {note.createdAt && formatDistanceToNow(note.createdAt.toDate(), { addSuffix: true, locale: fr })}
-                                            </p>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditing(note)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDeleteDialog(note)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                    <div className="flex items-start gap-3">
+                                         <Checkbox
+                                            id={`note-${note.id}`}
+                                            checked={note.completed}
+                                            onCheckedChange={() => handleToggleCompletion(note)}
+                                            className="mt-1"
+                                         />
+                                        <div className="flex-1">
+                                            <label 
+                                                htmlFor={`note-${note.id}`}
+                                                className={cn(
+                                                    "whitespace-pre-wrap transition-colors cursor-pointer",
+                                                    note.completed && "line-through text-muted-foreground"
+                                                )}
+                                            >
+                                                {note.text}
+                                            </label>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <p className="text-xs text-muted-foreground">
+                                                    {note.createdAt && formatDistanceToNow(note.createdAt.toDate(), { addSuffix: true, locale: fr })}
+                                                </p>
+                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditing(note)}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDeleteDialog(note)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
