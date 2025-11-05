@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const subscriptions = [
     {
-        id: 'price_1PXXX', // Remplacer par le vrai ID de prix Stripe
+        id: 'price_1SQ8qMCL0iCpjJiiuReYJAG8',
         title: 'Créateur',
         price: '4,99 €',
         period: '/ mois',
@@ -23,7 +24,7 @@ const subscriptions = [
         icon: Rocket,
     },
     {
-        id: 'price_1PXXY', // Remplacer par le vrai ID de prix Stripe
+        id: 'price_1SQ8sXCL0iCpjJiibM2zG3iO',
         title: 'Pro',
         price: '9,99 €',
         period: '/ mois',
@@ -38,7 +39,7 @@ const subscriptions = [
         featured: true,
     },
     {
-        id: 'price_1PXXZ', // Remplacer par le vrai ID de prix Stripe
+        id: 'price_1SQ8uUCL0iCpjJii5P1ZiYMa',
         title: 'Maître',
         price: '19,99 €',
         period: '/ mois',
@@ -54,15 +55,15 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-  { id: 'price_1PXYA', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload },
-  { id: 'price_1PXYB', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload },
-  { id: 'price_1PXYC', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true },
+  { id: 'price_1SQ8wYCL0iCpjJiiuJUOTncv', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload },
+  { id: 'price_1SQ8xyCL0iCpjJiiqW038S9Z', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload },
+  { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true },
 ];
 
 const aiPacks = [
-  { id: 'price_1PXYD', title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles },
-  { id: 'price_1PXYE', title: "Boost M", tickets: 50, price: "5,99 €", icon: Sparkles },
-  { id: 'price_1PXYF', title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true },
+  { id: 'price_1SQ91HCL0iCpjJiiUV4xjJJE', title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles },
+  { id: 'price_1SQ92mCL0iCpjJiiK0lISxQ5', title: "Boost M", tickets: 50, price: "5,99 €", icon: Sparkles },
+  { id: 'price_1SQ944CL0iCpjJii3B2LrQnQ', title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true },
 ];
 
 
