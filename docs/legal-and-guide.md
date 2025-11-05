@@ -63,6 +63,6 @@ Pour tout problème technique, question ou suggestion, la méthode la plus effic
 
 Cela garantit que votre demande est bien enregistrée, suivie et ne se perdra pas. C'est la méthode la plus directe pour obtenir de l'aide de notre part.
 
-*   **Lien vers le support :** `[Insérer ici le lien vers les Issues de votre dépôt GitHub]`
+*   **Lien vers le support :** `[Le lien sera de la forme : https://github.com/VOTRE_NOM_UTILISATEUR/NOM_DU_PROJET/issues]`
 
 Merci de faire partie de l'aventure Clikup !
