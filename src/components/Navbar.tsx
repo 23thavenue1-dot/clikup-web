@@ -121,7 +121,7 @@ export function Navbar() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link href="/galleries" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Galeries">
+                      <Button variant="ghost" size="icon" aria-label="Mes Galeries">
                         <Library className="h-5 w-5" />
                       </Button>
                     </Link>
@@ -153,7 +153,7 @@ export function Navbar() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link href="/secret-messages" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Messages Secrets" className="relative">
+                      <Button variant="ghost" size="icon" aria-label="Tips de Créateur" className="relative">
                         <Mail className="h-5 w-5" />
                         {hasUnreadMsgs && (
                           <span className="absolute top-2 right-2 flex h-2 w-2">
@@ -165,7 +165,7 @@ export function Navbar() {
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Messages Secrets</p>
+                    <p>Tips de Créateur</p>
                   </TooltipContent>
                 </Tooltip>
               </>
