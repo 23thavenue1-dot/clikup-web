@@ -1,7 +1,23 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { createStripeCheckout } from '@/lib/stripe';
-import { initializeFirebase } from '@/firebase/server'; // Utilisation de l'initialisation admin
+import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
+
+// Configuration de l'admin Firebase directement dans la route
+// C'est la méthode la plus robuste pour les environnements serverless comme Vercel/Next.js
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+  : undefined;
+
+const appName = 'firebase-admin-app-checkout';
+if (!getApps().some(app => app.name === appName)) {
+  initializeApp({
+    credential: cert(serviceAccount!),
+  }, appName);
+}
+const firestoreAdmin = getFirestore(getApp(appName));
+
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,16 +27,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: { message: 'Les informations de paiement sont incomplètes (priceId, mode, userId).' } }, { status: 400 });
         }
         
-        // Initialisation de l'admin Firebase pour la communication serveur
-        const { firestore } = initializeFirebase();
-
-        // Construire un objet utilisateur simple avec les infos reçues du client
         const userInfo = { 
             uid: userId, 
             email: userEmail,
         };
 
-        const session = await createStripeCheckout(priceId, firestore, userInfo, mode);
+        const session = await createStripeCheckout(priceId, firestoreAdmin, userInfo, mode);
 
         if (session.url) {
             return NextResponse.json({ url: session.url });

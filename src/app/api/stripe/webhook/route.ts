@@ -3,7 +3,8 @@ import { Stripe } from 'stripe';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { initializeFirebase } from '@/firebase/server';
+import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 
 // --- Définition des correspondances entre Price ID et tickets ---
@@ -23,6 +24,19 @@ const subscriptionPriceIdToTier: { [key: string]: { tier: 'creator' | 'pro' | 'm
     'price_1SQ8sXCL0iCpjJiibM2zG3iO': { tier: 'pro', upload: Infinity, ai: 150 },
     'price_1SQ8uUCL0iCpjJii5P1ZiYMa': { tier: 'master', upload: Infinity, ai: 400 },
 };
+
+// Configuration de l'admin Firebase directement dans la route
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+  : undefined;
+
+const appName = 'firebase-admin-app-webhook';
+if (!getApps().some(app => app.name === appName)) {
+  initializeApp({
+    credential: cert(serviceAccount!),
+  }, appName);
+}
+const firestoreAdmin = getFirestore(getApp(appName));
 
 
 /**
@@ -47,12 +61,9 @@ export async function POST(req: Request) {
         return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
     }
     
-    // On ne traite que l'événement de session de paiement terminée
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
-        const { firestore } = initializeFirebase();
-
-        // Récupérer les métadonnées de la session
+        
         const firebaseUID = session.metadata?.firebaseUID;
         const priceId = session.metadata?.priceId;
 
@@ -61,32 +72,27 @@ export async function POST(req: Request) {
             return new NextResponse('Métadonnées de session Stripe manquantes.', { status: 400 });
         }
 
-        const userDocRef = doc(firestore, 'users', firebaseUID);
+        const userDocRef = firestoreAdmin.collection('users').doc(firebaseUID);
         
         try {
-            // Cas d'un achat de pack de tickets
             if (priceIdToTickets[priceId]) {
                 const { upload, ai } = priceIdToTickets[priceId];
                 const updates: { [key: string]: any } = {};
-                if (upload) updates.packUploadTickets = increment(upload);
-                if (ai) updates.packAiTickets = increment(ai);
+                if (upload) updates.packUploadTickets = getFirestore().FieldValue.increment(upload);
+                if (ai) updates.packAiTickets = getFirestore().FieldValue.increment(ai);
                 
-                await updateDoc(userDocRef, updates);
+                await userDocRef.update(updates);
                 console.log(`Tickets ajoutés pour l'utilisateur ${firebaseUID}:`, updates);
-            }
-            // Cas d'un abonnement
-            else if (subscriptionPriceIdToTier[priceId]) {
+
+            } else if (subscriptionPriceIdToTier[priceId]) {
                 const { tier, upload, ai } = subscriptionPriceIdToTier[priceId];
-                // Note : Pour un vrai abonnement, il faudrait gérer la date de renouvellement etc.
-                // Ici, on active le tier et on crédite les tickets mensuels.
                 const updates = {
                     subscriptionTier: tier,
-                    subscriptionUploadTickets: upload === Infinity ? 999999 : upload, // Utiliser une grande valeur pour "illimité"
+                    subscriptionUploadTickets: upload === Infinity ? 999999 : upload,
                     subscriptionAiTickets: ai,
-                    // subscriptionRenewalDate: ... // À gérer avec les dates de Stripe
                 };
-                await updateDoc(userDocRef, updates);
-                 console.log(`Abonnement '${tier}' activé pour l'utilisateur ${firebaseUID}.`);
+                await userDocRef.update(updates);
+                console.log(`Abonnement '${tier}' activé pour l'utilisateur ${firebaseUID}.`);
             } else {
                  console.warn(`Price ID ${priceId} non géré.`);
             }
