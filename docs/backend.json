@@ -84,115 +84,39 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the image uploading application.  Note: Authentication details (passwords, etc.) are handled by Firebase Auth and are NOT stored in this entity.",
+      "description": "Represents a user of the image uploading application. Note: Authentication details (passwords, etc.) are handled by Firebase Auth and are NOT stored in this entity.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Display name of the user."
-        },
-        "creationTimestamp": {
-          "type": "string",
-          "description": "Timestamp of when the user account was created.",
-          "format": "date-time"
-        },
-        "ticketCount": {
-          "type": "number",
-          "description": "Number of remaining daily upload tickets for the user."
-        },
-        "lastTicketRefill": {
-          "type": "string",
-          "description": "Timestamp of the last time the user's daily tickets were refilled.",
-          "format": "date-time"
-        },
-        "aiTicketCount": {
-          "type": "number",
-          "description": "Number of remaining daily AI generation tickets for the user."
-        },
-        "lastAiTicketRefill": {
-          "type": "string",
-          "description": "Timestamp of the last time the user's daily AI tickets were refilled.",
-          "format": "date-time"
-        },
-        "aiTicketMonthlyCount": {
-          "type": "number",
-          "description": "Tracks the total number of free AI tickets granted in the current monthly cycle."
-        },
-        "aiTicketMonthlyReset": {
-          "type": "string",
-          "description": "Timestamp of the last time the monthly AI ticket counter was reset.",
-          "format": "date-time"
-        },
-        "emailNotifications": {
-          "type": "boolean",
-          "description": "Indicates if the user has opted-in to receive email notifications."
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short biography or description of the user."
-        },
-        "websiteUrl": {
-          "type": "string",
-          "description": "URL to the user's personal website.",
-          "format": "uri"
-        },
-        "level": {
-          "type": "number",
-          "description": "The user's current level in the gamification system."
-        },
-        "xp": {
-          "type": "number",
-          "description": "The user's current experience points."
-        },
-        "unlockedAchievements": {
-          "type": "array",
-          "description": "A list of identifiers for the achievements the user has unlocked.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "pinnedImageIds": {
-            "type": "array",
-            "description": "A list of image IDs that the user has globally pinned or marked as favorites.",
-            "items": {
-                "type": "string"
-            }
-        },
-        "initialPhotoURL": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "The user's photoURL at the time of account creation.",
-          "format": "uri"
-        },
-        "profilePictureUpdateCount": {
-          "type": "number",
-          "description": "Counts how many times the user has updated their profile picture."
-        }
+        "id": { "type": "string", "description": "Unique identifier for the user entity." },
+        "email": { "type": "string", "description": "Email address of the user.", "format": "email" },
+        "displayName": { "type": "string", "description": "Display name of the user." },
+        "creationTimestamp": { "type": "string", "description": "Timestamp of when the user account was created.", "format": "date-time" },
+        "ticketCount": { "type": "number", "description": "Number of remaining daily upload tickets for the user." },
+        "lastTicketRefill": { "type": "string", "description": "Timestamp of the last time the user's daily tickets were refilled.", "format": "date-time" },
+        "aiTicketCount": { "type": "number", "description": "Number of remaining daily AI generation tickets for the user." },
+        "lastAiTicketRefill": { "type": "string", "description": "Timestamp of the last time the user's daily AI tickets were refilled.", "format": "date-time" },
+        "aiTicketMonthlyCount": { "type": "number", "description": "Tracks the total number of free AI tickets granted in the current monthly cycle." },
+        "aiTicketMonthlyReset": { "type": "string", "description": "Timestamp of the last time the monthly AI ticket counter was reset.", "format": "date-time" },
+        "emailNotifications": { "type": "boolean", "description": "Indicates if the user has opted-in to receive email notifications." },
+        "bio": { "type": "string", "description": "A short biography or description of the user." },
+        "websiteUrl": { "type": "string", "description": "URL to the user's personal website.", "format": "uri" },
+        "level": { "type": "number", "description": "The user's current level in the gamification system." },
+        "xp": { "type": "number", "description": "The user's current experience points." },
+        "unlockedAchievements": { "type": "array", "description": "A list of identifiers for the achievements the user has unlocked.", "items": { "type": "string" } },
+        "pinnedImageIds": { "type": "array", "description": "A list of image IDs that the user has globally pinned or marked as favorites.", "items": { "type": "string" } },
+        "initialPhotoURL": { "type": ["string", "null"], "description": "The user's photoURL at the time of account creation.", "format": "uri" },
+        "profilePictureUpdateCount": { "type": "number", "description": "Counts how many times the user has updated their profile picture." },
+        "packUploadTickets": { "type": "number", "description": "Balance of purchased upload tickets from one-time packs." },
+        "packAiTickets": { "type": "number", "description": "Balance of purchased AI tickets from one-time packs." },
+        "subscriptionUploadTickets": { "type": "number", "description": "Remaining monthly upload tickets from a subscription plan." },
+        "subscriptionAiTickets": { "type": "number", "description": "Remaining monthly AI tickets from a subscription plan." },
+        "subscriptionTier": { "type": "string", "description": "The current active subscription tier (e.g., 'creator', 'pro', 'none')." },
+        "subscriptionRenewalDate": { "type": "string", "description": "Timestamp for the next subscription renewal and ticket refill.", "format": "date-time" }
       },
       "required": [
-        "id",
-        "email",
-        "displayName",
-        "creationTimestamp",
-        "ticketCount",
-        "lastTicketRefill",
-        "aiTicketCount",
-        "lastAiTicketRefill",
-        "aiTicketMonthlyCount",
-        "aiTicketMonthlyReset",
-        "level",
-        "xp",
-        "profilePictureUpdateCount"
+        "id", "email", "displayName", "creationTimestamp", "ticketCount", "lastTicketRefill", 
+        "aiTicketCount", "lastAiTicketRefill", "aiTicketMonthlyCount", "aiTicketMonthlyReset", 
+        "level", "xp", "profilePictureUpdateCount", "packUploadTickets", "packAiTickets", 
+        "subscriptionUploadTickets", "subscriptionAiTickets", "subscriptionTier"
       ]
     },
      "Note": {

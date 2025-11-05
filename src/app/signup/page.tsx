@@ -54,12 +54,22 @@ export default function SignupPage() {
         email: user.email,
         displayName: user.displayName || user.email?.split('@')[0],
         creationTimestamp: serverTimestamp(),
+        // Tickets gratuits
         ticketCount: 5,
         lastTicketRefill: serverTimestamp(),
         aiTicketCount: 3,
         lastAiTicketRefill: serverTimestamp(),
-        aiTicketMonthlyCount: 0, // Initialisation du compteur mensuel
-        aiTicketMonthlyReset: serverTimestamp(), // Initialisation de la date de reset mensuel
+        // Limites mensuelles
+        aiTicketMonthlyCount: 0,
+        aiTicketMonthlyReset: serverTimestamp(),
+        // Tickets payants et abonnements
+        packUploadTickets: 0,
+        packAiTickets: 0,
+        subscriptionUploadTickets: 0,
+        subscriptionAiTickets: 0,
+        subscriptionTier: "none",
+        subscriptionRenewalDate: null,
+        // Gamification et profil
         level: 1,
         xp: 0,
         unlockedAchievements: [],
@@ -72,7 +82,6 @@ export default function SignupPage() {
       toast({ title: "Inscription réussie", description: "Votre compte a été créé. Vous pouvez maintenant vous connecter." });
       router.push("/login");
     } catch (error: any) {
-      console.error(error);
       let description = "Une erreur inattendue est survenue.";
       
       if (error.code === 'auth/email-already-in-use') {
