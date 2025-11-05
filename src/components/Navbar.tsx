@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home, Sparkles, Library, NotebookText } from 'lucide-react';
+import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home, Sparkles, Library, NotebookText, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "next-themes";
@@ -168,6 +168,19 @@ export function Navbar() {
                     <p>Tips de Créateur</p>
                   </TooltipContent>
                 </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/shop" passHref>
+                      <Button variant="ghost" size="icon" aria-label="Boutique">
+                        <ShoppingCart className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Boutique</p>
+                  </TooltipContent>
+                </Tooltip>
               </>
             ) : (
               <AlertDialog>
@@ -235,6 +248,12 @@ export function Navbar() {
                             <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Tableau de bord</span>
                             {hasNewAchievements && <span className="absolute right-2 flex h-2 w-2 bg-red-500 rounded-full" />}
+                          </Link>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem asChild>
+                          <Link href="/shop">
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                            <span>Boutique</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>

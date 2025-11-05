@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages } from '@/lib/firestore';
 import { format, formatDistanceToNow, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -264,7 +264,7 @@ export function ImageList() {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: 'Plus de tickets ? Rechargez ici !',
+                description: 'Plus de tickets ? Rechargez dans la boutique !',
             });
             return;
         }
@@ -726,8 +726,13 @@ export function ImageList() {
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
                                         {!hasAiTickets && !monthlyLimitReached && (
-                                            <TooltipContent>
-                                                <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Rechargez ici !</p>
+                                             <TooltipContent>
+                                                <Link href="/shop">
+                                                    <p className="cursor-pointer font-semibold text-primary flex items-center gap-2">
+                                                        <ShoppingCart className="h-4 w-4" />
+                                                        Plus de tickets ? Rechargez dans la boutique !
+                                                    </p>
+                                                </Link>
                                             </TooltipContent>
                                         )}
                                     </Tooltip>
@@ -833,4 +838,3 @@ export function ImageList() {
     
 
     
-

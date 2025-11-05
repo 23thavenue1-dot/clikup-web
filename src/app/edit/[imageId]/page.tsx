@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,7 +64,7 @@ export default function EditImagePage() {
     const handleGenerate = async () => {
         if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
         if (userProfile.aiTicketCount <= 0) {
-            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: 'Plus de tickets ? Rechargez ici !' });
+            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: 'Rechargez dans la boutique !' });
             return;
         }
         setIsGenerating(true);
@@ -179,9 +179,12 @@ export default function EditImagePage() {
                             </Button>
                         )}
                         {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
-                            <p className="text-center text-sm text-primary font-semibold cursor-pointer hover:underline">
-                                Plus de tickets ? Rechargez ici !
-                            </p>
+                            <Button variant="link" asChild className="text-sm font-semibold text-primary">
+                                <Link href="/shop">
+                                    <ShoppingCart className="mr-2 h-4 w-4"/>
+                                    Plus de tickets ? Rechargez dans la boutique !
+                                </Link>
+                            </Button>
                         )}
                     </div>
                     
