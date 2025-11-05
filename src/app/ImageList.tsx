@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -68,7 +66,7 @@ export function ImageList() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
@@ -843,4 +841,5 @@ export function ImageList() {
     
 
     
+
 
