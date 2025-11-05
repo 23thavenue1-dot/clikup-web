@@ -214,7 +214,7 @@ export function LandingPage() {
                             <p className="font-semibold text-primary mb-2">APRÈS (Généré par l'IA)</p>
                             <div className="aspect-square w-full relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/50">
                                 <Image 
-                                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"
+                                    src="https://firebasestorage.googleapis.com/v0/b/studio-9587105821-540bd.firebasestorage.app/o/users%2F7nDHEQjIR9UYfgg0mwKhd4oGPCP2%2F1762297917204_ai-edited-1762297917203.png?alt=media&token=0cbc4fa6-ee5a-46f2-b7a2-d15d1dc450a7"
                                     alt="Portrait amélioré par l'intelligence artificielle, plus charismatique"
                                     fill
                                     className="object-cover"
