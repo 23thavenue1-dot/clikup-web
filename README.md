@@ -1,10 +1,10 @@
-# Projet Clikup : Votre Plateforme d'Hébergement d'Images Intelligente
+# Projet Clikup : Votre plateforme d'hébergement d'images intelligente, avec édition et amélioration par IA.
 
 **Clikup** est une application web moderne et sécurisée conçue pour l'hébergement, la gestion et le partage d'images, augmentée par une IA pour l'édition et l'amélioration de vos créations. Plus qu'un simple outil de téléversement, Clikup a pour vocation de devenir un compagnon créatif intelligent, évoluant pour répondre aux besoins des créateurs de contenu, des développeurs et des utilisateurs quotidiens.
 
 ---
 
-### État Actuel du Projet : Une Base Solide et Fonctionnelle
+### État Actuel du Projet : Une Plateforme Créative et Intelligente
 
 À ce jour, Clikup est une application stable et entièrement fonctionnelle, dotée des caractéristiques suivantes :
 
@@ -20,24 +20,25 @@
     *   **Téléchargement Facile :** Chaque image peut être facilement téléchargée sur ordinateur ou téléphone, avec une expérience adaptée à chaque plateforme.
     *   **Détails et Partage Simplifié :** Une page dédiée pour chaque image permet de visualiser toutes ses informations et de copier en un clic son contenu (titre, description, hashtags) ainsi que ses liens de partage (URL, BBCode, HTML).
 
+*   **Fonctionnalités IA Intégrées :**
+    *   **Analyse et Description :** L'IA peut générer des titres, descriptions et hashtags pertinents pour une image.
+    *   **Édition d'Image par le Langage Naturel :** L'utilisateur peut demander des modifications complexes simplement en les décrivant : "Rends le ciel plus dramatique", "Enlève l'objet en arrière-plan", "Transforme cette photo en peinture à l'huile".
+
 *   **Système de Tickets Équitable :**
     *   Pour garantir une utilisation équitable et maîtriser les coûts, chaque utilisateur reçoit **5 tickets de téléversement** et **3 tickets IA** par jour. Ce système prévient les abus tout en offrant un accès quotidien gratuit et prévisible.
-
-*   **Premières Fonctionnalités IA :**
-    *   **Analyse et Description :** L'IA peut générer des titres, descriptions et hashtags pertinents pour une image, optimisés pour différentes plateformes de réseaux sociaux.
 
 *   **Interface Soignée et Personnalisable :**
     *   Une interface utilisateur réactive et agréable, avec la possibilité de choisir entre trois thèmes visuels (Clair, Nuit et Mid).
 
 ---
 
-### Notre Vision : L'Hébergement d'Images Augmenté par l'IA
+### Notre Vision : L'Assistant Créatif Ultime
 
-La base actuelle n'est qu'un début. Notre vision est de transformer Clikup en un service d'hébergement "intelligent" qui assiste l'utilisateur à chaque étape de son processus créatif. La prochaine grande étape est l'intégration de l'intelligence artificielle (via Genkit et les modèles Gemini de Google).
+La base actuelle n'est qu'un début. Notre vision est de transformer Clikup en un service d'hébergement "intelligent" qui assiste l'utilisateur à chaque étape de son processus créatif.
 
-**Fonctionnalités Futures :**
-1.  **Édition d'Image par le Langage Naturel :** L'utilisateur pourra demander des modifications complexes simplement en les décrivant : "Rends le ciel plus dramatique", "Enlève l'objet en arrière-plan", "Transforme cette photo en peinture à l'huile".
-2.  **Critique et Conseil Photo :** L'IA pourra fournir des conseils pour améliorer la composition, la lumière ou le cadrage d'une photo.
+**Prochaines Étapes Possibles :**
+1.  **Critique et Conseil Photo :** L'IA pourra fournir des conseils pour améliorer la composition, la lumière ou le cadrage d'une photo.
+2.  **Partage Simplifié vers les Réseaux Sociaux :** Intégrer des outils pour publier directement le contenu généré sur des plateformes comme Instagram ou Facebook.
 
 **Vision Finale :** Devenir la plateforme de référence où les images ne sont pas seulement stockées, mais comprises, enrichies et transformées, offrant des possibilités créatives sans précédent directement depuis le navigateur.
 
