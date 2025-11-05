@@ -107,7 +107,8 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     const updates: { [key: string]: any } = {};
 
     // --- Gestion des Tickets Mensuels (doit être fait avant les tickets journaliers) ---
-    const lastMonthlyReset = userProfile.aiTicketMonthlyReset.toDate();
+    // Correction : Gérer le cas où aiTicketMonthlyReset est undefined pour les anciens utilisateurs
+    const lastMonthlyReset = userProfile.aiTicketMonthlyReset ? userProfile.aiTicketMonthlyReset.toDate() : new Date(0);
     if (isBefore(startOfMonth(lastMonthlyReset), startOfMonth(now))) {
         updates.aiTicketMonthlyCount = 0;
         updates.aiTicketMonthlyReset = serverTimestamp();
@@ -122,7 +123,10 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
 
     // --- Gestion des Tickets Journaliers IA (avec la limite mensuelle) ---
     const lastAiRefill = userProfile.lastAiTicketRefill.toDate();
-    const currentMonthlyCount = 'aiTicketMonthlyCount' in updates ? 0 : userProfile.aiTicketMonthlyCount;
+    // Correction : Gérer le cas où aiTicketMonthlyCount est undefined
+    const currentMonthlyCount = 'aiTicketMonthlyCount' in updates 
+        ? 0 
+        : (userProfile.aiTicketMonthlyCount ?? 0);
     
     if (isBefore(startOfDay(lastAiRefill), startOfDay(now))) {
         if (currentMonthlyCount < MONTHLY_AI_TICKET_LIMIT) {
