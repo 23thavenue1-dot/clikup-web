@@ -213,13 +213,6 @@ export function Navbar() {
                                 <span>Mes Galeries</span>
                             </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href="/secret-messages" className="relative">
-                                <Mail className="mr-2 h-4 w-4" />
-                                <span>Messages Secrets</span>
-                                {hasUnreadMsgs && <span className="absolute right-2 flex h-2 w-2 bg-red-500 rounded-full" />}
-                            </Link>
-                        </DropdownMenuItem>
                     </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
