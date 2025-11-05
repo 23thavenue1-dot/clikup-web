@@ -141,7 +141,7 @@ export function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h1 className="text-5xl md:text-6xl font-bold tracking-tighter">
-                  L'Hébergement d'Images. <span className="text-primary">Réinventé.</span>
+                Hébergez, Améliorez, Publiez. <span className="text-primary">Plus vite.</span>
               </h1>
               <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
                 Ne vous contentez pas de stocker vos images. Donnez-leur une nouvelle vie avec notre assistant créatif intelligent.
@@ -189,7 +189,7 @@ export function LandingPage() {
         {/* AI Edit Showcase Section */}
         <section className="py-20 sm:py-24">
             <div className="container mx-auto px-4">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-2xl mx-auto">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-4xl font-bold">D'un simple selfie à une photo professionnelle.</h2>
                         <p className="mt-3 max-w-2xl mx-auto text-muted-foreground">
