@@ -9,64 +9,29 @@
  * - /users/{userId}/images/{imageId}: Stores image metadata; only the user can read/write images they own.
  * - /users/{userId}/notes/{noteId}: Stores notes; only the user can read/write their own notes.
  * - /users/{userId}/galleries/{galleryId}: Stores user-created galleries; only the user can manage their own galleries.
+ * - /customers/{userId}: Stores Stripe customer data; only the user can manage their own payment info.
  * - /roles_admin/{adminId}: Presence of a document grants admin privileges.
- *
- * Key Security Decisions:
- * - Users can only access their own data (profiles, images, notes, galleries).
- * - Listing of all users is disallowed.
- * - Admin privileges are granted based on the presence of a document in the /roles_admin collection.
- *
- * Denormalization for Authorization:
- *   Path-based ownership is used to avoid additional reads. The userId is embedded in the document path
- *   (e.g., /users/{userId}/images/{imageId}), which simplifies authorization checks.
- *
- * Structural Segregation:
- *   User data and admin roles are stored in separate collections to simplify access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Checks if the requesting user is signed in.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the requesting user is the owner of the resource based on the provided userId.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Checks if the requesting user is the owner of the resource, and the resource exists
-     *              This is used for update and delete operations to ensure the document exists before attempting to modify it.
-     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * @description Checks if the requesting user has admin privileges based on the existence of a document
-     *              in the /roles_admin/{adminId} collection where the document ID matches the user's UID.
-     */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-
-    /**
-     * @description Defines access rules for user profile documents.
-     * @path /users/{userId}
-     * @allow (create) Signed-in user can create their own profile.
-     * @allow (get, update, delete) Signed-in user can only access their own profile.
-     * @deny (create) An unauthenticated user cannot create a user profile.
-     * @deny (get, update, delete) Signed-in user cannot access another user's profile.
-     * @principle Enforces user-ownership for accessing profile information.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
@@ -74,10 +39,6 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
 
-      /**
-       * @description Defines access rules for image documents nested under a user's profile.
-       * @path /users/{userId}/images/{imageId}
-       */
       match /images/{imageId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
@@ -86,10 +47,6 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
 
-      /**
-        * @description Defines access rules for notes documents nested under a user's profile.
-        * @path /users/{userId}/notes/{noteId}
-        */
       match /notes/{noteId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
@@ -98,10 +55,6 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
 
-      /**
-       * @description Defines access rules for gallery documents nested under a user's profile.
-       * @path /users/{userId}/galleries/{galleryId}
-       */
       match /galleries/{galleryId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
@@ -113,10 +66,11 @@ service cloud.firestore {
     
     /**
      * @description Defines access rules for Stripe customer documents and related subcollections.
+     *              This allows the Stripe Firebase Extension to work correctly.
      * @path /customers/{userId}
      */
     match /customers/{userId} {
-      allow read, create, update: if isOwner(userId);
+      allow read, write: if isOwner(userId); // Allows user to create/read their own customer data
       allow list, delete: if false;
       
       /**
@@ -124,22 +78,19 @@ service cloud.firestore {
        *              The Stripe extension will then update this document with a URL.
        */
       match /checkout_sessions/{sessionId} {
-        allow read, create, write: if isOwner(userId);
+        allow read, write, create: if isOwner(userId);
         allow list, delete: if false;
+      }
+
+       /**
+       * @description Allows a user to read their own payment history.
+       */
+      match /payments/{paymentId} {
+        allow read: if isOwner(userId);
+        allow list, write, create, delete: if false;
       }
     }
 
-    /**
-     * @description Defines access rules for admin role documents.
-     * @path /roles_admin/{adminId}
-     * @allow (get) Any signed-in user can check if an admin role exists.
-     * @allow (create) Only an existing admin can create another admin role.
-     * @allow (update) Only an existing admin can update another admin role.
-     * @allow (delete) Only an existing admin can delete another admin role.
-     * @deny (get) An unauthenticated user cannot get admin roles.
-     * @deny (create, update, delete) A non-admin user cannot create, update, or delete admin roles.
-     * @principle Enforces admin-only access for managing admin roles.
-     */
     match /roles_admin/{adminId} {
       allow get: if isSignedIn();
       allow list: if false;

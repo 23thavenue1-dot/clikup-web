@@ -4,15 +4,12 @@
 
 import { Stripe } from 'stripe';
 
-// IMPORTANT : Remplacez "VOTRE_CLE_SECRETE_DE_TEST_ICI" par votre véritable clé secrète de test Stripe.
-// Vous pouvez la trouver ici : https://dashboard.stripe.com/test/apikeys
-const stripeSecretKey = 'VOTRE_CLE_SECRETE_DE_TEST_ICI';
+// La clé secrète est maintenant gérée côté serveur par l'extension Firebase/Stripe.
+// Ce fichier n'a plus besoin de contenir la clé secrète directement.
+// Nous le gardons pour l'initialisation de l'objet Stripe si nécessaire côté client
+// avec la clé PUBLIABLE, mais pour le moment il n'est plus activement utilisé pour les paiements.
 
-if (!stripeSecretKey.startsWith('sk_test_')) {
-    console.warn('Attention : La clé Stripe utilisée n\'est pas une clé de test.');
-}
-
-export const stripe = new Stripe(stripeSecretKey, {
+export const stripe = new Stripe('', {
   apiVersion: '2024-04-10',
   typescript: true,
 });
