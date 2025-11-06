@@ -1,6 +1,4 @@
 
-'use server';
-
 import { Stripe } from 'stripe';
 
 // On s'assure que la variable d'environnement est bien lue.
