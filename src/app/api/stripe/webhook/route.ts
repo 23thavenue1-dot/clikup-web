@@ -20,26 +20,23 @@ const priceIdToTickets: { [key: string]: { upload?: number; ai?: number } } = {
 
 const subscriptionPriceIdToTier: { [key: string]: { tier: 'creator' | 'pro' | 'master', upload: number, ai: number } } = {
     'price_1SQ8qMCL0iCpjJiiuReYJAG8': { tier: 'creator', upload: 500, ai: 50 },
-    'price_1SQ8sXCL0iCpjJiibM2zG3iO': { tier: 'pro', upload: Infinity, ai: 150 },
-    'price_1SQ8uUCL0iCpjJii5P1ZiYMa': { tier: 'master', upload: Infinity, ai: 400 },
+    'price_1SQ8sXCL0iCpjJiibM2zG3iO': { tier: 'pro', upload: 999999, ai: 150 }, // Utiliser un grand nombre pour illimité
+    'price_1SQ8uUCL0iCpjJii5P1ZiYMa': { tier: 'master', upload: 999999, ai: 400 }, // Utiliser un grand nombre pour illimité
 };
 
-// --- Initialisation de Firebase Admin ---
+// --- Initialisation de Firebase Admin (sécurisée et unique) ---
 let adminApp: App;
 if (!getApps().length) {
     try {
         const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-        if (serviceAccountKey) {
-            const serviceAccount = JSON.parse(serviceAccountKey);
-            adminApp = initializeApp({
-                credential: cert(serviceAccount),
-            });
-        } else {
-            console.warn("FIREBASE_SERVICE_ACCOUNT_KEY non trouvée. Tentative d'initialisation sans credentials.");
-            adminApp = initializeApp();
+        if (!serviceAccountKey) {
+            throw new Error("La variable d'environnement FIREBASE_SERVICE_ACCOUNT_KEY n'est pas définie.");
         }
-    } catch (e) {
-        console.error("Erreur critique d'initialisation de Firebase Admin:", e);
+        adminApp = initializeApp({
+            credential: cert(JSON.parse(serviceAccountKey)),
+        });
+    } catch (e: any) {
+        console.error("Erreur critique d'initialisation de Firebase Admin:", e.message);
     }
 } else {
     adminApp = getApp();
@@ -113,7 +110,7 @@ export async function POST(req: Request) {
                 
                  const updates = {
                     subscriptionTier: tier,
-                    subscriptionUploadTickets: upload === Infinity ? 999999 : upload,
+                    subscriptionUploadTickets: upload,
                     subscriptionAiTickets: ai,
                     subscriptionRenewalDate: Timestamp.fromMillis(subscription.current_period_end * 1000),
                  };
@@ -127,6 +124,31 @@ export async function POST(req: Request) {
         } catch (error) {
             console.error("Erreur lors de la mise à jour du profil via webhook:", error);
             return new NextResponse('Erreur interne lors de la mise à jour du compte.', { status: 500 });
+        }
+    }
+
+    // --- Événement de mise à jour d'abonnement (pour les renouvellements) ---
+    if (event.type === 'invoice.payment_succeeded') {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = invoice.subscription;
+        if (subscriptionId) {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId as string);
+            const userQuery = await firestoreAdmin.collection('users').where('stripeCustomerId', '==', subscription.customer).limit(1).get();
+            
+            if (!userQuery.empty) {
+                const userDocRef = userQuery.docs[0].ref;
+                const priceId = subscription.items.data[0]?.price.id;
+
+                if (priceId && subscriptionPriceIdToTier[priceId]) {
+                    const { upload, ai } = subscriptionPriceIdToTier[priceId];
+                    await userDocRef.update({
+                        subscriptionUploadTickets: upload,
+                        subscriptionAiTickets: ai,
+                        subscriptionRenewalDate: Timestamp.fromMillis(subscription.current_period_end * 1000),
+                    });
+                    console.log(`Abonnement renouvelé pour l'utilisateur ${userDocRef.id}.`);
+                }
+            }
         }
     }
 

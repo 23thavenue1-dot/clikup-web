@@ -1,25 +1,24 @@
 
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { getDoc, doc, setDoc } from 'firebase/firestore';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps, cert, getApp, App } from 'firebase-admin/app';
 import type { UserProfile } from '@/lib/firestore';
 
-// --- Initialisation de Firebase Admin (une seule fois) ---
+// --- Initialisation de Firebase Admin (une seule fois, de manière sécurisée) ---
 let adminApp: App;
 if (!getApps().length) {
     try {
         const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
         if (!serviceAccountKey) {
-            throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY n'est pas définie.");
+            throw new Error("La variable d'environnement FIREBASE_SERVICE_ACCOUNT_KEY n'est pas définie.");
         }
-        const serviceAccount = JSON.parse(serviceAccountKey);
         adminApp = initializeApp({
-            credential: cert(serviceAccount),
+            credential: cert(JSON.parse(serviceAccountKey)),
         });
-    } catch (e) {
-        console.error("Erreur d'initialisation de Firebase Admin:", e);
+    } catch (e: any) {
+        console.error("Erreur critique d'initialisation de Firebase Admin:", e.message);
+        // Ne pas continuer si l'admin n'est pas initialisé
     }
 } else {
     adminApp = getApp();
@@ -30,12 +29,13 @@ const firestoreAdmin = getFirestore(adminApp);
 
 /**
  * Crée ou récupère le customer ID Stripe pour un utilisateur Firebase.
+ * Utilise le SDK Admin pour des opérations sécurisées côté serveur.
  */
 const getOrCreateStripeCustomer = async (userId: string, email: string | null): Promise<string> => {
     const userDocRef = firestoreAdmin.collection('users').doc(userId);
-    const userDocSnap = await getDoc(userDocRef);
+    const userDocSnap = await userDocRef.get();
 
-    if (!userDocSnap.exists()) {
+    if (!userDocSnap.exists) {
         throw new Error("Utilisateur non trouvé dans Firestore.");
     }
 
@@ -54,7 +54,7 @@ const getOrCreateStripeCustomer = async (userId: string, email: string | null): 
     });
 
     // Sauvegarder le nouvel ID dans le profil utilisateur Firestore
-    await setDoc(userDocRef, { stripeCustomerId: customer.id }, { merge: true });
+    await userDocRef.set({ stripeCustomerId: customer.id }, { merge: true });
 
     return customer.id;
 };
@@ -83,8 +83,8 @@ export async function POST(req: Request) {
             line_items: [{ price: priceId, quantity: 1 }],
             mode: mode,
             success_url: `${req.headers.get('origin')}/?payment=success`,
-            cancel_url: `${req.headers.get('origin')}/shop`,
-            client_reference_id: userId,
+            cancel_url: `${req.headers.get('origin')}/shop?payment=cancelled`, // Ajout d'un paramètre pour le débogage
+            client_reference_id: userId, // ID de l'utilisateur pour le webhook
         });
 
         if (session.url) {
