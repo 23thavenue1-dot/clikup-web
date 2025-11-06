@@ -8,9 +8,7 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import type { UserProfile } from '@/lib/firestore';
-import { doc } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 
 
 const subscriptions = [
@@ -82,7 +80,7 @@ export default function ShopPage() {
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
         if (!user) {
-            toast({ title: "Veuillez vous connecter", variant: "destructive" });
+            toast({ title: "Veuillez vous connecter", description: "Vous devez être connecté pour effectuer un achat.", variant: "destructive" });
             return;
         }
 
@@ -99,16 +97,19 @@ export default function ShopPage() {
                     userEmail: user.email,
                 }),
             });
-
-            const { url, error } = await response.json();
+            
+            const body = await response.json();
 
             if (!response.ok) {
-                throw new Error(error || 'Une erreur est survenue.');
+                // Si la réponse n'est pas OK, on utilise le message d'erreur du backend s'il existe
+                throw new Error(body.message || 'Une erreur est survenue lors de la création de la session de paiement.');
             }
 
-            if (url) {
+            if (body.url) {
                 // Rediriger l'utilisateur vers la page de paiement Stripe
-                window.location.href = url;
+                window.location.href = body.url;
+            } else {
+                throw new Error("L'URL de paiement n'a pas été reçue.");
             }
 
         } catch (error: any) {
