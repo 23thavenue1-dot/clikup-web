@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-react';
@@ -9,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 
 
 const subscriptions = [
@@ -73,12 +74,45 @@ const aiPacks = [
   { id: 'price_1SQ944CL0iCpjJii3B2LrQnQ', title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true, mode: 'payment' },
 ];
 
-
-export default function ShopPage() {
+function ShopContent() {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const sessionId = searchParams.get('session_id');
+        if (sessionId && user && firestore) {
+            const checkPaymentStatus = async () => {
+                try {
+                    const sessionDocRef = doc(firestore, 'customers', user.uid, 'checkout_sessions', sessionId);
+                    const docSnap = await getDoc(sessionDocRef);
+
+                    if (docSnap.exists()) {
+                        const sessionData = docSnap.data();
+                        const paymentsCollectionRef = collection(firestore, 'customers', user.uid, 'payments');
+                        const paymentQuery = query(paymentsCollectionRef, where('checkoutSessionId', '==', sessionId));
+                        const paymentDocs = await getDocs(paymentQuery);
+
+                        if (!paymentDocs.empty) {
+                             toast({
+                                title: "Paiement réussi !",
+                                description: "Votre compte a été crédité. Merci pour votre achat.",
+                            });
+                        } else {
+                           // This might be a pending state, let's not show an error yet
+                           // but we can add a timeout or a few retries if needed.
+                           console.log("Checkout session found, but no corresponding payment yet.");
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de la vérification du paiement:", error);
+                }
+            };
+            checkPaymentStatus();
+        }
+    }, [searchParams, user, firestore, toast]);
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
         if (!user || !firestore) {
@@ -89,21 +123,18 @@ export default function ShopPage() {
         setLoadingPriceId(priceId);
 
         try {
-            // Créer un document dans la sous-collection 'checkout_sessions'
             const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
                 price: priceId,
                 mode: mode,
-                success_url: window.location.origin,
+                success_url: `${window.location.origin}/shop?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: window.location.href,
             });
 
-            // Écouter les changements sur ce document
             const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
                 const data = snap.data();
                 const { error, url } = data || {};
 
                 if (error) {
-                    // Erreur remontée par l'extension Stripe
                     console.error('Stripe Error:', error);
                     toast({
                         variant: 'destructive',
@@ -115,9 +146,7 @@ export default function ShopPage() {
                 }
 
                 if (url) {
-                    // URL de paiement reçue, on redirige l'utilisateur
                     window.location.assign(url);
-                    // Pas besoin de setLoadingPriceId(null) car on quitte la page
                     unsubscribe();
                 }
             });
@@ -133,7 +162,6 @@ export default function ShopPage() {
         }
     };
     
-
     return (
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -244,5 +272,13 @@ export default function ShopPage() {
                 <p className="text-sm text-muted-foreground">Les packs de tickets n'ont pas de date d'expiration.</p>
             </div>
         </div>
+    );
+}
+
+export default function ShopPage() {
+    return (
+        <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />}>
+            <ShopContent />
+        </Suspense>
     );
 }
