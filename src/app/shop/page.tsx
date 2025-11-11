@@ -86,19 +86,14 @@ function ShopContent() {
         if (sessionId && user && firestore) {
             const sessionDocRef = doc(firestore, 'customers', user.uid, 'checkout_sessions', sessionId);
             
-            // Mettre en place un écouteur temps réel
             const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const sessionData = docSnap.data();
-                    // L'extension Stripe ajoute le champ 'payment_intent_id' ou 'subscription_id'
-                    // quand le webhook est traité et le paiement réussi.
-                    // C'est un indicateur fiable que l'achat est complété.
                     if (sessionData && (sessionData.payment_intent_id || sessionData.subscription_id)) {
                         toast({
                             title: "Paiement réussi !",
                             description: "Votre compte a été crédité. Merci pour votre achat.",
                         });
-                        // Arrêter l'écoute une fois la confirmation reçue
                         unsubscribe(); 
                     }
                 }
@@ -107,7 +102,6 @@ function ShopContent() {
                 unsubscribe();
             });
 
-            // Arrêter l'écoute si le composant est démonté
             return () => unsubscribe();
         }
     }, [searchParams, user, firestore, toast]);
@@ -121,11 +115,14 @@ function ShopContent() {
         setLoadingPriceId(priceId);
 
         try {
+            const successUrl = `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`;
+            const cancelUrl = `${window.location.origin}${window.location.pathname}`;
+
             const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
                 price: priceId,
                 mode: mode,
-                success_url: `${window.location.origin}/shop?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: window.location.href,
+                success_url: successUrl,
+                cancel_url: cancelUrl,
             });
 
             const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
