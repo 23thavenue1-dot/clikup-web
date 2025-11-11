@@ -64,7 +64,7 @@ const subscriptions = [
 
 const uploadPacks = [
   { id: 'price_1SQImVFxufdYfSFc6oQcKZ3q', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload, mode: 'payment' },
-  { id: 'price_1SQ8xyCL0iCpjJiiqW038S9Z', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload, mode: 'payment' },
+  { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload, mode: 'payment' },
   { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true, mode: 'payment' },
 ];
 
