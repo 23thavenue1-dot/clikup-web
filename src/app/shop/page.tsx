@@ -129,7 +129,6 @@ function ShopContent() {
                 success_url: `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${window.location.origin}${window.location.pathname}`,
                 allow_promotion_codes: true,
-                // On force la synchronisation du client. C'est la correction clé.
                 customer_update: {
                     address: 'auto',
                     name: 'auto',
@@ -137,7 +136,7 @@ function ShopContent() {
             });
     
             // Étape 2 : Attendre que l'extension Stripe remplisse l'URL via polling
-            const pollForUrl = async (retries = 10, delay = 500): Promise<string> => {
+            const pollForUrl = async (retries = 20, delay = 500): Promise<string> => {
                 for (let i = 0; i < retries; i++) {
                     const sessionSnap = await getDoc(checkoutSessionRef);
                     const sessionData = sessionSnap.data();
@@ -290,3 +289,5 @@ export default function ShopPage() {
         </Suspense>
     );
 }
+
+    
