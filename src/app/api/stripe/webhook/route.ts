@@ -1,4 +1,3 @@
-
 // Ce fichier est maintenant obsolète.
 // La logique de webhook est entièrement gérée par l'extension Firebase/Stripe.
 // L'extension met à jour la base de données Firestore directement
