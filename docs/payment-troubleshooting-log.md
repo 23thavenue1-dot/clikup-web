@@ -32,7 +32,7 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
-### **Étape 3 : La Révélation - Problème d'Environnement**
+### **Étape 3 : La Révélation - Problème d'Environnement d'Accès**
 
 *   **Objectif :** Comprendre pourquoi, malgré un code et des règles a priori corrects, la redirection échouait.
 *   **Problème Rencontré :** La page blanche continuait d'apparaître, bloquant tout le processus de paiement.
@@ -47,18 +47,15 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 ### **Étape 4 : La "Livraison" des Tickets - Crédit post-achat**
 
 *   **Objectif :** S'assurer que les tickets achetés sont bien ajoutés au compte de l'utilisateur après un paiement réussi.
-*   **Problème Rencontré :** Après un paiement validé sur Stripe, le solde de tickets de l'utilisateur (par ex. `packUploadTickets`) n'est pas mis à jour dans l'application. Le paiement est accepté, mais le produit n'est pas "livré".
-*   **Diagnostic :** L'extension Stripe, par défaut, ne sait pas quel champ de la base de données mettre à jour pour un produit donné. Elle reçoit bien la confirmation de paiement de Stripe, mais elle ne sait pas que le produit avec l'ID `price_...` correspond à l'ajout de 120 tickets dans le champ `packUploadTickets`.
-*   **Solution Explorée (et Échouée) :**
-    1.  **Hypothèse :** Gérer la livraison via un webhook personnalisé (`/api/stripe/webhook`).
-    2.  **Mise en place :** Création du webhook qui écoute les événements de Stripe, lit les métadonnées du produit et tente de mettre à jour Firestore.
-    3.  **Résultat :** **Échec.** Le webhook n'est jamais déclenché ou entre en conflit avec le fonctionnement interne de l'extension. L'ajout des tickets ne se fait pas.
-    4.  **Conclusion :** Cette approche est abandonnée au profit de la méthode native de l'extension.
-
-*   **Solution à Apporter (Méthode Native) :**
-    1.  **Utiliser les Métadonnées Stripe :** La solution professionnelle consiste à ajouter des "métadonnées" directement sur le produit dans le tableau de bord Stripe. On va y ajouter des paires clé-valeur que l'extension pourra lire, par exemple : `firebaseRole: 'boost_upload_120'`.
-    2.  **Configurer l'Extension Firebase :** Dans la configuration de l'extension Stripe, il y a un champ pour "synchroniser les rôles". On y indiquera que lorsqu'un utilisateur achète un produit avec le rôle `boost_upload_120`, l'extension doit lui ajouter ce rôle.
-    3.  **Créer une Cloud Function (ou utiliser un webhook personnalisé) :** Créer une petite fonction serveur qui se déclenche quand un utilisateur reçoit un nouveau rôle. Cette fonction lira le rôle (`boost_upload_120`) et effectuera la mise à jour correspondante dans la base de données (ex: `updateDoc(userRef, { packUploadTickets: increment(120) })`).
+*   **Problème Rencontré :** Après un paiement validé sur Stripe, le solde de tickets de l'utilisateur (par ex. `packUploadTickets`) n'est pas mis à jour. Le paiement est accepté, mais le produit n'est pas "livré".
+*   **Diagnostic et Hypothèses :**
+    1.  **Hypothèse 1 (Webhook personnalisé) :** Créer un endpoint API (`/api/stripe/webhook`) qui écoute directement les événements de Stripe pour créditer les tickets.
+        *   **Résultat :** Échec. Le webhook entre en conflit avec les webhooks internes déjà gérés par l'extension Stripe, ce qui le rend inefficace ou le bloque. Cette approche est abandonnée.
+    2.  **Hypothèse 2 (Méthode native via Cloud Function) :** L'extension Stripe ne sait pas d'elle-même quel champ de la base de données mettre à jour. La solution officielle est de créer une Cloud Function qui se déclenche **après** que l'extension a écrit la confirmation de paiement dans Firestore. Cette fonction lit les métadonnées du produit (ex: `packUploadTickets: 120`) et crédite les tickets.
+*   **Solution Adoptée (la bonne) :**
+    1.  **Ajouter des Métadonnées sur Stripe :** L'utilisateur a ajouté la métadonnée `packUploadTickets: 120` sur le produit correspondant dans son tableau de bord Stripe.
+    2.  **Implémenter une Cloud Function :** Création d'une fonction dans `functions/src/index.ts` qui se déclenche sur l'écriture dans la collection `customers/{userId}/payments`.
+    3.  **Déployer la fonction :** Cette étape nécessite une configuration unique de l'environnement du terminal (`firebase use --add`) puis le déploiement de la fonction.
 
 ---
 
@@ -67,6 +64,6 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 Ce processus de débogage a mis en lumière des points cruciaux souvent sous-estimés :
 1.  **L'importance de l'environnement d'exécution** et de l'utilisation des bonnes URL.
 2.  La nécessité d'une **configuration de permissions** explicite dans les règles de sécurité.
-3.  Le besoin de **configurer la logique métier post-paiement** (la "livraison") via les métadonnées Stripe et les fonctions serveur, car l'extension ne peut pas le deviner seule.
+3.  Le besoin de **configurer la logique métier post-paiement** (la "livraison") via la méthode native de l'extension (Cloud Function + Métadonnées Stripe), car elle ne peut pas le deviner seule.
 
 La résolution de ces problèmes est une victoire majeure et valide toute l'architecture de paiement mise en place.
