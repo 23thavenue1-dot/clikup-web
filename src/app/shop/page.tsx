@@ -129,10 +129,8 @@ function ShopContent() {
                 success_url: `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${window.location.origin}${window.location.pathname}`,
                 allow_promotion_codes: true,
-                customer_update: {
-                    address: 'auto',
-                    name: 'auto',
-                },
+                // On passe directement l'email pour forcer la création/retrouvaille du client côté Stripe
+                customer_email: user.email, 
             });
     
             // Étape 2 : Attendre que l'extension Stripe remplisse l'URL via polling
@@ -289,5 +287,3 @@ export default function ShopPage() {
         </Suspense>
     );
 }
-
-    
