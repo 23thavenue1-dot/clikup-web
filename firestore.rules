@@ -67,27 +67,25 @@ service cloud.firestore {
     /**
      * @description Defines access rules for Stripe customer documents and related subcollections.
      *              This allows the Stripe Firebase Extension to work correctly.
-     * @path /customers/{userId}
      */
     match /customers/{userId} {
-      allow read, write: if isOwner(userId); // Allows user to create/read their own customer data
-      allow list, delete: if false;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
       
       /**
        * @description Allows a user to create checkout sessions for themselves.
        *              The Stripe extension will then update this document with a URL.
        */
       match /checkout_sessions/{sessionId} {
-        allow read, write, create: if isOwner(userId);
-        allow list, delete: if false;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
        /**
        * @description Allows a user to read their own payment history.
+       *              The extension writes to this collection.
        */
       match /payments/{paymentId} {
-        allow read: if isOwner(userId);
-        allow list, write, create, delete: if false;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // Only the extension can write here, not the client.
       }
     }
 
