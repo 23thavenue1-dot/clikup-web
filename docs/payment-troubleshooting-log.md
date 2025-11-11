@@ -55,15 +55,30 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 *   **Solution Adoptée (la bonne) :**
     1.  **Ajouter des Métadonnées sur Stripe :** L'utilisateur a ajouté la métadonnée `packUploadTickets: 120` sur le produit correspondant dans son tableau de bord Stripe.
     2.  **Implémenter une Cloud Function :** Création d'une fonction dans `functions/src/index.ts` qui se déclenche sur l'écriture dans la collection `customers/{userId}/payments`.
-    3.  **Déployer la fonction :** Cette étape nécessite une configuration unique de l'environnement du terminal (`firebase use --add`) puis le déploiement de la fonction.
+    3.  **Déployer la fonction :** Cette étape nécessite une configuration de l'environnement du terminal, puis le déploiement de la fonction.
+
+---
+
+### **Étape 5 : Débogage du Déploiement de la Cloud Function**
+
+*   **Objectif :** Déployer la fonction serveur sur l'infrastructure Firebase.
+*   **Problèmes Rencontrés & Solutions :**
+    1.  **Erreur `No currently active project` :** Après avoir divisé le terminal, le nouveau terminal n'était pas connecté au projet Firebase.
+        *   **Solution :** Utilisation de la commande `firebase use --add` pour sélectionner le projet et lui assigner un alias (`default`).
+    2.  **Erreur `File .../functions/lib/index.js does not exist` :** Le code de la fonction était en TypeScript (`.ts`) mais n'avait pas été compilé en JavaScript (`.js`) avant le déploiement.
+        *   **Solution :** Création d'un fichier `tsconfig.json` et ajout d'un script `build` dans `functions/package.json` pour gérer la compilation de `ts` vers `js`.
+    3.  **Erreur `eslint: command not found` :** Le script de build essayait de lancer une vérification de code (`lint`) mais les dépendances (`devDependencies`) n'étaient pas installées dans le sous-dossier `functions`.
+        *   **Solution :** Ajout des `devDependencies` nécessaires dans `functions/package.json` et mise à jour du processus pour inclure `npm install` dans le dossier `functions`.
+*   **Résultat :** **Déploiement Réussi.** La commande `firebase deploy --only functions` s'est terminée avec succès, rendant la fonction de crédit de tickets active et opérationnelle.
 
 ---
 
 ### **Conclusion du Débogage**
 
 Ce processus de débogage a mis en lumière des points cruciaux souvent sous-estimés :
-1.  **L'importance de l'environnement d'exécution** et de l'utilisation des bonnes URL.
+1.  **L'importance de l'environnement d'exécution** et de l'utilisation des bonnes URL et des bons terminaux.
 2.  La nécessité d'une **configuration de permissions** explicite dans les règles de sécurité.
 3.  Le besoin de **configurer la logique métier post-paiement** (la "livraison") via la méthode native de l'extension (Cloud Function + Métadonnées Stripe), car elle ne peut pas le deviner seule.
+4.  L'importance de la **compilation** et des dépendances correctes lors du déploiement des Cloud Functions.
 
 La résolution de ces problèmes est une victoire majeure et valide toute l'architecture de paiement mise en place.
