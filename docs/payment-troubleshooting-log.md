@@ -1,3 +1,4 @@
+
 # Journal de Bord : Intégration et Débogage des Paiements Stripe
 
 Ce document sert de journal de bord pour l'intégration de la fonctionnalité de paiement avec Stripe. Il retrace de manière chronologique les problèmes rencontrés, les hypothèses émises et les solutions apportées pour aboutir à un système fonctionnel.
@@ -43,8 +44,24 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
+### **Étape 4 : La "Livraison" des Tickets - Crédit post-achat**
+
+*   **Objectif :** S'assurer que les tickets achetés sont bien ajoutés au compte de l'utilisateur après un paiement réussi.
+*   **Problème Rencontré :** Après un paiement validé sur Stripe, le solde de tickets de l'utilisateur (par ex. `packUploadTickets`) n'est pas mis à jour dans l'application. Le paiement est accepté, mais le produit n'est pas "livré".
+*   **Diagnostic :** L'extension Stripe, par défaut, ne sait pas quel champ de la base de données mettre à jour pour un produit donné. Elle reçoit bien la confirmation de paiement de Stripe, mais elle ne sait pas que le produit avec l'ID `price_...` correspond à l'ajout de 120 tickets dans le champ `packUploadTickets`.
+*   **Solution à Apporter :**
+    1.  **Utiliser les Métadonnées Stripe :** La solution professionnelle consiste à ajouter des "métadonnées" directement sur le produit dans le tableau de bord Stripe. On va y ajouter des paires clé-valeur que l'extension pourra lire, par exemple : `firebaseRole: 'boost_upload_120'`.
+    2.  **Configurer l'Extension Firebase :** Dans la configuration de l'extension Stripe, il y a un champ pour "synchroniser les rôles". On y indiquera que lorsqu'un utilisateur achète un produit avec le rôle `boost_upload_120`, l'extension doit lui ajouter ce rôle.
+    3.  **Créer une Cloud Function (ou utiliser un webhook personnalisé) :** Créer une petite fonction serveur qui se déclenche quand un utilisateur reçoit un nouveau rôle. Cette fonction lira le rôle (`boost_upload_120`) et effectuera la mise à jour correspondante dans la base de données (ex: `updateDoc(userRef, { packUploadTickets: increment(120) })`).
+
+---
+
 ### **Conclusion du Débogage**
 
-Ce processus de débogage a mis en lumière un point crucial souvent sous-estimé : **l'importance de l'environnement d'exécution**. Le code et la configuration peuvent être parfaits, mais s'ils sont exécutés dans un contexte réseau ou de proxy qui bloque ou altère la communication, des erreurs apparemment inexplicables peuvent survenir.
+Ce processus de débogage a mis en lumière des points cruciaux souvent sous-estimés :
+1.  **L'importance de l'environnement d'exécution** et de l'utilisation des bonnes URL.
+2.  La nécessité d'une **configuration de permissions** explicite dans les règles de sécurité.
+3.  Le besoin de **configurer la logique métier post-paiement** (la "livraison") via les métadonnées Stripe et les fonctions serveur, car l'extension ne peut pas le deviner seule.
 
-La résolution de ce problème est une victoire majeure et valide toute l'architecture de paiement mise en place.
+La résolution de ces problèmes est une victoire majeure et valide toute l'architecture de paiement mise en place.
+

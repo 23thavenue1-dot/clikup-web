@@ -63,15 +63,15 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-  { id: 'price_1SQImVFxufdYfSFc6oQcKZ3q', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload, mode: 'payment' },
-  { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload, featured: true, mode: 'payment' },
-  { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, mode: 'payment' },
+  { id: 'price_1SQImVFxufdYfSFc6oQcKZ3q', title: "Boost S", description: "50 tickets d'upload", price: "1,99 €", icon: Upload, mode: 'payment' },
+  { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: "Boost M", description: "120 tickets d'upload", price: "3,99 €", icon: Upload, featured: true, mode: 'payment' },
+  { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", description: "300 tickets d'upload", price: "7,99 €", icon: Upload, mode: 'payment' },
 ];
 
 const aiPacks = [
-  { id: 'price_1SQ91HCL0iCpjJiiUV4xjJJE', title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles, mode: 'payment' },
-  { id: 'price_1SQ92mCL0iCpjJiiK0lISxQ5', title: "Boost M", tickets: 50, price: "5,99 €", icon: Sparkles, mode: 'payment' },
-  { id: 'price_1SQ944CL0iCpjJii3B2LrQnQ', title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true, mode: 'payment' },
+  { id: 'price_1SQ91HCL0iCpjJiiUV4xjJJE', title: "Boost S", description: "20 tickets IA", price: "2,99 €", icon: Sparkles, mode: 'payment' },
+  { id: 'price_1SQ92mCL0iCpjJiiK0lISxQ5', title: "Boost M", description: "50 tickets IA", price: "5,99 €", icon: Sparkles, mode: 'payment' },
+  { id: 'price_1SQ944CL0iCpjJii3B2LrQnQ', title: "Boost L", description: "150 tickets IA", price: "14,99 €", icon: Sparkles, featured: true, mode: 'payment' },
 ];
 
 function ShopContent() {
@@ -135,8 +135,7 @@ function ShopContent() {
                 },
             });
     
-            // Étape 2 : Attendre que l'extension Stripe remplisse l'URL
-            // Nous utilisons une méthode de "polling" au lieu d'un snapshot pour plus de robustesse.
+            // Étape 2 : Attendre que l'extension Stripe remplisse l'URL via polling
             const pollForUrl = async (retries = 10, delay = 500): Promise<string> => {
                 for (let i = 0; i < retries; i++) {
                     const sessionSnap = await getDoc(checkoutSessionRef);
@@ -146,7 +145,7 @@ function ShopContent() {
                         return sessionData.url;
                     }
                     if (sessionData?.error) {
-                        throw new Error(sessionData.error.message || "Une erreur Stripe est survenue.");
+                         throw new Error(sessionData.error.message || "Une erreur Stripe est survenue lors de la création de la session.");
                     }
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
@@ -163,7 +162,7 @@ function ShopContent() {
             toast({
                 variant: 'destructive',
                 title: 'Erreur de paiement',
-                description: error.message || "Une erreur est survenue lors de l'initiation du paiement. Veuillez réessayer.",
+                description: error.message || "Une erreur est survenue. Veuillez réessayer.",
             });
             setLoadingPriceId(null);
         }
@@ -231,7 +230,7 @@ function ShopContent() {
                                      </div>
                                      <CardTitle className="text-2xl">{pack.title}</CardTitle>
                                      <div className="my-2">
-                                         <span className="text-5xl font-bold">{pack.tickets}</span>
+                                         <p className="text-5xl font-bold">{pack.description.split(' ')[0]}</p>
                                          <p className="text-muted-foreground">tickets d'upload</p>
                                      </div>
                                  </CardHeader>
@@ -258,7 +257,7 @@ function ShopContent() {
                                      <CardTitle className="text-2xl">{pack.title}</CardTitle>
 
                                      <div className="my-2">
-                                         <span className="text-5xl font-bold">{pack.tickets}</span>
+                                         <p className="text-5xl font-bold">{pack.description.split(' ')[0]}</p>
                                          <p className="text-muted-foreground">tickets IA</p>
                                      </div>
                                  </CardHeader>
