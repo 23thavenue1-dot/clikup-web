@@ -128,7 +128,7 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     }
 
     // --- Gestion des Tickets Journaliers d'Upload ---
-    const lastUploadRefill = userProfile.lastTicketRefill.toDate();
+    const lastUploadRefill = userProfile.lastTicketRefill ? userProfile.lastTicketRefill.toDate() : new Date(0);
     if (isBefore(startOfDay(lastUploadRefill), startOfDay(now))) {
         updates.ticketCount = DAILY_UPLOAD_TICKETS;
         updates.lastTicketRefill = serverTimestamp();
