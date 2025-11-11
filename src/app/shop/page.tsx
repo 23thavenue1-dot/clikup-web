@@ -129,6 +129,7 @@ function ShopContent() {
                 success_url: `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${window.location.origin}${window.location.pathname}`,
                 allow_promotion_codes: true,
+                // On force la synchronisation du client. C'est la correction clé.
                 customer_update: {
                     address: 'auto',
                     name: 'auto',
