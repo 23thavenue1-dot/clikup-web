@@ -89,7 +89,7 @@ async function fulfillOrderLogic(session: Stripe.Checkout.Session) {
     const userQuery = await usersRef.where('stripeCustomerId', '==', session.customer).limit(1).get();
 
     if (userQuery.empty) {
-        functions.logger.error(`Aucun utilisateur trouvé avec le Stripe Customer ID: ${session.customer}`);
+        functions.logger.error(`Aucun utilisateur trouvé avec le Stripe Customer ID: ${session.customer}. L'achat n'a pas pu être crédité.`);
         return;
     }
 
@@ -123,7 +123,7 @@ async function fulfillOrderLogic(session: Stripe.Checkout.Session) {
             await userDoc.ref.update(updates);
             functions.logger.log(`Utilisateur ${userId} crédité avec succès.`, { updates });
         } else {
-            functions.logger.log("Aucune action de crédit de ticket pour ce produit.", { metadata });
+            functions.logger.log("Aucune métadonnée de crédit de ticket trouvée sur ce produit.", { productId: product.id, metadata });
         }
 
     } catch (error) {
@@ -141,29 +141,36 @@ async function fulfillOrderLogic(session: Stripe.Checkout.Session) {
 exports.syncStripeCustomerId = functions.firestore
   .document("customers/{userId}/checkout_sessions/{sessionId}")
   .onCreate(async (snapshot, context) => {
-    const session = snapshot.data();
     const userId = context.params.userId;
-    
-    // Attendre que la session Stripe soit créée et ait un customer ID
-    // C'est une approche simplifiée. Une version plus robuste pourrait utiliser un polling.
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5s
+    functions.logger.log(`Déclenchement de syncStripeCustomerId pour l'utilisateur ${userId}`);
 
-    try {
-      const sessionDoc = await snapshot.ref.get();
-      const updatedSession = sessionDoc.data();
+    // Tentative de récupération de la session avec plusieurs essais (polling)
+    for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre 2 secondes entre chaque essai
+        
+        try {
+            const sessionDoc = await snapshot.ref.get();
+            const sessionData = sessionDoc.data();
 
-      if (updatedSession?.customer) {
-        const userDocRef = admin.firestore().doc(`users/${userId}`);
-        await userDocRef.update({ stripeCustomerId: updatedSession.customer });
-        functions.logger.log(`Stripe Customer ID ${updatedSession.customer} synchronisé pour l'utilisateur ${userId}.`);
-      } else if (updatedSession?.error) {
-         functions.logger.warn(`La création de la session a échoué pour l'utilisateur ${userId}. Pas de synchronisation.`, updatedSession.error);
-      }
-      else {
-          functions.logger.warn(`Customer ID non trouvé dans la session après 5s pour l'utilisateur ${userId}.`);
-      }
+            if (sessionData?.customer) {
+                const userDocRef = admin.firestore().doc(`users/${userId}`);
+                await userDocRef.update({ stripeCustomerId: sessionData.customer });
+                functions.logger.log(`SUCCÈS : Stripe Customer ID ${sessionData.customer} synchronisé pour l'utilisateur ${userId}.`);
+                return; // Succès, on arrête la fonction
+            }
+            
+            if (sessionData?.error) {
+                functions.logger.error(`ERREUR : La création de la session Stripe a échoué pour l'utilisateur ${userId}.`, sessionData.error);
+                return; // Erreur, on arrête
+            }
 
-    } catch (error) {
-      functions.logger.error(`Erreur lors de la synchronisation du Stripe Customer ID pour l'utilisateur ${userId}:`, error);
+            functions.logger.warn(`Essai ${i + 1}/5 : Customer ID non trouvé pour l'utilisateur ${userId}. Nouvel essai...`);
+
+        } catch (error) {
+            functions.logger.error(`ERREUR lors de la tentative de synchronisation pour l'utilisateur ${userId}:`, error);
+            return; // Erreur critique, on arrête
+        }
     }
+
+    functions.logger.error(`ÉCHEC FINAL : Customer ID non trouvé après 5 essais pour l'utilisateur ${userId}.`);
   });
