@@ -98,6 +98,40 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
-### **Conclusion du Débogage**
+### **Checklist de Validation du Système de Paiement**
 
-Ce processus a mis en lumière des points cruciaux souvent sous-estimés : l'importance de l'environnement d'exécution (URL publique vs. localhost), la nécessité de configurer les permissions, les métadonnées sur les produits Stripe, et la double-vérification de toutes les clés secrètes requises (API **et** webhook).
+Cette liste répertorie tous les points de contrôle critiques à vérifier pour s'assurer que le système de paiement fonctionne de bout en bout.
+
+#### **✅ 1. Configuration du Tableau de Bord Stripe**
+-   [ ] **Produits Créés :** Chaque pack de tickets (Upload S, M, L et IA S, M, L) existe en tant que "Produit" dans Stripe.
+-   [ ] **Prix Créés :** Chaque produit a un "Prix" associé (paiement unique) et l'ID du prix (`price_...`) a été correctement copié dans le code (`src/app/shop/page.tsx`).
+-   [ ] **Métadonnées des Produits :** **C'est crucial.** Chaque **Produit** (pas le prix) doit avoir une "Métadonnée" qui correspond exactement au champ à incrémenter dans Firestore.
+    *   Exemple pour le pack "Boost Upload M" : Clé = `packUploadTickets`, Valeur = `120`.
+    *   Exemple pour le pack "Boost IA L" : Clé = `packAiTickets`, Valeur = `150`.
+-   [ ] **Clés d'API :** Les clés secrète (`sk_test_...`) et publiable (`pk_test_...`) sont disponibles.
+-   [ ] **Webhook Endpoint :** L'extension Firebase a automatiquement créé un endpoint dans la section "Développeurs > Webhooks". Il doit être activé et écouter l'événement `checkout.session.completed`.
+-   [ ] **Webhook Secret :** La "clé secrète de signature" (`whsec_...`) de cet endpoint est disponible.
+
+#### **✅ 2. Configuration du Projet Firebase**
+-   [ ] **Extension Stripe Installée :** L'extension "Run payments with Stripe" est bien installée sur le projet Firebase.
+-   [ ] **Configuration de l'Extension :**
+    *   La clé secrète de Stripe (`sk_test_...`) est bien renseignée dans les paramètres de l'extension.
+-   [ ] **Configuration des Cloud Functions :** Les clés secrètes ont été ajoutées via les commandes dans le terminal :
+    *   `firebase functions:config:set stripe.secret_key="sk_test_..."`
+    *   `firebase functions:config:set stripe.webhook_secret="whsec_..."`
+-   [ ] **Déploiement Réussi :** La commande `firebase deploy --only functions` s'est terminée avec `✔ Deploy complete!`.
+
+#### **✅ 3. Logique Applicative (Code)**
+-   [ ] **Logique Côté Client (`shop/page.tsx`) :** Le clic sur un bouton d'achat crée bien un document dans `customers/{userId}/checkout_sessions` dans Firestore.
+-   [ ] **Logique Serveur (`functions/src/index.ts`) :**
+    *   La fonction `syncStripeCustomerId` est bien présente et déployée pour lier le client Stripe à l'utilisateur Firebase.
+    *   La fonction `stripeWebhook` est bien présente, sécurisée par le "webhook secret", et contient la logique pour lire les métadonnées du produit et créditer le bon champ (`packUploadTickets` ou `packAiTickets`) dans le document utilisateur.
+
+#### **✅ 4. Environnement et Processus de Test**
+-   [ ] **URL Publique :** Le test est effectué sur l'URL publique de l'application (`...hosted.app` ou `...firebase.studio`), **JAMAIS** sur `localhost`.
+-   [ ] **Test de Paiement :** Le processus de paiement est complété avec succès en utilisant une carte de test Stripe.
+-   [ ] **Vérification Firestore :** Après un paiement test réussi, vérifier manuellement dans la console Firestore :
+    1.  Naviguer vers `users` > `{votreUserId}`.
+    2.  Le champ `stripeCustomerId` doit contenir un ID commençant par `cus_...`.
+    3.  Le champ correspondant au pack acheté (ex: `packUploadTickets`) doit avoir été incrémenté.
+-   [ ] **Vérification Interface :** Le compteur de tickets dans l'application reflète le nouveau solde.
