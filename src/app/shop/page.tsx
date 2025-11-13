@@ -119,7 +119,7 @@ function ShopContent() {
                 success_url: `${window.location.origin}${window.location.pathname}?success=true`,
                 cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
                 allow_promotion_codes: true,
-                // Le mode est automatiquement géré par l'extension en fonction du type de prix sur Stripe
+                client_reference_id: user.uid, // <-- CORRECTION CRUCIALE
             });
 
             window.location.assign(session.url);
