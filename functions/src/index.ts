@@ -65,8 +65,17 @@ export const stripeWebhook = functions.https.onRequest(async (request, response)
             try {
                 await userDocRef.update(updates);
                 functions.logger.info(`SUCCÈS : Le compte de l'utilisateur ${userId} a été crédité.`);
-            } catch (error) {
-                functions.logger.error(`Échec de la mise à jour Firestore pour l'utilisateur ${userId}:`, error);
+            } catch (error: any) {
+                // Log amélioré pour les erreurs de permission
+                functions.logger.error(`Échec de la mise à jour Firestore pour l'utilisateur ${userId}.`, {
+                    errorMessage: error.message,
+                    errorCode: error.code,
+                    details: error.details, // Contient souvent des informations sur la règle violée
+                    request: {
+                        path: userDocRef.path,
+                        data: JSON.stringify(updates),
+                    }
+                });
                 response.status(500).send("Erreur lors de la mise à jour du profil utilisateur.");
                 return;
             }
