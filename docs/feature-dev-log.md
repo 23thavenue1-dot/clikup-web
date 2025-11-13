@@ -63,6 +63,20 @@ Le chemin vers la stabilité a été marqué par la résolution de plusieurs pro
     4.  **Ajout d'un retour visuel** (icône de chargement) et d'une gestion des erreurs pour une expérience utilisateur robuste.
 *   **Résultat :** Une fonctionnalité de téléchargement complète, stable et intuitive sur toutes les plateformes.
 
+### Le Parcours du Combattant : Intégration des Paiements Stripe
+
+*   **Objectif :** Implémenter une boutique fonctionnelle pour l'achat de packs de tickets.
+*   **Défis Rencontrés :**
+    1.  **`No such price` :** L'application utilisait des ID de prix fictifs. La solution a été d'utiliser les ID réels fournis par le tableau de bord Stripe.
+    2.  **Page Blanche et Conflits :** Les tentatives d'intégration via des webhooks personnalisés ou des déclencheurs Firestore ont échoué, car elles entraient en conflit ou n'étaient pas adaptées au fonctionnement de l'extension Stripe utilisée.
+    3.  **Absence de Crédit de Tickets :** Le principal problème était que, même après un paiement réussi, les tickets n'étaient pas crédités sur le compte de l'utilisateur.
+*   **Diagnostic Final et Solution Appliquée :**
+    1.  **Identification de l'Extension Obsolète :** Grâce à une analyse fine de la console Firebase, nous avons découvert que l'extension Stripe utilisée était une ancienne version non maintenue, ce qui était la cause racine des dysfonctionnements.
+    2.  **Migration vers la Nouvelle Extension :** La solution a été de désinstaller l'ancienne extension et d'installer la nouvelle version officielle `invertase/firestore-stripe-payments`.
+    3.  **Configuration Correcte :** Nous avons soigneusement configuré la nouvelle extension en renseignant les clés secrètes API et webhook directement dans ses paramètres, assurant une communication sécurisée avec Stripe.
+    4.  **Mise à jour du Code Client :** Le code de la boutique (`shop/page.tsx`) a été mis à jour pour utiliser le package NPM `@invertase/firestore-stripe-payments`, simplifiant et fiabilisant la création des sessions de paiement.
+*   **Résultat :** Un système de paiement propre, robuste et fonctionnel, basé sur des outils maintenus et des pratiques recommandées par Firebase.
+
 ## 3. Prochaines Étapes : L'Innovation Continue
 
 Maintenant que la base technique est solide, sécurisée et maîtrisée, la voie est libre pour nous concentrer sur les fonctionnalités innovantes prévues dans notre feuille de route (`docs/roadmap.md`) et nos idées (`docs/idées.md`).
