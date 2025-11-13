@@ -102,11 +102,25 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 *   **Solution Apportée :**
     1.  **Amélioration des Logs :** La fonction `stripeWebhook` dans `functions/src/index.ts` a été mise à jour pour être plus "bavarde". Elle va maintenant enregistrer des informations plus claires à chaque étape (réception de l'appel, validation, erreur...), ce qui nous permettra de voir exactement où elle bloque en consultant les logs de la fonction dans la console Firebase.
     2.  **Fiabilisation :** Le code a été renforcé pour mieux gérer les cas d'erreur.
-*   **Prochaine Étape (pour demain) :**
-    1.  Déployer la dernière version de la fonction (`firebase deploy --only functions`).
-    2.  Effectuer un nouveau test de paiement.
-    3.  Consulter les logs de la fonction `stripeWebhook` dans la console Firebase pour avoir le diagnostic final.
 
+---
+
+### **Étape 8 : Le Tournant Inattendu - L'Extension Obsolète**
+
+*   **Objectif :** Comprendre pourquoi les logs de notre fonction `stripeWebhook` n'apparaissent pas.
+*   **Problème Rencontré :** Les logs de la console Firebase montraient uniquement les messages de l'extension par défaut, et non nos messages personnalisés.
+*   **Diagnostic (la découverte capitale de l'utilisateur) :**
+    *   L'utilisateur a partagé une capture d'écran de la console des extensions, sur laquelle une **bannière rouge d'avertissement** était visible.
+    *   Cette bannière indiquait que l'extension `firebase/firestore-stripe-payments` utilisée était **obsolète, non maintenue et remplacée** par une nouvelle version (`invertase/firestore-stripe-payments`).
+    *   **Conclusion :** Nous essayions de faire fonctionner un système déprécié qui n'opérait plus selon les standards attendus. C'était la cause racine de tous nos blocages.
+*   **Solution Apportée (LA BONNE) :**
+    1.  Suivre la recommandation officielle de Firebase.
+    2.  Désinstaller complètement l'ancienne extension.
+    3.  Installer la nouvelle extension `invertase/firestore-stripe-payments`.
+    4.  Configurer soigneusement la nouvelle extension en renseignant les clés secrètes API et webhook directement dans ses paramètres, assurant une communication sécurisée.
+    5.  Mettre à jour le code côté client pour utiliser le package NPM `@invertase/firestore-stripe-payments` qui simplifie la création de la session de paiement.
+
+*   **Résultat :** Le projet est maintenant sur une base technique saine, maintenue et prête à fonctionner correctement. La logique de crédit des tickets devrait être gérée nativement ou de manière beaucoup plus simple par cette nouvelle extension.
 ---
 
 ### **Checklist de Validation du Système de Paiement**
