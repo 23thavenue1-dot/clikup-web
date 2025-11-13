@@ -92,6 +92,23 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
+### **Étape 7 : Le Débogage Final - Isoler la "Livraison"**
+
+*   **Objectif :** Comprendre pourquoi, malgré un code et une configuration a priori parfaits, les tickets ne sont toujours pas crédités.
+*   **Problème Rencontré :** Après un test, une notification de succès apparaît bien dans l'interface, mais le solde de tickets n'est toujours pas mis à jour.
+*   **Diagnostic :**
+    1.  **Ce qui fonctionne :** Le processus de paiement côté client et la redirection sont maintenant parfaits.
+    2.  **Ce qui échoue :** La "livraison" du produit. Cela confirme que le problème est 100% localisé dans l'exécution de notre fonction `stripeWebhook` sur le serveur. Soit elle n'est pas appelée, soit elle rencontre une erreur.
+*   **Solution Apportée :**
+    1.  **Amélioration des Logs :** La fonction `stripeWebhook` dans `functions/src/index.ts` a été mise à jour pour être plus "bavarde". Elle va maintenant enregistrer des informations plus claires à chaque étape (réception de l'appel, validation, erreur...), ce qui nous permettra de voir exactement où elle bloque en consultant les logs de la fonction dans la console Firebase.
+    2.  **Fiabilisation :** Le code a été renforcé pour mieux gérer les cas d'erreur.
+*   **Prochaine Étape (pour demain) :**
+    1.  Déployer la dernière version de la fonction (`firebase deploy --only functions`).
+    2.  Effectuer un nouveau test de paiement.
+    3.  Consulter les logs de la fonction `stripeWebhook` dans la console Firebase pour avoir le diagnostic final.
+
+---
+
 ### **Checklist de Validation du Système de Paiement**
 
 Cette liste répertorie tous les points de contrôle critiques à vérifier pour s'assurer que le système de paiement fonctionne de bout en bout.
