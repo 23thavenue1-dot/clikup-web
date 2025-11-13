@@ -11,16 +11,24 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Récupérer les clés depuis la configuration des fonctions
-// C'est ici que les clés que nous avons définies via la CLI sont utilisées
-const stripeSecretKey = functions.config().stripe.secret_key;
-const webhookSecret = functions.config().stripe.webhook_secret;
+// Tenter de récupérer les clés et préparer un indicateur d'erreur
+let stripeSecretKey, webhookSecret;
+let configError = false;
 
-if (!stripeSecretKey || !webhookSecret) {
-  console.error("Erreur critique : Les clés secrètes Stripe (secret_key et webhook_secret) ne sont pas configurées.");
+try {
+  stripeSecretKey = functions.config().stripe.secret_key;
+  webhookSecret = functions.config().stripe.webhook_secret;
+  if (!stripeSecretKey || !webhookSecret) {
+    functions.logger.error("Erreur critique de configuration : Les variables 'stripe.secret_key' ou 'stripe.webhook_secret' sont manquantes dans la configuration des fonctions Firebase.");
+    configError = true;
+  }
+} catch (e) {
+  functions.logger.error("Erreur critique : Le groupe de configuration 'stripe' est manquant. Exécutez 'firebase functions:config:set stripe.secret_key=...' et 'stripe.webhook_secret=...'.", e);
+  configError = true;
 }
 
-const stripe = new Stripe(stripeSecretKey, {
+
+const stripe = new Stripe(stripeSecretKey || '', {
   apiVersion: "2024-06-20",
 });
 
@@ -29,6 +37,11 @@ const stripe = new Stripe(stripeSecretKey, {
  * C'est le point d'entrée pour toutes les confirmations de paiement.
  */
 export const stripeWebhook = functions.https.onRequest(async (req, res) => {
+  // Si les clés ne sont pas configurées, on arrête tout de suite.
+  if (configError) {
+    return res.status(500).send("Erreur de configuration du serveur. Les clés Stripe ne sont pas définies.");
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).send('Method Not Allowed');
@@ -44,25 +57,27 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   let event: Stripe.Event;
 
   try {
-    // Vérifier la signature du webhook est l'étape de sécurité la plus importante.
     event = stripe.webhooks.constructEvent(reqBuffer, sig, webhookSecret);
     functions.logger.log(`Événement Stripe reçu et validé : ${event.type}`);
   } catch (err: any) {
-    functions.logger.error("Erreur de vérification de la signature du webhook:", err);
+    functions.logger.error("Erreur de vérification de la signature du webhook:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Gérer l'événement 'checkout.session.completed'
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     
-    // Vérifier si la session est bien un paiement réussi
     if (session.payment_status === 'paid') {
       try {
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
-        const product = await stripe.products.retrieve(lineItems.data[0].price!.product as string);
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 5 });
+        if (!lineItems.data.length || !lineItems.data[0].price || !lineItems.data[0].price.product) {
+            functions.logger.error("Impossible de récupérer les 'line items' ou le produit de la session.", { session_id: session.id });
+            return res.status(400).send("Données de la commande invalides.");
+        }
+
+        const product = await stripe.products.retrieve(lineItems.data[0].price.product as string);
         const metadata = product.metadata;
-        const userId = session.client_reference_id; // L'ID utilisateur doit être passé lors de la création de la session
+        const userId = session.client_reference_id;
 
         if (!userId) {
           functions.logger.error("Aucun client_reference_id (userId) trouvé dans la session Stripe.", { session_id: session.id });
@@ -70,7 +85,12 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
         }
 
         const userDocRef = admin.firestore().doc(`users/${userId}`);
-        const updates: { [key: string]: any } = { stripeCustomerId: session.customer };
+        const updates: { [key: string]: any } = {};
+
+        // S'assurer que le customer ID est bien enregistré
+        if (session.customer) {
+            updates.stripeCustomerId = session.customer;
+        }
 
         if (metadata.packUploadTickets) {
           updates.packUploadTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packUploadTickets, 10));
@@ -79,24 +99,19 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
           updates.packAiTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packAiTickets, 10));
         }
 
-        if (Object.keys(updates).length > 1) {
+        if (Object.keys(updates).length > 1 || (Object.keys(updates).length === 1 && updates.stripeCustomerId)) {
           await userDocRef.update(updates);
           functions.logger.log(`SUCCÈS : Utilisateur ${userId} crédité avec succès.`, { updates });
         } else {
-          functions.logger.log("Aucune métadonnée de crédit de ticket trouvée pour ce produit.", { productId: product.id });
+          functions.logger.warn("Aucune métadonnée de crédit de ticket trouvée pour ce produit, ou aucun customerId à mettre à jour.", { productId: product.id });
         }
 
-      } catch (error) {
+      } catch (error: any) {
         functions.logger.error(`Erreur lors du traitement de la session ${session.id}:`, error);
-        return res.status(500).send("Erreur interne lors du traitement du paiement.");
+        return res.status(500).send(`Internal Server Error: ${error.message}`);
       }
     }
   }
 
-  // Confirmer la bonne réception de l'événement à Stripe
   return res.status(200).send({ received: true });
 });
-
-// Les anciennes fonctions sont maintenant obsolètes et supprimées.
-// La logique est centralisée dans le webhook ci-dessus.
-    
