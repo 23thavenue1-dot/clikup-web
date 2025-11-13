@@ -9,8 +9,8 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirebase } from '@/firebase';
-import { getStripePayments, createCheckoutSession } from '@invertase/firestore-stripe-payments';
+import { useUser, useFirebase, useFirestore } from '@/firebase';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 
 
 const subscriptions = [
@@ -76,7 +76,8 @@ const aiPacks = [
 
 function ShopContent() {
     const { toast } = useToast();
-    const { user, firebaseApp } = useFirebase();
+    const { user } = useUser();
+    const firestore = useFirestore();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
     const searchParams = useSearchParams();
 
@@ -101,7 +102,7 @@ function ShopContent() {
     }, [searchParams, toast]);
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
-        if (!user || !firebaseApp) {
+        if (!user || !firestore) {
             toast({ title: "Veuillez vous connecter", description: "Vous devez être connecté pour effectuer un achat.", variant: "destructive" });
             return;
         }
@@ -109,20 +110,31 @@ function ShopContent() {
         setLoadingPriceId(priceId);
     
         try {
-            const payments = getStripePayments(firebaseApp, {
-              productsCollection: 'products',
-              customersCollection: 'customers',
-            });
-
-            const session = await createCheckoutSession(payments, {
+            const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
+            const docRef = await addDoc(checkoutSessionRef, {
                 price: priceId,
+                mode: mode,
                 success_url: `${window.location.origin}${window.location.pathname}?success=true`,
                 cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
+                // Le client_reference_id n'est plus nécessaire car l'extension
+                // connaît le contexte utilisateur via le chemin du document.
                 allow_promotion_codes: true,
-                client_reference_id: user.uid, // <-- CORRECTION CRUCIALE
             });
 
-            window.location.assign(session.url);
+            onSnapshot(docRef, (snap) => {
+                const { error, url } = snap.data() || {};
+                if (error) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de paiement',
+                        description: error.message,
+                    });
+                    setLoadingPriceId(null);
+                }
+                if (url) {
+                    window.location.assign(url);
+                }
+            });
     
         } catch (error: any) {
             console.error('Erreur de création de session Stripe:', error);
