@@ -9,12 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser } from '@/firebase';
-import {
-  StripePayments,
-  getProducts,
-  createCheckoutSession
-} from '@invertase/firestore-stripe-payments';
-import type { Product, Price } from '@invertase/firestore-stripe-payments';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 
 
 // Mettre les ID de prix ici pour la configuration.
@@ -98,18 +93,13 @@ const aiPacks = [
 
 
 function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
-    const { firebaseApp } = useFirebase();
+    const { firestore } = useFirebase();
     const { user } = useUser();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
-    const payments = useMemo(() => {
-        if (!firebaseApp) return null;
-        return new StripePayments(firebaseApp);
-    }, [firebaseApp]);
-
     const handleCheckout = async () => {
-        if (!user || !payments) {
+        if (!user || !firestore) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Vous devez être connecté pour effectuer un achat.' });
             return;
         }
@@ -121,6 +111,8 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                 price: item.id,
                 success_url: `${window.location.origin}/shop?success=true`,
                 cancel_url: `${window.location.origin}/shop?canceled=true`,
+                // L'ID client est essentiel pour savoir QUI paie.
+                client_reference_id: user.uid,
             };
 
             // Ajout crucial du mode pour les paiements uniques
@@ -128,8 +120,25 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                 sessionPayload.mode = 'payment';
             }
 
-            const session = await createCheckoutSession(payments, sessionPayload);
-            window.location.assign(session.url);
+            const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
+            const docRef = await addDoc(checkoutSessionRef, sessionPayload);
+
+            onSnapshot(docRef, (snap) => {
+                const { error, url } = snap.data() || {};
+                if (error) {
+                    console.error('Erreur de la session de paiement:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de paiement',
+                        description: error.message || "Impossible d'initier le paiement. Veuillez réessayer."
+                    });
+                    setIsLoading(false);
+                }
+                if (url) {
+                    window.location.assign(url);
+                }
+            });
+
         } catch (error: any) {
             console.error('Erreur lors de la création de la session de paiement:', error);
             toast({
@@ -289,5 +298,3 @@ export default function ShopPage() {
         </Suspense>
     )
 }
-
-    
