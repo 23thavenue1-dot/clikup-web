@@ -15,7 +15,7 @@ import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
 
 const subscriptions = [
     {
-        id: 'price_1SSLhUFxufdYfSFcWj79b8rt',
+        id: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
         title: 'Pro',
         price: '9,99 €',
         period: '/ mois',
