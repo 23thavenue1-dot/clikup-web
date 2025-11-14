@@ -15,7 +15,7 @@ import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
 
 const subscriptions = [
     {
-        id: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
+        id: 'price_1SQ8qMCL0iCpjJiiuReYJAG8',
         title: 'Pro',
         price: '9,99 €',
         period: '/ mois',
@@ -64,7 +64,7 @@ const subscriptions = [
 
 const uploadPacks = [
     { id: 'price_1SQ8wUCL0iCpjJiiQh9rA9gY', title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment' },
-    { id: 'price_1SQ8xUCL0iCpjJiiFgBw4k1a', title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true },
+    { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true },
     { id: 'price_1SQ8yUCL0iCpjJiiGz00J0f4', title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment' }
 ];
 
