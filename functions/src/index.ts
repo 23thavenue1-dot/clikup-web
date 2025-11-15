@@ -85,3 +85,4 @@ export const onPaymentSuccess = functions.firestore
         return Promise.reject(error);
     }
 });
+

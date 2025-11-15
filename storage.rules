@@ -1,3 +1,4 @@
+firebase functions:config:set stripe.secret="sk_test_..."
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {

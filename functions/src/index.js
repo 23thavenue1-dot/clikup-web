@@ -44,7 +44,8 @@ exports.onPaymentSuccess = functions
 
     try {
       for (const item of payment.items) {
-        if (item.price && item.price.product) {
+        // La correction est ici. L'ID du produit est une chaîne, pas un objet.
+        if (item.price && typeof item.price.product === 'string') {
           const productId = item.price.product;
           const product = await stripe.products.retrieve(productId);
 
