@@ -1,3 +1,4 @@
+
 'use strict';
 
 const functions = require('firebase-functions');
@@ -9,10 +10,9 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Assurez-vous que la clé secrète est configurée dans les variables d'environnement de la fonction
-// Vous devez la configurer via la console Firebase ou avec la commande CLI:
-// firebase functions:config:set stripe.secret="sk_test_..."
-const stripe = new Stripe(functions.config().stripe.secret, {
+// Récupérer la clé secrète depuis les variables d'environnement de la fonction
+// C'est la méthode la plus sécurisée.
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
@@ -37,6 +37,7 @@ exports.onPaymentSuccess = functions.firestore
         const updates = {};
 
         for (const item of line_items) {
+            // S'assurer que le produit existe bien dans l'item
             if (item.price && item.price.product) {
                  // Appel à l'API Stripe pour récupérer le produit complet avec ses métadonnées
                  const product = await stripe.products.retrieve(item.price.product);
@@ -47,10 +48,12 @@ exports.onPaymentSuccess = functions.firestore
                  if (product && product.metadata) {
                     functions.logger.info(`Traitement du produit : ${product.name}`, { metadata: product.metadata });
                     
+                    // Vérifier si le produit a des métadonnées pour les tickets d'upload
                     if (product.metadata.packUploadTickets && Number(product.metadata.packUploadTickets) > 0) {
                         updates.packUploadTickets = admin.firestore.FieldValue.increment(Number(product.metadata.packUploadTickets));
                         functions.logger.info(`Ajout de ${product.metadata.packUploadTickets} tickets d'upload.`);
                     }
+                    // Vérifier si le produit a des métadonnées pour les tickets IA
                     if (product.metadata.packAiTickets && Number(product.metadata.packAiTickets) > 0) {
                         updates.packAiTickets = admin.firestore.FieldValue.increment(Number(product.metadata.packAiTickets));
                         functions.logger.info(`Ajout de ${product.metadata.packAiTickets} tickets IA.`);
