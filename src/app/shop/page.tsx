@@ -113,6 +113,9 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                 cancel_url: `${window.location.origin}/shop?canceled=true`,
                 // L'ID client est essentiel pour savoir QUI paie.
                 client_reference_id: user.uid,
+                 // Pour les paiements uniques, il faut passer les line_items
+                line_items: [{ price: item.id, quantity: 1 }],
+                 mode: 'payment', // Toujours 'payment' pour les achats uniques
             };
 
             // Ajout crucial du mode pour les paiements uniques
