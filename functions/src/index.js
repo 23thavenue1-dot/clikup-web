@@ -9,7 +9,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // La clé secrète Stripe doit être configurée dans les variables d'environnement des fonctions.
-// firebase functions:config:set stripe.secret="sk_test_..."
+// C'est cette ligne qui va chercher la configuration que vous allez définir.
 const stripeSecret = functions.config().stripe?.secret;
 if (!stripeSecret) {
     console.error("La clé secrète Stripe n'est pas configurée ! Exécutez 'firebase functions:config:set stripe.secret=VOTRE_CLÉ'.");
