@@ -107,21 +107,15 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
         setIsLoading(true);
 
         try {
+            // La charge utile est maintenant plus explicite et complète.
             const sessionPayload: any = {
-                price: item.id,
-                success_url: `${window.location.origin}/shop?success=true`,
-                cancel_url: `${window.location.origin}/shop?canceled=true`,
                 // L'ID client est essentiel pour savoir QUI paie.
                 client_reference_id: user.uid,
-                 // Pour les paiements uniques, il faut passer les line_items
                 line_items: [{ price: item.id, quantity: 1 }],
-                 mode: 'payment', // Toujours 'payment' pour les achats uniques
+                success_url: `${window.location.origin}/shop?success=true`,
+                cancel_url: `${window.location.origin}/shop?canceled=true`,
+                mode: item.mode, // Utiliser le mode 'payment' ou 'subscription' du produit
             };
-
-            // Ajout crucial du mode pour les paiements uniques
-            if (item.mode === 'payment') {
-                sessionPayload.mode = 'payment';
-            }
 
             const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
             const docRef = await addDoc(checkoutSessionRef, sessionPayload);
