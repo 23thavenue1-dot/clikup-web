@@ -1,4 +1,3 @@
-
 'use strict';
 
 const functions = require('firebase-functions');
@@ -11,6 +10,7 @@ if (admin.apps.length === 0) {
 }
 
 // Assurez-vous que la clé secrète est configurée dans les variables d'environnement de la fonction
+// Vous devez la configurer via la console Firebase ou avec la commande CLI:
 // firebase functions:config:set stripe.secret="sk_test_..."
 const stripe = new Stripe(functions.config().stripe.secret, {
   apiVersion: '2024-06-20',
@@ -23,22 +23,27 @@ const stripe = new Stripe(functions.config().stripe.secret, {
 exports.onPaymentSuccess = functions.firestore
   .document('/customers/{userId}/payments/{paymentId}')
   .onCreate(async (snap, context) => {
-    const payment = snap.data();
+    const paymentData = snap.data();
     const userId = context.params.userId;
     functions.logger.info(`Nouvel événement de paiement détecté pour l'utilisateur ${userId}.`, { paymentId: context.params.paymentId });
 
-    if (!payment || !payment.items || payment.items.length === 0) {
-        functions.logger.error("Document de paiement incomplet ou sans 'items'.", { data: payment });
+    if (!paymentData || !paymentData.items || paymentData.items.length === 0) {
+        functions.logger.error("Document de paiement incomplet ou sans 'items'.", { data: paymentData });
         return null;
     }
 
     try {
-        const line_items = payment.items;
+        const line_items = paymentData.items;
         const updates = {};
 
         for (const item of line_items) {
             if (item.price && item.price.product) {
+                 // Appel à l'API Stripe pour récupérer le produit complet avec ses métadonnées
                  const product = await stripe.products.retrieve(item.price.product);
+                 
+                 // Mise à jour du document de paiement avec le nom du produit pour l'historique
+                 await snap.ref.update({ 'items.0.price.product.name': product.name });
+
                  if (product && product.metadata) {
                     functions.logger.info(`Traitement du produit : ${product.name}`, { metadata: product.metadata });
                     
