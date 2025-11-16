@@ -17,7 +17,7 @@ import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 // Ces ID doivent correspondre à ceux de votre tableau de bord Stripe.
 const SUBSCRIPTION_IDS = {
     creator: 'price_1SU6fmFxufdYfSFcC7INtknf',
-    pro: 'remplacez_par_id_abonnement_pro',
+    pro: 'price_1SU6huFxufdYfSFcWxYURQxZ',
     master: 'remplacez_par_id_abonnement_maitre'
 };
 
