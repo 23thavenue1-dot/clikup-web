@@ -291,20 +291,19 @@ export default function EditImagePage() {
                     </div>
 
                      {/* --- COLONNE DE DROITE : OUTPUT --- */}
-                    <div className="flex flex-col gap-4">
+                     <div className="flex flex-col gap-4">
                         <p className="text-sm font-semibold text-muted-foreground text-center">APRÈS</p>
                         <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
                             {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
                             {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
-                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow space-y-4">
-                            <div className="flex-grow flex flex-col">
-                                <h2 className="text-base font-semibold mb-2">2. Créez la publication</h2>
-                                
+                        <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
+                            <h2 className="text-base font-semibold mb-2">2. Créez la publication</h2>
+                            <div className="flex-grow flex flex-col items-center justify-center gap-4">
                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full my-auto" disabled={!generatedImageUrl || isGenerating || isSaving}>
+                                        <Button variant="outline" className="w-full max-w-xs" disabled={!generatedImageUrl || isGenerating || isSaving}>
                                             <Text className="mr-2 h-4 w-4"/> Générer une description
                                         </Button>
                                     </DialogTrigger>
@@ -360,10 +359,8 @@ export default function EditImagePage() {
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
-                            </div>
 
-                            <div className="mt-auto">
-                                 <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full">
+                                <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full max-w-xs">
                                     {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
                                     Enregistrer la création
                                 </Button>
