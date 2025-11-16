@@ -145,14 +145,8 @@ export default function EditImagePage() {
                 hashtags: ''
             };
 
-            // **MODIFICATION CLÉ : Ne pas tronquer l'historique**
-            // On ajoute simplement la nouvelle image à la fin.
-            setGeneratedImageHistory(prev => {
-                const newHistory = [...prev, newHistoryItem];
-                return newHistory;
-            });
-            // On se place directement sur le nouvel élément ajouté.
-            setHistoryIndex(prev => generatedImageHistory.length);
+            setGeneratedImageHistory(prev => [...prev, newHistoryItem]);
+            setHistoryIndex(generatedImageHistory.length);
 
             await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
@@ -243,7 +237,7 @@ export default function EditImagePage() {
             });
 
             toast({ title: "Création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
-            router.push('/');
+
         } catch (error) {
             console.error("Erreur lors de la sauvegarde de l'image IA :", error);
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer la nouvelle image." });
