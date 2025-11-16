@@ -140,17 +140,20 @@ export function ImageList() {
         }
     }, [imageToEdit]);
     
-    const openDeleteDialog = (image: ImageMetadata) => {
+    const openDeleteDialog = (e: React.MouseEvent, image: ImageMetadata) => {
+        e.preventDefault();
         setImageToDelete(image);
         setShowDeleteAlert(true);
     };
     
-    const openEditDialog = (image: ImageMetadata) => {
+    const openEditDialog = (e: React.MouseEvent, image: ImageMetadata) => {
+        e.preventDefault();
         setImageToEdit(image);
         setShowEditDialog(true);
     };
 
-    const openAddToGalleryDialog = (image: ImageMetadata | null) => {
+    const openAddToGalleryDialog = (e: React.MouseEvent, image: ImageMetadata | null) => {
+        e.preventDefault();
         if (image) {
             setImageToAddToGallery(image);
             const containingGalleries = galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || [];
@@ -218,7 +221,8 @@ export function ImageList() {
         }
     };
 
-    const handleDownload = async (image: ImageMetadata) => {
+    const handleDownload = async (e: React.MouseEvent, image: ImageMetadata) => {
+        e.preventDefault();
         setIsDownloading(image.id);
     
         if (isMobile) {
@@ -397,7 +401,8 @@ export function ImageList() {
         });
     };
 
-    const handleToggleGlobalPin = async (image: ImageMetadata) => {
+    const handleToggleGlobalPin = async (e: React.MouseEvent, image: ImageMetadata) => {
+        e.preventDefault();
         if (!user || !firestore || !userProfile) return;
 
         const isCurrentlyPinned = userProfile.pinnedImageIds?.includes(image.id) ?? false;
@@ -441,7 +446,7 @@ export function ImageList() {
                          <Button 
                             variant="default" 
                             size="sm"
-                            onClick={() => openAddToGalleryDialog(null)}
+                            onClick={(e) => openAddToGalleryDialog(e, null)}
                             disabled={selectedImages.size === 0}
                         >
                             <CopyPlus className="mr-2 h-4 w-4"/>
@@ -500,121 +505,117 @@ export function ImageList() {
                                     key={image.id}
                                     onClick={() => isSelectionMode && toggleImageSelection(image.id)}
                                     className={cn(
-                                        "group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col transition-all",
-                                        isSelectionMode && "cursor-pointer",
-                                        selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2"
+                                        "group relative flex flex-col transition-all",
+                                        isSelectionMode && "cursor-pointer"
                                     )}
                                 >
-                                    {isSelectionMode ? (
-                                        <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
-                                            <div className={cn(
-                                                "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
-                                                selectedImages.has(image.id) && "bg-primary"
-                                            )}>
-                                                {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
+                                    <Link href={isSelectionMode ? '#' : `/edit/${image.id}`} className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
+                                        {isSelectionMode ? (
+                                            <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
+                                                <div className={cn(
+                                                    "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
+                                                    selectedImages.has(image.id) && "bg-primary"
+                                                )}>
+                                                    {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        isPinned && (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
-                                                        <Pin className="w-3 h-3 text-primary"/>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Épinglée globalement</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        )
-                                    )}
-                                    <div className="relative aspect-square w-full">
-                                        <Image
-                                            src={image.directUrl}
-                                            alt={image.originalName || 'Image téléversée'}
-                                            fill
-                                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                            className={cn(
-                                                "object-cover bg-muted transition-transform",
-                                                !isSelectionMode && "group-hover:scale-105"
-                                            )}
-                                            unoptimized // Important pour les Data URLs et celles de Storage
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                        {!isSelectionMode && (
-                                            <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            variant="secondary"
-                                                            size="icon"
-                                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            <MoreHorizontal size={16} />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => handleToggleGlobalPin(image)}>
-                                                            {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-                                                            <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem asChild>
-                                                            <Link href={`/edit/${image.id}`}>
-                                                                <Sparkles className="mr-2 h-4 w-4" />
-                                                                <span>Éditer avec l'IA</span>
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => openEditDialog(image)}>
-                                                            <Pencil className="mr-2 h-4 w-4" />
-                                                            <span>Modifier la description</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => openAddToGalleryDialog(image)}>
-                                                            <CopyPlus className="mr-2 h-4 w-4" />
-                                                            <span>Ajouter à la galerie</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem asChild>
-                                                            <Link href={`/image/${image.id}`}>
-                                                                <Share2 className="mr-2 h-4 w-4" />
-                                                                <span>Détails et Partage</span>
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDownload(image)} disabled={isDownloading === image.id}>
-                                                            {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                            <span>Télécharger</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onClick={() => openDeleteDialog(image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
-                                                            {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                                            <span>Supprimer</span>
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
+                                        ) : (
+                                            isPinned && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
+                                                            <Pin className="w-3 h-3 text-primary"/>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Épinglée globalement</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )
                                         )}
-                                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                            <p 
-                                            className="text-sm font-semibold truncate"
-                                            title={image.originalName}
-                                            >
-                                                {image.originalName || 'Image depuis URL'}
-                                            </p>
-                                            {image.uploadTimestamp && (
-                                                <p className="text-xs opacity-80">
-                                                    {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                                        <div className="relative aspect-square w-full">
+                                            <Image
+                                                src={image.directUrl}
+                                                alt={image.originalName || 'Image téléversée'}
+                                                fill
+                                                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                                                className={cn(
+                                                    "object-cover bg-muted transition-transform",
+                                                    !isSelectionMode && "group-hover:scale-105"
+                                                )}
+                                                unoptimized // Important pour les Data URLs et celles de Storage
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                                            {!isSelectionMode && (
+                                                <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                variant="secondary"
+                                                                size="icon"
+                                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={(e) => e.preventDefault()}
+                                                            >
+                                                                <MoreHorizontal size={16} />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
+                                                                {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                                                <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                <span>Modifier la description</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
+                                                                <CopyPlus className="mr-2 h-4 w-4" />
+                                                                <span>Ajouter à la galerie</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={`/image/${image.id}`}>
+                                                                    <Share2 className="mr-2 h-4 w-4" />
+                                                                    <span>Détails et Partage</span>
+                                                                </Link>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
+                                                                {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                                <span>Télécharger</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={(e) => openDeleteDialog(e, image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
+                                                                {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                                                <span>Supprimer</span>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            )}
+                                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                                <p 
+                                                className="text-sm font-semibold truncate"
+                                                title={image.originalName}
+                                                >
+                                                    {image.originalName || 'Image depuis URL'}
                                                 </p>
-                                            )}
+                                                {image.uploadTimestamp && (
+                                                    <p className="text-xs opacity-80">
+                                                        {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="p-3 bg-card flex-grow flex flex-col gap-1">
-                                        {image.title && (
-                                            <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground italic line-clamp-2">
-                                            {image.description || (image.title ? '' : 'Aucune description.')}
-                                        </p>
-                                    </div>
+                                        <div className="p-3 bg-card flex-grow flex flex-col gap-1">
+                                            {image.title && (
+                                                <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
+                                            )}
+                                            <p className="text-xs text-muted-foreground italic line-clamp-2">
+                                                {image.description || (image.title ? '' : 'Aucune description.')}
+                                            </p>
+                                        </div>
+                                    </Link>
                                 </div>
                             )})}
                         </div>
@@ -850,3 +851,6 @@ export function ImageList() {
 
 
 
+
+
+    
