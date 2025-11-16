@@ -84,15 +84,15 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 50, packAiTickets: 0, productName: 'Pack Upload - Boost S' } },
-    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: 120, packAiTickets: 0, productName: 'Pack Upload - Boost M' } },
-    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 300, packAiTickets: 0, productName: 'Pack Upload - Boost L' } }
+    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, description: 'Idéal pour un projet ponctuel.', icon: Upload, mode: 'payment', metadata: { packUploadTickets: 50, packAiTickets: 0, productName: 'Pack Upload - Boost S' } },
+    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, description: 'Le meilleur rapport qualité-prix pour un usage régulier.', icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: 120, packAiTickets: 0, productName: 'Pack Upload - Boost M' } },
+    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, description: 'Pour les gros besoins en téléversement.', icon: Upload, mode: 'payment', metadata: { packUploadTickets: 300, packAiTickets: 0, productName: 'Pack Upload - Boost L' } }
 ];
 
 const aiPacks = [
-    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 20, productName: 'Pack IA - S' } },
-    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: 0, packAiTickets: 50, productName: 'Pack IA - M' } },
-    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 150, productName: 'Pack IA - L' } }
+    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, description: 'Parfait pour découvrir la puissance de l\'IA.', icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 20, productName: 'Pack IA - S' } },
+    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, description: 'Pour expérimenter et créer sans compter.', icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: 0, packAiTickets: 50, productName: 'Pack IA - M' } },
+    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, description: 'Libérez tout le potentiel de votre créativité.', icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 150, productName: 'Pack IA - L' } }
 ];
 
 
@@ -206,7 +206,7 @@ function ShopContent() {
                     <TabsContent value="subscriptions" className="pt-8">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {subscriptions.map((sub) => (
-                                <Card key={sub.title} className={sub.featured ? 'border-primary ring-2 ring-primary' : ''}>
+                                <Card key={sub.title} className={sub.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
                                     <CardHeader className="text-center">
                                         <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <sub.icon className="h-6 w-6"/>
@@ -218,7 +218,7 @@ function ShopContent() {
                                         </div>
                                         <CardDescription>{sub.description}</CardDescription>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardContent className="flex-grow">
                                         <ul className="space-y-2 text-sm">
                                             {sub.features.map(feature => (
                                                 <li key={feature} className="flex items-center gap-2">
@@ -228,7 +228,7 @@ function ShopContent() {
                                             ))}
                                         </ul>
                                     </CardContent>
-                                    <CardFooter>
+                                    <CardFooter className="mt-auto">
                                         <CheckoutButton item={sub} disabled={!isUserConnected} />
                                     </CardFooter>
                                 </Card>
@@ -240,16 +240,19 @@ function ShopContent() {
                     <TabsContent value="upload-packs" className="pt-8">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {uploadPacks.map((pack) => (
-                                <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary' : ''}>
+                                <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
                                      <CardHeader className="text-center">
                                          <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <pack.icon className="h-6 w-6"/>
                                         </div>
                                         <CardTitle>{pack.title}</CardTitle>
-                                        <CardDescription>{pack.tickets} tickets d'upload</CardDescription>
-                                        <p className="text-2xl font-bold">{pack.price}</p>
+                                        <CardDescription className="text-lg font-semibold">{pack.tickets} tickets d'upload</CardDescription>
+                                        <p className="text-3xl font-bold">{pack.price}</p>
                                     </CardHeader>
-                                    <CardFooter>
+                                    <CardContent className="flex-grow text-center">
+                                        <p className="text-muted-foreground text-sm">{pack.description}</p>
+                                    </CardContent>
+                                    <CardFooter className="mt-auto">
                                         <CheckoutButton item={pack} disabled={!isUserConnected} />
                                     </CardFooter>
                                 </Card>
@@ -261,16 +264,19 @@ function ShopContent() {
                     <TabsContent value="ai-packs" className="pt-8">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {aiPacks.map((pack) => (
-                                <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary' : ''}>
+                                <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
                                     <CardHeader className="text-center">
                                          <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <pack.icon className="h-6 w-6"/>
                                         </div>
                                         <CardTitle>{pack.title}</CardTitle>
-                                        <CardDescription>{pack.tickets} tickets IA</CardDescription>
-                                        <p className="text-2xl font-bold">{pack.price}</p>
+                                        <CardDescription className="text-lg font-semibold">{pack.tickets} tickets IA</CardDescription>
+                                        <p className="text-3xl font-bold">{pack.price}</p>
                                     </CardHeader>
-                                    <CardFooter>
+                                    <CardContent className="flex-grow text-center">
+                                        <p className="text-muted-foreground text-sm">{pack.description}</p>
+                                    </CardContent>
+                                    <CardFooter className="mt-auto">
                                         <CheckoutButton item={pack} disabled={!isUserConnected} />
                                     </CardFooter>
                                 </Card>
