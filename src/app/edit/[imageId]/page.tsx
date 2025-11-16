@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -68,7 +69,15 @@ export default function EditImagePage() {
     const handleGenerate = async () => {
         if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
         if (totalAiTickets <= 0) {
-            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: 'Rechargez dans la boutique !' });
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: (
+                    <Link href="/shop" className="font-bold underline text-white">
+                        Rechargez dans la boutique !
+                    </Link>
+                )
+            });
             return;
         }
         setIsGenerating(true);
@@ -77,7 +86,7 @@ export default function EditImagePage() {
             const result = await editImage({ imageUrl: originalImage.directUrl, prompt });
             setGeneratedImageUrl(result.newImageUrl);
             await decrementAiTicketCount(firestore, user.uid, userProfile);
-            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant enregistrer votre création.' });
+            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant générer une description ou enregistrer votre création.' });
         } catch (error) {
             console.error(error);
             toast({ 
@@ -133,7 +142,7 @@ export default function EditImagePage() {
     }
 
     const hasAiTickets = totalAiTickets > 0;
-    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && totalAiTickets === 0;
+    const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 40 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
 
@@ -156,105 +165,94 @@ export default function EditImagePage() {
                           <Sparkles className="mr-2 h-4 w-4 text-primary" />
                            {totalAiTickets} Tickets IA
                        </Badge>
-                       <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                            Enregistrer la création
-                        </Button>
                     </div>
                 </div>
             </header>
             
             <div className="container mx-auto">
-                <main className="py-6 space-y-6">
+                <main className="py-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     
-                    <div className="flex flex-col items-center gap-2">
-                         {monthlyLimitReached ? (
-                            <p className="text-center text-sm text-primary font-semibold">
-                                Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
-                            </p>
-                        ) : (
-                            <Button 
-                                size="lg"
-                                onClick={handleGenerate}
-                                disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
-                                className="w-full max-w-sm"
-                            >
-                                {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                                {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                            </Button>
-                        )}
-                        {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
-                            <Button variant="link" asChild className="text-sm font-semibold text-primary">
-                                <Link href="/shop">
-                                    <ShoppingCart className="mr-2 h-4 w-4"/>
-                                    Plus de tickets ? Rechargez dans la boutique !
-                                </Link>
-                            </Button>
-                        )}
-                    </div>
-                    
-                    {/* -- IMAGE PREVIEW PANEL -- */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-items-center">
-                        <div className="w-full max-w-md flex flex-col items-center gap-2">
-                            <p className="text-sm font-semibold text-muted-foreground">AVANT</p>
-                            <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
-                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                            </div>
+                    {/* --- COLONNE DE GAUCHE : INPUT --- */}
+                    <div className="flex flex-col gap-4">
+                        <p className="text-sm font-semibold text-muted-foreground text-center">AVANT</p>
+                        <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
+                            <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                         </div>
-                        <div className="w-full max-w-md flex flex-col items-center gap-2">
-                            <p className="text-sm font-semibold text-muted-foreground">APRÈS</p>
-                            <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
-                                {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                                {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                                {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-                            </div>
-                        </div>
-                    </div>
-
-
-                    {/* -- CONTROLS PANEL -- */}
-                    <div className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-sm">
-                        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-                            {/* Prompt Input Area */}
-                            <div className="flex flex-col space-y-3">
-                                <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
-                                 <Textarea
+                        
+                        <div className="rounded-lg border bg-card p-4 space-y-4">
+                            <div>
+                                <h2 className="text-base font-semibold mb-2">1. Donnez votre instruction</h2>
+                                <Textarea
                                     placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
-                                    rows={4}
+                                    rows={3}
                                     disabled={isGenerating || isSaving}
-                                    className="flex-grow min-h-[160px]"
                                 />
                             </div>
-
-                            {/* Suggestions Area */}
-                            <div className="flex flex-col space-y-3 lg:mt-0">
-                                <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
-                                <div className="flex-grow w-full rounded-md border p-2 bg-muted/40 overflow-y-auto">
-                                    <Accordion type="single" collapsible className="w-full">
-                                        {suggestionCategories.map(category => (
-                                            <AccordionItem value={category.name} key={category.name}>
-                                                <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                                    <div className="flex flex-col text-left">
-                                                        <span className="font-semibold">{category.name}</span>
-                                                        <span className="text-xs text-muted-foreground font-normal">{category.description}</span>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <div className="flex flex-wrap gap-2 pt-2">
-                                                        {category.prompts.map(p => (
-                                                            <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                                {p.title}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
-                                </div>
+                            <div className="flex-grow w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
+                                <Accordion type="single" collapsible className="w-full">
+                                    {suggestionCategories.map(category => (
+                                        <AccordionItem value={category.name} key={category.name}>
+                                            <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                                                <div className="flex flex-col text-left">
+                                                    <span className="font-semibold">{category.name}</span>
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    {category.prompts.map(p => (
+                                                        <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                            {p.title}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
                             </div>
+                             {monthlyLimitReached ? (
+                                <p className="text-center text-sm text-primary font-semibold">
+                                    Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
+                                </p>
+                            ) : (
+                                <Button 
+                                    size="lg"
+                                    onClick={handleGenerate}
+                                    disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                                    className="w-full"
+                                >
+                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                                    {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                                </Button>
+                            )}
+                            {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
+                                <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
+                                    <Link href="/shop">
+                                        <ShoppingCart className="mr-2 h-4 w-4"/>
+                                        Plus de tickets ? Rechargez dans la boutique !
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                     {/* --- COLONNE DE DROITE : OUTPUT --- */}
+                    <div className="flex flex-col gap-4">
+                        <p className="text-sm font-semibold text-muted-foreground text-center">APRÈS</p>
+                        <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
+                            {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                            {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                            {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                             {/* Emplacement pour le futur bouton "Générer description" */}
+                             
+                             <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                Enregistrer la création
+                            </Button>
                         </div>
                     </div>
                 </main>
