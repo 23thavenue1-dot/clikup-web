@@ -30,6 +30,13 @@ import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
+interface ImageHistoryItem {
+    imageUrl: string;
+    title: string;
+    description: string;
+    hashtags: string;
+}
+
 
 // --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
@@ -52,8 +59,8 @@ export default function EditImagePage() {
     const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     
-    // Historique des images générées
-    const [generatedImageHistory, setGeneratedImageHistory] = useState<string[]>([]);
+    // Historique des images et descriptions générées
+    const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
 
@@ -84,7 +91,7 @@ export default function EditImagePage() {
         return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
     }, [userProfile]);
 
-    const generatedImageUrl = useMemo(() => {
+    const currentHistoryItem = useMemo(() => {
         if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
             return generatedImageHistory[historyIndex];
         }
@@ -96,10 +103,20 @@ export default function EditImagePage() {
             router.push('/login');
         }
     }, [isUserLoading, user, router]);
+    
+    // Synchroniser la description avec l'historique
+    useEffect(() => {
+        if (currentHistoryItem) {
+            setGeneratedTitle(currentHistoryItem.title);
+            setGeneratedDescription(currentHistoryItem.description);
+            setGeneratedHashtags(currentHistoryItem.hashtags);
+        }
+    }, [currentHistoryItem]);
+
 
     const handleGenerateImage = async (isRefinement = false) => {
         const currentPrompt = isRefinement ? refinePrompt : prompt;
-        const baseImageUrl = isRefinement ? generatedImageUrl : originalImage?.directUrl;
+        const baseImageUrl = isRefinement ? currentHistoryItem?.imageUrl : originalImage?.directUrl;
 
         if (!currentPrompt || !baseImageUrl || !user || !firestore || !userProfile) return;
 
@@ -116,11 +133,17 @@ export default function EditImagePage() {
         
         try {
             const result = await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
+            
+            const newHistoryItem: ImageHistoryItem = {
+                imageUrl: result.newImageUrl,
+                title: '',
+                description: '',
+                hashtags: ''
+            };
 
             setGeneratedImageHistory(prev => {
-                // Si on génère une nouvelle image, on efface l'historique "futur"
                 const newHistory = prev.slice(0, historyIndex + 1);
-                return [...newHistory, result.newImageUrl];
+                return [...newHistory, newHistoryItem];
             });
             setHistoryIndex(prev => prev + 1);
 
@@ -141,7 +164,7 @@ export default function EditImagePage() {
     };
     
     const handleUndoGeneration = () => {
-        if (historyIndex > 0) {
+        if (historyIndex > -1) {
             setHistoryIndex(prev => prev - 1);
         }
     };
@@ -154,7 +177,7 @@ export default function EditImagePage() {
 
 
     const handleGenerateDescription = async (platform: Platform) => {
-        if (!generatedImageUrl || !user || !userProfile) return;
+        if (!currentHistoryItem || !user || !userProfile) return;
         if (totalAiTickets <= 0) {
              toast({
                 variant: 'destructive',
@@ -166,11 +189,24 @@ export default function EditImagePage() {
 
         setIsGeneratingDescription(true);
         try {
-            const result = await generateImageDescription({ imageUrl: generatedImageUrl, platform: platform });
-            setGeneratedTitle(result.title);
-            setGeneratedDescription(result.description);
-            setGeneratedHashtags(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+            const result = await generateImageDescription({ imageUrl: currentHistoryItem.imageUrl, platform: platform });
             
+            // On met à jour l'item courant de l'historique avec la nouvelle description
+            const updatedHistoryItem: ImageHistoryItem = {
+                ...currentHistoryItem,
+                title: result.title,
+                description: result.description,
+                hashtags: result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ')
+            };
+            
+            setGeneratedImageHistory(prev => {
+                const newHistory = [...prev];
+                newHistory[historyIndex] = updatedHistoryItem;
+                return newHistory;
+            });
+            
+            // L'état local du dialogue sera mis à jour par l'effet sur `currentHistoryItem`
+
             await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
@@ -181,11 +217,11 @@ export default function EditImagePage() {
     };
 
     const handleSaveAiCreation = async () => {
-        if (!generatedImageUrl || !user || !firebaseApp || !firestore) return;
+        if (!currentHistoryItem || !user || !firebaseApp || !firestore) return;
         setIsSaving(true);
         try {
             const storage = getStorage(firebaseApp);
-            const blob = await dataUriToBlob(generatedImageUrl);
+            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
             const newFileName = `ai-edited-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
@@ -193,9 +229,9 @@ export default function EditImagePage() {
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: generatedTitle,
-                description: generatedDescription,
-                hashtags: generatedHashtags,
+                title: currentHistoryItem.title,
+                description: currentHistoryItem.description,
+                hashtags: currentHistoryItem.hashtags,
                 generatedByAI: true // Marquer que la description vient aussi de l'IA
             });
 
@@ -269,7 +305,7 @@ export default function EditImagePage() {
                         </div>
                         
                         <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4 flex-grow">
-                            <div className="flex-grow space-y-2">
+                            <div className="space-y-2">
                                 <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
                                 <div className="space-y-2">
                                     <Textarea
@@ -336,8 +372,8 @@ export default function EditImagePage() {
                         <p className="text-sm font-semibold text-muted-foreground text-center">APRÈS</p>
                         <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
                             {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                            {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                            {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+                            {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                            {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
 
                            {!isGenerating && generatedImageHistory.length > 0 && (
                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
@@ -347,7 +383,7 @@ export default function EditImagePage() {
                                         onClick={handleUndoGeneration}
                                         className="bg-background/80"
                                         aria-label="Annuler la dernière génération"
-                                        disabled={historyIndex <= 0}
+                                        disabled={historyIndex < 0}
                                     >
                                         <Undo2 className="h-5 w-5" />
                                     </Button>
@@ -366,7 +402,7 @@ export default function EditImagePage() {
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
                              <div className="flex-grow space-y-4">
-                                <h2 className="text-base font-semibold">2. Créez la publication</h2>
+                                 <h2 className="text-base font-semibold">2. Créez la publication</h2>
                                 <div className="space-y-2">
                                     <Label>Affiner la génération</Label>
                                     <Textarea
@@ -374,13 +410,13 @@ export default function EditImagePage() {
                                         value={refinePrompt}
                                         onChange={(e) => setRefinePrompt(e.target.value)}
                                         rows={2}
-                                        disabled={isGenerating || isSaving || !generatedImageUrl}
+                                        disabled={isGenerating || isSaving || !currentHistoryItem}
                                     />
                                     <Button 
                                         variant="secondary" 
                                         className="w-full"
                                         onClick={() => handleGenerateImage(true)}
-                                        disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets || !generatedImageUrl}
+                                        disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets || !currentHistoryItem}
                                     >
                                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
                                         Affiner la génération
@@ -392,7 +428,7 @@ export default function EditImagePage() {
                                 <Separator />
                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full" disabled={!generatedImageUrl || isGenerating || isSaving}>
+                                        <Button variant="outline" className="w-full" disabled={!currentHistoryItem || isGenerating || isSaving}>
                                             <Text className="mr-2 h-4 w-4"/> Générer une description
                                         </Button>
                                     </DialogTrigger>
@@ -449,7 +485,7 @@ export default function EditImagePage() {
                                     </DialogContent>
                                 </Dialog>
 
-                                <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full">
+                                <Button onClick={handleSaveAiCreation} disabled={!currentHistoryItem || isSaving || isGenerating} size="lg" className="w-full">
                                     {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
                                     Enregistrer la création
                                 </Button>
