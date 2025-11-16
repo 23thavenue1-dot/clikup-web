@@ -80,23 +80,20 @@ exports.onSubscriptionChange = functions
     // --- CAS 1: L'abonnement devient ACTIF (nouvel abonnement ou réactivation) ---
     if (afterData && afterData.status === "active" && (!beforeData || beforeData.status !== "active")) {
       
-      // Stratégie de récupération des métadonnées améliorée
-      const sessionMetadata = afterData.metadata || {};
-      const priceMetadata = afterData.items?.[0]?.price?.product?.metadata || {};
-      const mergedMetadata = { ...priceMetadata, ...sessionMetadata };
-
-      const tier = mergedMetadata.subscriptionTier || 'none';
+      // Simplification radicale : on ne lit QUE les métadonnées de la session.
+      const meta = afterData.metadata || {};
+      const tier = meta.subscriptionTier || 'none';
       
       if (tier === 'none') {
-        functions.logger.error(`Erreur ABONNEMENT: 'subscriptionTier' non trouvé dans les métadonnées pour ${userId}.`, { mergedMetadata });
+        functions.logger.error(`Erreur ABONNEMENT: 'subscriptionTier' non trouvé dans les métadonnées pour ${userId}.`, { metadata: meta });
         return;
       }
 
-      const uploadTickets = mergedMetadata.monthlyUploadTickets === 'unlimited' 
+      const uploadTickets = meta.monthlyUploadTickets === 'unlimited' 
           ? 999999 
-          : Number(mergedMetadata.monthlyUploadTickets || 0);
+          : Number(meta.monthlyUploadTickets || 0);
 
-      const aiTickets = Number(mergedMetadata.monthlyAiTickets || 0);
+      const aiTickets = Number(meta.monthlyAiTickets || 0);
 
       const updates = {
           subscriptionTier: tier,
