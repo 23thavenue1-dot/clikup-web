@@ -1,3 +1,4 @@
+
 "use strict";
 
 const functions = require("firebase-functions");
@@ -47,7 +48,8 @@ exports.onPaymentSuccess = functions
     // Gérer le changement de statut d'abonnement
     if (subscriptionTier) {
         updates.subscriptionTier = subscriptionTier;
-        // Ici, on pourrait ajouter une logique pour définir la date de renouvellement, etc.
+        // Ici, on pourrait ajouter une logique pour définir la date de renouvellement, 
+        // les quotas de tickets d'abonnement, etc.
         // Pour l'instant, on active simplement le niveau.
     }
 
