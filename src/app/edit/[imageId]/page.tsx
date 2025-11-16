@@ -299,12 +299,12 @@ export default function EditImagePage() {
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
                          <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow space-y-4">
-                            <div className="flex-grow flex flex-col justify-center">
-                                <h2 className="text-base font-semibold mb-4 text-center">2. Créez la publication</h2>
+                            <div className="flex-grow flex flex-col">
+                                <h2 className="text-base font-semibold mb-2">2. Créez la publication</h2>
                                 
                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full" disabled={!generatedImageUrl || isGenerating || isSaving}>
+                                        <Button variant="outline" className="w-full my-auto" disabled={!generatedImageUrl || isGenerating || isSaving}>
                                             <Text className="mr-2 h-4 w-4"/> Générer une description
                                         </Button>
                                     </DialogTrigger>
