@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,7 +51,11 @@ export default function EditImagePage() {
     const [prompt, setPrompt] = useState('');
     const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    
+    // Historique des images générées
     const [generatedImageHistory, setGeneratedImageHistory] = useState<string[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+
 
     // State pour la génération de description
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
@@ -81,8 +85,11 @@ export default function EditImagePage() {
     }, [userProfile]);
 
     const generatedImageUrl = useMemo(() => {
-        return generatedImageHistory.length > 0 ? generatedImageHistory[generatedImageHistory.length - 1] : null;
-    }, [generatedImageHistory]);
+        if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
+            return generatedImageHistory[historyIndex];
+        }
+        return null;
+    }, [generatedImageHistory, historyIndex]);
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -106,13 +113,17 @@ export default function EditImagePage() {
         }
 
         setIsGenerating(true);
-        if (!isRefinement) {
-            setGeneratedImageHistory([]);
-        }
-
+        
         try {
             const result = await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
-            setGeneratedImageHistory(prev => [...prev, result.newImageUrl]);
+
+            setGeneratedImageHistory(prev => {
+                // Si on génère une nouvelle image, on efface l'historique "futur"
+                const newHistory = prev.slice(0, historyIndex + 1);
+                return [...newHistory, result.newImageUrl];
+            });
+            setHistoryIndex(prev => prev + 1);
+
             await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
             if (isRefinement) setRefinePrompt('');
@@ -130,8 +141,17 @@ export default function EditImagePage() {
     };
     
     const handleUndoGeneration = () => {
-        setGeneratedImageHistory(prev => prev.slice(0, -1));
+        if (historyIndex > 0) {
+            setHistoryIndex(prev => prev - 1);
+        }
     };
+
+    const handleRedoGeneration = () => {
+        if (historyIndex < generatedImageHistory.length - 1) {
+            setHistoryIndex(prev => prev + 1);
+        }
+    };
+
 
     const handleGenerateDescription = async (platform: Platform) => {
         if (!generatedImageUrl || !user || !userProfile) return;
@@ -319,21 +339,34 @@ export default function EditImagePage() {
                             {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
 
-                            {generatedImageHistory.length > 1 && !isGenerating && (
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={handleUndoGeneration}
-                                    className="absolute top-2 left-2 z-10 bg-background/80"
-                                    aria-label="Annuler la dernière génération"
-                                >
-                                    <Undo2 className="h-5 w-5" />
-                                </Button>
+                           {!isGenerating && generatedImageHistory.length > 0 && (
+                                <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleUndoGeneration}
+                                        className="bg-background/80"
+                                        aria-label="Annuler la dernière génération"
+                                        disabled={historyIndex <= 0}
+                                    >
+                                        <Undo2 className="h-5 w-5" />
+                                    </Button>
+                                     <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleRedoGeneration}
+                                        className="bg-background/80"
+                                        aria-label="Rétablir la génération"
+                                        disabled={historyIndex >= generatedImageHistory.length - 1}
+                                    >
+                                        <Redo2 className="h-5 w-5" />
+                                    </Button>
+                                </div>
                             )}
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                             <h2 className="text-base font-semibold">2. Créez la publication</h2>
-                             <div className="flex-grow space-y-4 mt-4">
+                             <div className="flex-grow space-y-4">
+                                <h2 className="text-base font-semibold">2. Créez la publication</h2>
                                 <div className="space-y-2">
                                     <Label>Affiner la génération</Label>
                                     <Textarea
