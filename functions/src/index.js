@@ -79,12 +79,24 @@ exports.onSubscriptionChange = functions
 
     // --- CAS 1: L'abonnement devient ACTIF (nouvel abonnement ou réactivation) ---
     if (afterData && afterData.status === "active" && (!beforeData || beforeData.status !== "active")) {
-      // Les métadonnées sont dans le premier item de la liste des prix
-      const priceMetadata = afterData.items?.[0]?.price?.metadata || {};
-      const tier = priceMetadata.subscriptionTier || 'none';
       
-      const uploadTickets = priceMetadata.monthlyUploadTickets === 'unlimited' ? 999999 : Number(priceMetadata.monthlyUploadTickets || 0);
-      const aiTickets = Number(priceMetadata.monthlyAiTickets || 0);
+      // Stratégie de récupération des métadonnées améliorée
+      const sessionMetadata = afterData.metadata || {};
+      const priceMetadata = afterData.items?.[0]?.price?.product?.metadata || {};
+      const mergedMetadata = { ...priceMetadata, ...sessionMetadata };
+
+      const tier = mergedMetadata.subscriptionTier || 'none';
+      
+      if (tier === 'none') {
+        functions.logger.error(`Erreur ABONNEMENT: 'subscriptionTier' non trouvé dans les métadonnées pour ${userId}.`, { mergedMetadata });
+        return;
+      }
+
+      const uploadTickets = mergedMetadata.monthlyUploadTickets === 'unlimited' 
+          ? 999999 
+          : Number(mergedMetadata.monthlyUploadTickets || 0);
+
+      const aiTickets = Number(mergedMetadata.monthlyAiTickets || 0);
 
       const updates = {
           subscriptionTier: tier,
@@ -102,8 +114,8 @@ exports.onSubscriptionChange = functions
       return;
     }
 
-    // --- CAS 2: L'abonnement est ANNULÉ ou EXPIRÉ ---
-    if (afterData && (afterData.status === "canceled" || afterData.status === "past_due" || afterData.status === "unpaid")) {
+    // --- CAS 2: L'abonnement est ANNULÉ, EXPIRÉ ou IMPAYÉ (mais pas encore supprimé) ---
+    if (afterData && ["canceled", "past_due", "unpaid"].includes(afterData.status) && beforeData?.status === "active") {
        const updates = {
           subscriptionTier: 'none',
           subscriptionUploadTickets: 0,
@@ -119,8 +131,8 @@ exports.onSubscriptionChange = functions
         return;
     }
     
-    // --- CAS 3: L'abonnement est SUPPRIMÉ ---
-    if (!afterData) {
+    // --- CAS 3: Le document d'abonnement est SUPPRIMÉ ---
+    if (!afterData && beforeData) {
        const updates = {
           subscriptionTier: 'none',
           subscriptionUploadTickets: 0,
@@ -137,5 +149,3 @@ exports.onSubscriptionChange = functions
     }
 
   });
-
-    
