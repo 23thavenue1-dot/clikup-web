@@ -219,7 +219,7 @@ export function decrementTicketCount(firestore: Firestore, userId: string, profi
   const updates: { [key: string]: any } = {};
 
   if (profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'master') {
-      return;
+      return; // Les abonnements Pro et Maître ont des uploads illimités
   }
 
   if (profile.ticketCount > 0) {
@@ -786,4 +786,6 @@ export async function addMultipleImagesToGalleries(
         throw new Error("Impossible de mettre à jour les galeries.");
     }
 }
+    
+
     

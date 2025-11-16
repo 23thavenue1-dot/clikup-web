@@ -33,6 +33,26 @@ const PACK_IDS = {
 
 const subscriptions = [
     {
+        id: SUBSCRIPTION_IDS.creator,
+        title: 'Créateur',
+        price: '4,99 €',
+        period: '/ mois',
+        description: 'L\'idéal pour l\'amateur éclairé qui a besoin de plus de flexibilité.',
+        features: [
+            '500 tickets d\'upload par mois',
+            '50 tickets IA par mois',
+            '20 Go de stockage',
+            'Badge "Créateur" sur le profil',
+        ],
+        icon: Rocket,
+        mode: 'subscription',
+        metadata: { 
+            subscriptionTier: 'creator', 
+            monthlyUploadTickets: '500', 
+            monthlyAiTickets: '50' 
+        }
+    },
+    {
         id: SUBSCRIPTION_IDS.pro,
         title: 'Pro',
         price: '9,99 €',
@@ -47,23 +67,11 @@ const subscriptions = [
         icon: Gem,
         featured: true,
         mode: 'subscription',
-        metadata: { productName: 'Abonnement Pro', subscriptionTier: 'pro' }
-    },
-     {
-        id: SUBSCRIPTION_IDS.creator,
-        title: 'Créateur',
-        price: '4,99 €',
-        period: '/ mois',
-        description: 'L\'idéal pour l\'amateur éclairé qui a besoin de plus de flexibilité.',
-        features: [
-            '500 tickets d\'upload par mois',
-            '50 tickets IA par mois',
-            '20 Go de stockage',
-            'Badge "Créateur" sur le profil',
-        ],
-        icon: Rocket,
-        mode: 'subscription',
-        metadata: { productName: 'Abonnement Créateur', subscriptionTier: 'creator' }
+        metadata: { 
+            subscriptionTier: 'pro', 
+            monthlyUploadTickets: 'unlimited', 
+            monthlyAiTickets: '150' 
+        }
     },
     {
         id: SUBSCRIPTION_IDS.master,
@@ -79,7 +87,11 @@ const subscriptions = [
         ],
         icon: Crown,
         mode: 'subscription',
-        metadata: { productName: 'Abonnement Maître', subscriptionTier: 'master' }
+        metadata: { 
+            subscriptionTier: 'master', 
+            monthlyUploadTickets: 'unlimited', 
+            monthlyAiTickets: '400' 
+        }
     }
 ];
 
@@ -114,12 +126,16 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
             const sessionPayload: any = {
                 client_reference_id: user.uid,
                 line_items: [{ price: item.id, quantity: 1 }],
-                success_url: `${window.location.origin}/shop?success=true`,
+                success_url: `${window.location.origin}/shop?success=true&session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${window.location.origin}/shop?canceled=true`,
                 mode: item.mode,
-                // Ajout des métadonnées ici
                 metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
             };
+
+            // Pour les abonnements, on permet à Stripe de gérer le portail client
+            if (item.mode === 'subscription') {
+                sessionPayload.allow_promotion_codes = true;
+            }
 
             const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
             const docRef = await addDoc(checkoutSessionRef, sessionPayload);
@@ -171,7 +187,7 @@ function ShopContent() {
         if (success) {
             toast({
                 title: 'Paiement réussi ! 🎉',
-                description: 'Merci pour votre achat. Vos tickets seront crédités dans quelques instants.',
+                description: 'Merci pour votre achat. Vos avantages seront actifs dans quelques instants.',
             });
         }
         if (canceled) {
@@ -305,9 +321,5 @@ export default function ShopPage() {
         </Suspense>
     )
 }
-
-    
-
-    
 
     
