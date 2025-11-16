@@ -32,6 +32,7 @@ type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
 interface ImageHistoryItem {
     imageUrl: string;
+    prompt: string;
     title: string;
     description: string;
     hashtags: string;
@@ -110,6 +111,8 @@ export default function EditImagePage() {
             setGeneratedTitle(currentHistoryItem.title);
             setGeneratedDescription(currentHistoryItem.description);
             setGeneratedHashtags(currentHistoryItem.hashtags);
+            // On ne met PAS à jour refinePrompt ici pour ne pas écraser une saisie en cours.
+            // On pourrait envisager de l'afficher ailleurs.
         }
     }, [currentHistoryItem]);
 
@@ -136,6 +139,7 @@ export default function EditImagePage() {
             
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.newImageUrl,
+                prompt: currentPrompt,
                 title: '',
                 description: '',
                 hashtags: ''
@@ -225,7 +229,7 @@ export default function EditImagePage() {
             const newFileName = `ai-edited-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${prompt}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
@@ -305,7 +309,7 @@ export default function EditImagePage() {
                         </div>
                         
                         <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4 flex-grow">
-                            <div className="space-y-2">
+                            <div className="space-y-2 flex-grow">
                                 <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
                                 <div className="space-y-2">
                                     <Textarea
@@ -401,10 +405,9 @@ export default function EditImagePage() {
                             )}
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                             <div className="flex-grow space-y-4">
-                                 <h2 className="text-base font-semibold">2. Créez la publication</h2>
+                            <div className="space-y-2 flex-grow">
+                                <h2 className="text-base font-semibold">2. Affinez ou publiez</h2>
                                 <div className="space-y-2">
-                                    <Label>Affiner la génération</Label>
                                     <Textarea
                                         placeholder="Ex: C'est bien, mais rends-le plus lumineux..."
                                         value={refinePrompt}
@@ -421,6 +424,11 @@ export default function EditImagePage() {
                                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
                                         Affiner la génération
                                     </Button>
+                                    {currentHistoryItem?.prompt && (
+                                        <div className="text-xs text-muted-foreground pt-1 italic">
+                                            Instruction pour cette image : "{currentHistoryItem.prompt}"
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
