@@ -18,7 +18,7 @@ import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 const SUBSCRIPTION_IDS = {
     creator: 'price_1SU6fmFxufdYfSFcC7INtknf',
     pro: 'price_1SU6huFxufdYfSFcWxYURQxZ',
-    master: 'price_1SU6jSFxufdYfSFcixp0Y3VZ'
+    master: 'REMPLACER_PAR_LE_NOUVEL_ID_MAITRE'
 };
 
 const PACK_IDS = {
@@ -305,5 +305,7 @@ export default function ShopPage() {
         </Suspense>
     )
 }
+
+    
 
     
