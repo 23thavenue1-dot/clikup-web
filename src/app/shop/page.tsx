@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
@@ -15,18 +16,18 @@ import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 // Mettre les ID de prix ici pour la configuration.
 // Ces ID doivent correspondre à ceux de votre tableau de bord Stripe.
 const SUBSCRIPTION_IDS = {
-    creator: 'price_1SQ8qMCL0iCpjJiiuReYJAG8', // Remplacez par votre ID de prix réel
-    pro: 'price_1SQ8qMCL0iCpjJiiuReYJAG8', // Remplacez par votre ID de prix réel
-    master: 'price_1SQ8uUCL0iCpjJii5P1ZiYMa' // Remplacez par votre ID de prix réel
+    creator: 'remplacez_par_id_abonnement_createur',
+    pro: 'remplacez_par_id_abonnement_pro',
+    master: 'remplacez_par_id_abonnement_maitre'
 };
 
 const PACK_IDS = {
-    upload_s: 'price_1SQ8wUCL0iCpjJiiQh9rA9gY', // Remplacez par votre ID de prix réel
-    upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
-    upload_l: 'price_1SQ8yUCL0iCpjJiiGz00J0f4', // Remplacez par votre ID de prix réel
-    ai_s: 'price_1SQ8zUCL0iCpjJiiR9a1j2T5', // Remplacez par votre ID de prix réel
-    ai_m: 'price_1SQ90UCL0iCpjJiiS9b2k3U6', // Remplacez par votre ID de prix réel
-    ai_l: 'price_1SQ91UCL0iCpjJiiT0c3l4V7', // Remplacez par votre ID de prix réel
+    upload_s: 'remplacez_par_id_pack_upload_s',
+    upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7', // Déjà configuré
+    upload_l: 'remplacez_par_id_pack_upload_l',
+    ai_s: 'remplacez_par_id_pack_ia_s',
+    ai_m: 'remplacez_par_id_pack_ia_m',
+    ai_l: 'remplacez_par_id_pack_ia_l',
 };
 
 
@@ -117,7 +118,7 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                 cancel_url: `${window.location.origin}/shop?canceled=true`,
                 mode: item.mode,
                 // Ajout des métadonnées ici
-                metadata: item.metadata || {}
+                metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
             };
 
             const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
