@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,15 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { suggestionCategories } from '@/lib/ai-prompts';
 import { format, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
+
 
 // --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
@@ -38,10 +47,20 @@ export default function EditImagePage() {
     const { toast } = useToast();
     const firestore = useFirestore();
 
+    // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
+    // State pour la génération de description
+    const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
+    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+    const [generatedTitle, setGeneratedTitle] = useState('');
+    const [generatedDescription, setGeneratedDescription] = useState('');
+    const [generatedHashtags, setGeneratedHashtags] = useState('');
+    
+    // State pour la sauvegarde finale
+    const [isSaving, setIsSaving] = useState(false);
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -66,17 +85,13 @@ export default function EditImagePage() {
         }
     }, [isUserLoading, user, router]);
 
-    const handleGenerate = async () => {
+    const handleGenerateImage = async () => {
         if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
         if (totalAiTickets <= 0) {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: (
-                    <Link href="/shop" className="font-bold underline text-white">
-                        Rechargez dans la boutique !
-                    </Link>
-                )
+                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez dans la boutique ! </Link> )
             });
             return;
         }
@@ -99,7 +114,34 @@ export default function EditImagePage() {
         }
     };
     
-    const handleSaveAiImage = async () => {
+    const handleGenerateDescription = async (platform: Platform) => {
+        if (!generatedImageUrl || !user || !userProfile) return;
+        if (totalAiTickets <= 0) {
+             toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez dans la boutique ! </Link> )
+            });
+            return;
+        }
+
+        setIsGeneratingDescription(true);
+        try {
+            const result = await generateImageDescription({ imageUrl: generatedImageUrl, platform: platform });
+            setGeneratedTitle(result.title);
+            setGeneratedDescription(result.description);
+            setGeneratedHashtags(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+            
+            await decrementAiTicketCount(firestore, user.uid, userProfile);
+            toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
+        } finally {
+            setIsGeneratingDescription(false);
+        }
+    };
+
+    const handleSaveAiCreation = async () => {
         if (!generatedImageUrl || !user || !firebaseApp || !firestore) return;
         setIsSaving(true);
         try {
@@ -109,9 +151,16 @@ export default function EditImagePage() {
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
             const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${prompt}`, () => {});
-            await saveImageMetadata(firestore, user, { ...metadata, description: `Image originale modifiée avec l'instruction : "${prompt}"` });
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: generatedTitle,
+                description: generatedDescription,
+                hashtags: generatedHashtags,
+                generatedByAI: true // Marquer que la description vient aussi de l'IA
+            });
 
-            toast({ title: "Création enregistrée !", description: "Votre nouvelle image a été ajoutée à votre galerie." });
+            toast({ title: "Création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
             router.push('/');
         } catch (error) {
             console.error("Erreur lors de la sauvegarde de l'image IA :", error);
@@ -120,6 +169,7 @@ export default function EditImagePage() {
             setIsSaving(false);
         }
     };
+
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
         return (
@@ -173,7 +223,7 @@ export default function EditImagePage() {
                 <main className="py-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     
                     {/* --- COLONNE DE GAUCHE : INPUT --- */}
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 sticky top-20">
                         <p className="text-sm font-semibold text-muted-foreground text-center">AVANT</p>
                         <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
                             <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
@@ -219,12 +269,12 @@ export default function EditImagePage() {
                             ) : (
                                 <Button 
                                     size="lg"
-                                    onClick={handleGenerate}
+                                    onClick={handleGenerateImage}
                                     disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
                                     className="w-full"
                                 >
                                     {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                                    {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                                    {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
                                 </Button>
                             )}
                             {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
@@ -246,11 +296,70 @@ export default function EditImagePage() {
                             {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
-                        <div className="flex flex-col gap-2">
-                             {/* Emplacement pour le futur bouton "Générer description" */}
-                             
-                             <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                         <div className="rounded-lg border bg-card p-4 space-y-4">
+                            <h2 className="text-base font-semibold">2. Créez la publication</h2>
+                            
+                            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="w-full" disabled={!generatedImageUrl || isGenerating || isSaving}>
+                                        <Text className="mr-2 h-4 w-4"/> Générer une description
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Générer une description optimisée</DialogTitle>
+                                        <DialogDescription>
+                                            L'IA va créer un titre, une description et des hashtags pour votre nouvelle image. Un ticket IA sera utilisé.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="gen-title">Titre</Label>
+                                            <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="gen-desc">Description</Label>
+                                            <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="gen-tags">Hashtags</Label>
+                                            <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription}/>
+                                        </div>
+                                        <Separator/>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" className="w-full" disabled={isGeneratingDescription || !hasAiTickets}>
+                                                    {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                                    {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                         {!hasAiTickets && !isGeneratingDescription && (
+                                            <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
+                                                <Link href="/shop">
+                                                    <ShoppingCart className="mr-2 h-4 w-4"/>
+                                                    Plus de tickets ? Rechargez dans la boutique !
+                                                </Link>
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="default">Valider la description</Button>
+                                        </DialogClose>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                             <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full">
+                                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
                                 Enregistrer la création
                             </Button>
                         </div>
