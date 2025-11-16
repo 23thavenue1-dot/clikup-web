@@ -27,7 +27,7 @@ const PACK_IDS = {
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
     ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
-    ai_l: 'price_1STu9PFxufdYfSFca0zm2En2',
+    ai_l: 'price_1SU5AMFxufdYfSFceoHKIcNJ',
 };
 
 
@@ -131,7 +131,7 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: `Détail : ${error.message}` || "Une erreur est survenue avec ce produit. Il n'est peut-être pas actif ou sa configuration est incorrecte. Veuillez vérifier dans Stripe."
+                        description: error.message || "Une erreur est survenue avec ce produit. Il n'est peut-être pas actif ou sa configuration est incorrecte. Veuillez vérifier dans Stripe."
                     });
                     setIsLoading(false);
                 }
