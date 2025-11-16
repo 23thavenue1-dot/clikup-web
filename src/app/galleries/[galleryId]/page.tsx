@@ -481,7 +481,7 @@ export default function GalleryDetailPage() {
                                                     <div className="absolute top-2 right-2 z-10 flex gap-2">
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="secondary" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <Button variant="secondary" size="icon" className="h-8 w-8 transition-opacity">
                                                                     <MoreHorizontal size={16} />
                                                                 </Button>
                                                             </DropdownMenuTrigger>

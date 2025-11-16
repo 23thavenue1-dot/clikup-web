@@ -553,7 +553,7 @@ export function ImageList() {
                                                             <Button
                                                                 variant="secondary"
                                                                 size="icon"
-                                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                className="h-8 w-8 transition-opacity"
                                                                 onClick={(e) => e.preventDefault()}
                                                             >
                                                                 <MoreHorizontal size={16} />
@@ -734,7 +734,7 @@ export function ImageList() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
-                                        {!hasAiTickets && (
+                                        {!hasAiTickets && !monthlyLimitReached && (
                                              <TooltipContent>
                                                 <Link href="/shop">
                                                     <p className="cursor-pointer font-semibold text-primary flex items-center gap-2">
