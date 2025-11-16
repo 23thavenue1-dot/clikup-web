@@ -21,10 +21,11 @@ exports.onPaymentSuccess = functions
     const meta = payment.metadata || {};
     const uploadTickets = Number(meta.packUploadTickets || 0);
     const aiTickets = Number(meta.packAiTickets || 0);
+    const subscriptionTier = meta.subscriptionTier || null;
 
-    if (!uploadTickets && !aiTickets) {
+    if (!uploadTickets && !aiTickets && !subscriptionTier) {
       functions.logger.warn(
-        "Aucun ticket à créditer trouvé dans les métadonnées.",
+        "Aucune métadonnée exploitable (tickets ou abonnement) trouvée.",
         { metadata: meta }
       );
       return;
@@ -33,6 +34,7 @@ exports.onPaymentSuccess = functions
     const userRef = db.doc(`users/${userId}`);
     const updates = {};
 
+    // Gérer l'ajout de tickets via les packs
     if (uploadTickets > 0) {
       updates.packUploadTickets = admin.firestore.FieldValue.increment(
         uploadTickets
@@ -41,16 +43,23 @@ exports.onPaymentSuccess = functions
     if (aiTickets > 0) {
       updates.packAiTickets = admin.firestore.FieldValue.increment(aiTickets);
     }
+    
+    // Gérer le changement de statut d'abonnement
+    if (subscriptionTier) {
+        updates.subscriptionTier = subscriptionTier;
+        // Ici, on pourrait ajouter une logique pour définir la date de renouvellement, etc.
+        // Pour l'instant, on active simplement le niveau.
+    }
 
     try {
       await userRef.set(updates, { merge: true });
       functions.logger.info(
-        `Succès ! Tickets crédités pour l'utilisateur ${userId}.`,
+        `Succès ! Profil mis à jour pour l'utilisateur ${userId}.`,
         { updates }
       );
     } catch (error) {
       functions.logger.error(
-        `Erreur lors du crédit des tickets pour l'utilisateur ${userId}:`,
+        `Erreur lors de la mise à jour du profil pour l'utilisateur ${userId}:`,
         error
       );
     }
