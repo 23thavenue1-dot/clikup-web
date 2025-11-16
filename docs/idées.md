@@ -28,12 +28,29 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
     -   **Facilite le partage :** Permettrait à terme de partager une galerie entière.
 -   **Public Cible :** Extrêmement utile pour les créateurs, les photographes et les développeurs. Très pratique pour l'utilisateur quotidien.
 -   **Statut :** Fonctionnalité implémentée et terminée.
+    
+### 2. Liens vers la Boutique (À faire)
+
+-   **L'idée :** Rendre l'expérience d'achat plus fluide en ajoutant des raccourcis vers la boutique aux endroits pertinents. Quand un utilisateur n'a plus de tickets (upload ou IA), le message d'erreur devrait contenir un bouton "Recharger" qui le redirige directement vers la page `/shop`.
+-   **Avantages :**
+    -   **Amélioration de l'expérience utilisateur :** Réduit la frustration et guide l'utilisateur vers la solution.
+    -   **Augmentation de la conversion :** Facilite l'acte d'achat en supprimant les étapes intermédiaires.
+-   **Statut :** Idée notée, prête à être implémentée.
+    
+### 3. Optimisation des Performances (À faire)
+
+-   **L'idée :** Améliorer la vitesse et la fluidité de l'application, en particulier le chargement des images dans les galeries. Cela pourrait impliquer des techniques comme le "lazy loading" (chargement paresseux) ou la pagination.
+-   **Avantages :**
+    -   **Meilleure expérience utilisateur :** Une application plus rapide est plus agréable à utiliser.
+    -   **Économie de ressources :** Ne charger que les images visibles permet de réduire la consommation de bande passante.
+-   **Statut :** Idée notée pour une future phase d'optimisation.
+
 
 ---
 
 ## Idées d'Intégration de l'IA
 
-### 2. Titres et Descriptions Automatiques (Terminé)
+### 4. Titres et Descriptions Automatiques (Terminé)
 
 -   **L'idée :** Au moment où un utilisateur téléverse une image, une IA (comme Gemini) analyse l'image et génère automatiquement un titre ou une description pertinente. Par exemple, pour une photo de chat, l'IA pourrait générer le nom "chat dormant sur un canapé".
 -   **Avantages :**
@@ -42,25 +59,26 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
     -   Enrichit les données dans Firestore avec des métadonnées de qualité.
 -   **Statut :** Implémenté et fonctionnel via le système de tickets IA.
 
-### 3. Catégorisation et Taggage Intelligents (Terminé)
+### 5. Catégorisation et Taggage Intelligents (Terminé)
 
 -   **L'idée :** L'IA va plus loin que la simple description. Elle analyse l'image et en extrait une liste de "tags" ou d'étiquettes : `animal`, `chat`, `intérieur`, `canapé`, `repos`.
 -   **Avantages :**
     -   Permet de créer des **albums ou des catégories automatiques**.
     -   Améliore considérablement la recherche et le filtrage dans la galerie.
 -   **Statut :** Implémenté via la génération de hashtags dans le flow de description.
-
-### 4. "Critique" ou Amélioration Photo par l'IA (Intermédiaire)
-
--   **L'idée :** Après l'upload, l'IA pourrait donner un conseil sur la photo. "Superbe photo ! La composition est excellente." ou "La lumière est un peu faible, vous pourriez essayer d'augmenter la luminosité.".
--   **Avantages :**
-    -   Crée une **expérience utilisateur engageante et ludique**.
-    -   Apporte une aide précieuse aux photographes amateurs.
-
-### 5. Édition d'Image par le Langage (Terminé)
+    
+### 6. Édition d'Image par le Langage (Terminé)
 
 -   **L'idée :** L'utilisateur peut téléverser une photo et donner des instructions en langage naturel, comme : "Change le ciel pour un coucher de soleil." ou "Enlève la voiture rouge en arrière-plan."
 -   **Avantages :**
     -   Fonctionnalité **spectaculaire et très moderne**.
     -   Ouvre des possibilités créatives infinies pour l'utilisateur.
 -   **Statut :** Terminé. Le flow Genkit `editImageFlow`, la page d'édition et les suggestions sont fonctionnels.
+
+### 7. "Critique" ou Amélioration Photo par l'IA (À faire)
+
+-   **L'idée :** Après l'upload, l'IA pourrait donner un conseil sur la photo. "Superbe photo ! La composition est excellente." ou "La lumière est un peu faible, vous pourriez essayer d'augmenter la luminosité.".
+-   **Avantages :**
+    -   Crée une **expérience utilisateur engageante et ludique**.
+    -   Apporte une aide précieuse aux photographes amateurs.
+-   **Statut :** Idée notée.
