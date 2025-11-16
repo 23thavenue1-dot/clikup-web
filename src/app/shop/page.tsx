@@ -25,7 +25,7 @@ const PACK_IDS = {
     upload_s: 'price_1STtprFxufdYfSFcBU7c0LSm',
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
-    ai_s: 'remplacez_par_id_pack_ia_s',
+    ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
     ai_m: 'remplacez_par_id_pack_ia_m',
     ai_l: 'remplacez_par_id_pack_ia_l',
 };
@@ -305,3 +305,5 @@ export default function ShopPage() {
         </Suspense>
     )
 }
+
+    
