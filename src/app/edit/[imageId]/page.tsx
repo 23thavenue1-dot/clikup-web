@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,7 +51,7 @@ export default function EditImagePage() {
     const [prompt, setPrompt] = useState('');
     const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+    const [generatedImageHistory, setGeneratedImageHistory] = useState<string[]>([]);
 
     // State pour la génération de description
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
@@ -80,6 +80,10 @@ export default function EditImagePage() {
         return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
     }, [userProfile]);
 
+    const generatedImageUrl = useMemo(() => {
+        return generatedImageHistory.length > 0 ? generatedImageHistory[generatedImageHistory.length - 1] : null;
+    }, [generatedImageHistory]);
+
     useEffect(() => {
         if (!isUserLoading && !user) {
             router.push('/login');
@@ -103,12 +107,12 @@ export default function EditImagePage() {
 
         setIsGenerating(true);
         if (!isRefinement) {
-            setGeneratedImageUrl(null);
+            setGeneratedImageHistory([]);
         }
 
         try {
             const result = await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
-            setGeneratedImageUrl(result.newImageUrl);
+            setGeneratedImageHistory(prev => [...prev, result.newImageUrl]);
             await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
             if (isRefinement) setRefinePrompt('');
@@ -125,6 +129,10 @@ export default function EditImagePage() {
         }
     };
     
+    const handleUndoGeneration = () => {
+        setGeneratedImageHistory(prev => prev.slice(0, -1));
+    };
+
     const handleGenerateDescription = async (platform: Platform) => {
         if (!generatedImageUrl || !user || !userProfile) return;
         if (totalAiTickets <= 0) {
@@ -243,13 +251,15 @@ export default function EditImagePage() {
                         <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4 flex-grow">
                             <div className="flex-grow space-y-2">
                                 <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
-                                <Textarea
-                                    placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
-                                    value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
-                                    rows={3}
-                                    disabled={isGenerating || isSaving}
-                                />
+                                <div className="space-y-2">
+                                    <Textarea
+                                        placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        rows={3}
+                                        disabled={isGenerating || isSaving}
+                                    />
+                                </div>
                                 <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
                                     <Accordion type="single" collapsible className="w-full">
                                         {suggestionCategories.map(category => (
@@ -308,11 +318,24 @@ export default function EditImagePage() {
                             {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
                             {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+
+                            {generatedImageHistory.length > 1 && !isGenerating && (
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleUndoGeneration}
+                                    className="absolute top-2 left-2 z-10 bg-background/80"
+                                    aria-label="Annuler la dernière génération"
+                                >
+                                    <Undo2 className="h-5 w-5" />
+                                </Button>
+                            )}
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                             <div className="flex-grow space-y-2">
-                                <h2 className="text-base font-semibold">2. Affinez ou finalisez</h2>
-                                <div className="w-full space-y-2">
+                             <h2 className="text-base font-semibold">2. Créez la publication</h2>
+                             <div className="flex-grow space-y-4 mt-4">
+                                <div className="space-y-2">
+                                    <Label>Affiner la génération</Label>
                                     <Textarea
                                         placeholder="Ex: C'est bien, mais rends-le plus lumineux..."
                                         value={refinePrompt}
