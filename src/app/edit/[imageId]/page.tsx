@@ -229,8 +229,8 @@ export default function EditImagePage() {
                             <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                         </div>
                         
-                        <div className="rounded-lg border bg-card p-4 space-y-4">
-                            <div>
+                        <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4">
+                            <div className="flex-grow">
                                 <h2 className="text-base font-semibold mb-2">1. Donnez votre instruction</h2>
                                 <Textarea
                                     placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
@@ -262,29 +262,31 @@ export default function EditImagePage() {
                                     ))}
                                 </Accordion>
                             </div>
-                             {monthlyLimitReached ? (
-                                <p className="text-center text-sm text-primary font-semibold">
-                                    Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
-                                </p>
-                            ) : (
-                                <Button 
-                                    size="lg"
-                                    onClick={handleGenerateImage}
-                                    disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
-                                    className="w-full"
-                                >
-                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                                    {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
-                                </Button>
-                            )}
-                            {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
-                                <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
-                                    <Link href="/shop">
-                                        <ShoppingCart className="mr-2 h-4 w-4"/>
-                                        Plus de tickets ? Rechargez dans la boutique !
-                                    </Link>
-                                </Button>
-                            )}
+                            <div className="mt-auto">
+                                 {monthlyLimitReached ? (
+                                    <p className="text-center text-sm text-primary font-semibold">
+                                        Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
+                                    </p>
+                                ) : (
+                                    <Button 
+                                        size="lg"
+                                        onClick={handleGenerateImage}
+                                        disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                                        className="w-full"
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                                        {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
+                                    </Button>
+                                )}
+                                {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
+                                    <Button variant="link" asChild className="text-sm font-semibold text-primary w-full mt-2">
+                                        <Link href="/shop">
+                                            <ShoppingCart className="mr-2 h-4 w-4"/>
+                                            Plus de tickets ? Rechargez dans la boutique !
+                                        </Link>
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -296,72 +298,76 @@ export default function EditImagePage() {
                             {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
-                         <div className="rounded-lg border bg-card p-4 space-y-4">
-                            <h2 className="text-base font-semibold">2. Créez la publication</h2>
-                            
-                            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" className="w-full" disabled={!generatedImageUrl || isGenerating || isSaving}>
-                                        <Text className="mr-2 h-4 w-4"/> Générer une description
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Générer une description optimisée</DialogTitle>
-                                        <DialogDescription>
-                                            L'IA va créer un titre, une description et des hashtags pour votre nouvelle image. Un ticket IA sera utilisé.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="gen-title">Titre</Label>
-                                            <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label htmlFor="gen-desc">Description</Label>
-                                            <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label htmlFor="gen-tags">Hashtags</Label>
-                                            <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription}/>
-                                        </div>
-                                        <Separator/>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="outline" className="w-full" disabled={isGeneratingDescription || !hasAiTickets}>
-                                                    {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
-                                                    {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                         <div className="rounded-lg border bg-card p-4 flex flex-col justify-between space-y-4 h-full">
+                            <div className="flex-grow flex flex-col justify-center">
+                                <h2 className="text-base font-semibold mb-4 text-center">2. Créez la publication</h2>
+                                
+                                <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="w-full" disabled={!generatedImageUrl || isGenerating || isSaving}>
+                                            <Text className="mr-2 h-4 w-4"/> Générer une description
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Générer une description optimisée</DialogTitle>
+                                            <DialogDescription>
+                                                L'IA va créer un titre, une description et des hashtags pour votre nouvelle image. Un ticket IA sera utilisé.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="gen-title">Titre</Label>
+                                                <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label htmlFor="gen-desc">Description</Label>
+                                                <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label htmlFor="gen-tags">Hashtags</Label>
+                                                <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription}/>
+                                            </div>
+                                            <Separator/>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" className="w-full" disabled={isGeneratingDescription || !hasAiTickets}>
+                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                                        {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                             {!hasAiTickets && !isGeneratingDescription && (
+                                                <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
+                                                    <Link href="/shop">
+                                                        <ShoppingCart className="mr-2 h-4 w-4"/>
+                                                        Plus de tickets ? Rechargez dans la boutique !
+                                                    </Link>
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                         {!hasAiTickets && !isGeneratingDescription && (
-                                            <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
-                                                <Link href="/shop">
-                                                    <ShoppingCart className="mr-2 h-4 w-4"/>
-                                                    Plus de tickets ? Rechargez dans la boutique !
-                                                </Link>
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild>
-                                            <Button variant="default">Valider la description</Button>
-                                        </DialogClose>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                            )}
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <Button variant="default">Valider la description</Button>
+                                            </DialogClose>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
 
-                             <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full">
-                                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
-                                Enregistrer la création
-                            </Button>
+                            <div className="mt-auto">
+                                 <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full">
+                                    {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
+                                    Enregistrer la création
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </main>
