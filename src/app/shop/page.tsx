@@ -41,7 +41,7 @@ const subscriptions = [
         features: [
             '500 tickets d\'upload par mois',
             '50 tickets IA par mois',
-            '20 Go de stockage',
+            '10 Go de stockage',
             'Badge "Créateur" sur le profil',
         ],
         icon: Rocket,
@@ -62,7 +62,7 @@ const subscriptions = [
         features: [
             'Tickets d\'upload illimités',
             '150 tickets IA par mois',
-            '100 Go de stockage',
+            '50 Go de stockage',
             'Accès en avant-première aux nouvelles fonctionnalités',
         ],
         icon: Gem,
@@ -84,7 +84,7 @@ const subscriptions = [
         features: [
             'Tickets d\'upload illimités',
             '400 tickets IA par mois',
-            '500 Go de stockage',
+            '250 Go de stockage',
             'Support client prioritaire',
         ],
         icon: Crown,
