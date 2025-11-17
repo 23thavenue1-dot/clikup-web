@@ -419,7 +419,7 @@ export default function EditImagePage() {
                                                 </AccordionTrigger>
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
-                                                        {userProfile.customPrompts.map((p) => (
+                                                        {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
                                                             <div key={p.id}>
                                                                 <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
                                                                     {p.name}
@@ -440,9 +440,11 @@ export default function EditImagePage() {
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {category.prompts.map((p) => (
-                                                            <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                                {p.title}
-                                                            </Button>
+                                                            <div key={p.title}>
+                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                    {p.title}
+                                                                </Button>
+                                                            </div>
                                                         ))}
                                                     </div>
                                                 </AccordionContent>
@@ -460,7 +462,7 @@ export default function EditImagePage() {
                                     <Button 
                                         size="lg"
                                         onClick={() => handleGenerateImage(false)}
-                                        disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                                        disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets}
                                         className="w-full"
                                     >
                                         {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
