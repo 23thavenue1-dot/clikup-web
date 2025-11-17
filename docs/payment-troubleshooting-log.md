@@ -119,6 +119,22 @@ Une fois les étapes ci-dessus accomplies, je prends le relais.
 
 ---
 
+### **Étape 8 : Correction de l'Affichage de l'Historique des Abonnements**
+
+*   **Objectif :** Afficher un historique des achats propre, sans doublons ni noms de produits incorrects pour les abonnements.
+*   **Problème Rencontré :** Pour chaque abonnement souscrit, l'historique affichait deux lignes : une avec le bon nom (ex: "Abonnement - Pro") et une autre avec "Produit inconnu".
+*   **Diagnostic Final (validé par l'utilisateur) :**
+    *   **L'observation :** La collection `payments` contient plusieurs types de documents. Pour les abonnements, l'extension Stripe crée un document de facturation (`invoice.payment_succeeded`) qui ne contient pas le nom du produit, en plus du document "synthétique" que notre fonction Cloud `onSubscriptionChange` crée.
+    *   **La déduction :** Le code React affichait tous les documents de la collection sans distinction, créant ainsi des doublons. Le problème ne venait pas de la récupération des données, mais de leur **filtrage** avant l'affichage.
+*   **Solution Apportée (LA BONNE) :**
+    1.  **Filtrage Côté Client (`settings/page.tsx`) :** Nous avons ajouté une méthode `.filter()` sur le tableau des paiements, juste avant de l'afficher.
+    2.  **Logique du Filtre :** Ce filtre ne laisse passer que deux types de documents :
+        *   Les achats de packs, identifiés par la présence de `packUploadTickets` ou `packAiTickets` dans leurs métadonnées.
+        *   Nos documents d'abonnement "synthétiques", que nous avons intelligemment marqués avec le drapeau `_generated_for_history: true` dans la fonction Cloud.
+*   **Résultat :** **SUCCÈS TOTAL.** L'historique est désormais parfaitement propre. Les doublons ont disparu et seuls les achats pertinents (packs et abonnements avec le bon nom) sont affichés à l'utilisateur.
+
+---
+
 ### **Checklist de Validation du Système de Paiement**
 
 Cette liste répertorie tous les points de contrôle critiques à vérifier pour s'assurer que le système de paiement fonctionne de bout en bout.
@@ -143,4 +159,5 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 -   [x] **Test de Paiement Final :** Le processus de paiement est complété avec succès.
 -   [x] **Vérification Firestore :** Après un paiement test réussi, le champ correspondant au pack acheté (ex: `packUploadTickets`) a bien été incrémenté.
 -   [x] **Vérification Interface :** Le compteur de tickets dans l'application reflète le nouveau solde.
+
 
