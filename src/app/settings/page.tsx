@@ -3,7 +3,9 @@
 'use client';
 
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, increment, collection, query, orderBy } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { doc, updateDoc, increment, collection, query, orderBy, getDoc } from 'firebase/firestore';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { type UserProfile, deleteUserAccount } from '@/lib/firestore';
@@ -286,6 +288,7 @@ function AccountTab() {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
@@ -311,6 +314,32 @@ function AccountTab() {
       setEmailNotifications(userProfile.emailNotifications ?? false);
     }
   }, [userProfile]);
+
+  const handleManageSubscription = async () => {
+    if (!user || !firestore) return;
+    setIsPortalLoading(true);
+    
+    const functions = getFunctions(getApp(), 'us-central1');
+    const createPortalLink = httpsCallable(
+      functions,
+      'ext-firestore-stripe-payments-createPortalLink'
+    );
+
+    try {
+        const { data } = await createPortalLink({ returnUrl: window.location.href });
+        window.location.assign((data as { url: string }).url);
+    } catch (error) {
+        console.error("Erreur d'accès au portail:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erreur d\'accès au portail',
+            description: "Impossible d'accéder au portail de gestion. Si vous venez de vous abonner, veuillez réessayer dans quelques instants."
+        });
+    } finally {
+        setIsPortalLoading(false);
+    }
+};
+
 
   const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
     if (!user || !user.email) return;
@@ -439,6 +468,29 @@ function AccountTab() {
             </div>
             <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={handleNotificationChange} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+            <CardTitle>Abonnement</CardTitle>
+            <CardDescription>Consultez votre statut d'abonnement et gérez vos informations de facturation.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                    <Label className="font-medium">Plan Actuel</Label>
+                    <p className="text-lg font-bold capitalize">
+                        {userProfile.subscriptionTier === 'none' ? 'Aucun' : userProfile.subscriptionTier}
+                    </p>
+                </div>
+                {userProfile.subscriptionTier !== 'none' && (
+                    <Button onClick={handleManageSubscription} disabled={isPortalLoading}>
+                        {isPortalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Gérer mon abonnement
+                    </Button>
+                )}
+            </div>
         </CardContent>
       </Card>
 
