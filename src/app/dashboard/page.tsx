@@ -6,7 +6,7 @@ import type { User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2, Package, ShoppingCart } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2, Package, ShoppingCart, HardDrive } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,6 +18,24 @@ import { useAchievementNotification } from '@/hooks/useAchievementNotification';
 
 const XP_PER_ACHIEVEMENT = 20;
 const XP_PER_LEVEL = 100;
+
+const STORAGE_LIMITS = {
+    none: 200 * 1024 * 1024,        // 200 Mo
+    creator: 10 * 1024 * 1024 * 1024,  // 10 Go
+    pro: 50 * 1024 * 1024 * 1024,      // 50 Go
+    master: 250 * 1024 * 1024 * 1024   // 250 Go
+};
+
+// Helper to format bytes
+function formatBytes(bytes: number, decimals = 2) {
+    if (bytes === 0) return '0 Octets';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Octets', 'Ko', 'Mo', 'Go', 'To'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
 
 // Helper function to safely read from localStorage
 const getSeenMessagesCount = (): number => {
@@ -152,6 +170,11 @@ export default function DashboardPage() {
   const currentXp = userProfile?.xp ?? 0;
   const progressPercentage = (currentXp / XP_PER_LEVEL) * 100;
 
+  const currentStorageUsed = userProfile?.storageUsed ?? 0;
+  const currentTier = userProfile?.subscriptionTier ?? 'none';
+  const storageLimit = STORAGE_LIMITS[currentTier];
+  const storageProgressPercentage = storageLimit > 0 ? (currentStorageUsed / storageLimit) * 100 : 0;
+
 
   const stats = [
     {
@@ -242,6 +265,23 @@ export default function DashboardPage() {
                   <p className="text-center text-sm text-muted-foreground">Votre progression : {currentXp} / {XP_PER_LEVEL} XP</p>
               </CardContent>
           </Card>
+
+           <Card>
+              <CardHeader>
+                  <CardTitle>Utilisation du Stockage</CardTitle>
+                  <CardDescription>Votre quota de stockage dépend de votre plan d'abonnement.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                   <div className="flex justify-between items-center mb-2 text-sm">
+                        <p className="font-semibold">{formatBytes(currentStorageUsed)} utilisés</p>
+                        <p className="text-muted-foreground">Limite : {formatBytes(storageLimit)}</p>
+                   </div>
+                  <Progress value={storageProgressPercentage} />
+                  <p className="text-center text-sm text-muted-foreground">
+                      {storageProgressPercentage.toFixed(2)}% de votre stockage utilisé
+                  </p>
+              </CardContent>
+            </Card>
 
           <Card>
             <CardHeader>
