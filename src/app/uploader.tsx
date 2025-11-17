@@ -70,7 +70,7 @@ export function Uploader() {
   const [customName, setCustomName] = useState('');
   const [description, setDescription] = useState('');
   
-  const [isUploading, setIsUploading] = useState(isUploading);
+  const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('storage');
 
   const [imageUrl, setImageUrl] = useState('');
@@ -402,5 +402,3 @@ export function Uploader() {
     </>
   );
 }
-
-    
