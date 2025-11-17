@@ -259,7 +259,7 @@ export default function EditImagePage() {
     };
     
     const openSavePromptDialog = () => {
-        if (!prompt.trim()) return;
+        if (!prompt || !prompt.trim()) return;
         setPromptToSave(prompt);
         setNewPromptName(""); // Reset name field
         setIsSavePromptDialogOpen(true);
@@ -365,7 +365,7 @@ export default function EditImagePage() {
                                                     variant="ghost" 
                                                     size="icon" 
                                                     className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
-                                                    disabled={!prompt.trim() || isGenerating || isSaving}
+                                                    disabled={!prompt || !prompt.trim() || isGenerating || isSaving}
                                                     onClick={openSavePromptDialog}
                                                     aria-label="Sauvegarder le prompt"
                                                 >
@@ -421,13 +421,7 @@ export default function EditImagePage() {
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {userProfile.customPrompts.map((p) => (
                                                             <div key={p.id}>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="text-xs h-auto py-1 px-2"
-                                                                    onClick={() => setPrompt(p.value)}
-                                                                    disabled={isGenerating || isSaving}
-                                                                >
+                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
                                                                     {p.name}
                                                                 </Button>
                                                             </div>
@@ -445,7 +439,7 @@ export default function EditImagePage() {
                                                 </AccordionTrigger>
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
-                                                        {category.prompts.map(p => (
+                                                        {category.prompts.map((p) => (
                                                             <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
                                                                 {p.title}
                                                             </Button>
