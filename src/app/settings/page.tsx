@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Receipt } from 'lucide-react';
+import { Loader2, Receipt, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -284,13 +285,13 @@ function AccountTab() {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
   
   const paymentsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // According to Stripe extension docs, payments are in customers/{uid}/payments
     return query(collection(firestore, 'customers', user.uid, 'payments'), orderBy('created', 'desc'));
   }, [user, firestore]);
   const { data: payments, isLoading: arePaymentsLoading } = useCollection<Payment>(paymentsQuery);
@@ -310,6 +311,35 @@ function AccountTab() {
       setEmailNotifications(userProfile.emailNotifications ?? false);
     }
   }, [userProfile]);
+
+  const redirectToCustomerPortal = async () => {
+    setIsPortalLoading(true);
+    const functionURL = 'https://us-central1-studio-9587105821-540bd.cloudfunctions.net/ext-invertase-firestore-stripe-payments-createPortalLink';
+    
+    try {
+        const response = await fetch(functionURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ returnUrl: window.location.href }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error.message || 'La création du portail a échoué.');
+        }
+
+        const { url } = await response.json();
+        window.location.assign(url);
+
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erreur',
+            description: error.message || "Impossible d'accéder au portail de gestion. Veuillez réessayer."
+        });
+        setIsPortalLoading(false);
+    }
+  };
 
   const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
     if (!user || !user.email) return;
@@ -391,6 +421,28 @@ function AccountTab() {
 
   return (
     <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Abonnement</CardTitle>
+          <CardDescription>Consultez et gérez votre plan d'abonnement actuel.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Votre plan actuel</p>
+                <p className="text-lg font-bold capitalize">{userProfile.subscriptionTier === 'none' ? 'Aucun' : userProfile.subscriptionTier}</p>
+              </div>
+              <Button onClick={redirectToCustomerPortal} disabled={isPortalLoading}>
+                  {isPortalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Gérer mon abonnement <ExternalLink className="ml-2 h-4 w-4"/>
+              </Button>
+            </div>
+        </CardContent>
+         <CardFooter>
+            <p className="text-xs text-muted-foreground">Vous serez redirigé vers notre partenaire de paiement Stripe pour gérer votre abonnement, vos factures et vos moyens de paiement en toute sécurité.</p>
+        </CardFooter>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>Sécurité</CardTitle>
