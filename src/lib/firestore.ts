@@ -51,6 +51,7 @@ export interface UserProfile {
   level: number;
   xp: number;
   unlockedAchievements: string[];
+  customPrompts?: string[];
   pinnedImageIds?: string[];
   initialPhotoURL: string | null;
   profilePictureUpdateCount: number;

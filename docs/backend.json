@@ -102,6 +102,7 @@
         "level": { "type": "number", "description": "The user's current level in the gamification system." },
         "xp": { "type": "number", "description": "The user's current experience points." },
         "unlockedAchievements": { "type": "array", "description": "A list of identifiers for the achievements the user has unlocked.", "items": { "type": "string" } },
+        "customPrompts": { "type": "array", "description": "A list of custom prompt strings saved by the user.", "items": { "type": "string" } },
         "pinnedImageIds": { "type": "array", "description": "A list of image IDs that the user has globally pinned or marked as favorites.", "items": { "type": "string" } },
         "initialPhotoURL": { "type": ["string", "null"], "description": "The user's photoURL at the time of account creation.", "format": "uri" },
         "profilePictureUpdateCount": { "type": "number", "description": "Counts how many times the user has updated their profile picture." },
