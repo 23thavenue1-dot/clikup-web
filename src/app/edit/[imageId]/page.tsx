@@ -8,13 +8,13 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { editImage } from '@/ai/flows/edit-image-flow';
-import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +87,12 @@ export default function EditImagePage() {
     const [isDeletePromptDialogOpen, setIsDeletePromptDialogOpen] = useState(false);
     const [promptToDelete, setPromptToDelete] = useState<CustomPrompt | null>(null);
     const [isDeletingPrompt, setIsDeletingPrompt] = useState(false);
+
+    // State pour la modification de prompt
+    const [isEditPromptDialogOpen, setIsEditPromptDialogOpen] = useState(false);
+    const [promptToEdit, setPromptToEdit] = useState<CustomPrompt | null>(null);
+    const [editedPromptName, setEditedPromptName] = useState("");
+    const [isEditingPrompt, setIsEditingPrompt] = useState(false);
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -312,6 +318,30 @@ export default function EditImagePage() {
             setIsDeletingPrompt(false);
         }
     };
+    
+    const openEditPromptDialog = (prompt: CustomPrompt) => {
+        setPromptToEdit(prompt);
+        setEditedPromptName(prompt.name);
+        setIsEditPromptDialogOpen(true);
+    };
+
+    const handleEditPrompt = async () => {
+        if (!promptToEdit || !editedPromptName.trim() || !user || !firestore) return;
+        setIsEditingPrompt(true);
+
+        const updatedPrompt = { ...promptToEdit, name: editedPromptName };
+
+        try {
+            await updateCustomPrompt(firestore, user.uid, updatedPrompt);
+            toast({ title: "Prompt renommé", description: `Le prompt a été renommé en "${editedPromptName}".` });
+            setIsEditPromptDialogOpen(false);
+            setPromptToEdit(null);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de renommer le prompt.' });
+        } finally {
+            setIsEditingPrompt(false);
+        }
+    };
 
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
@@ -444,20 +474,20 @@ export default function EditImagePage() {
                                                     </div>
                                                 </AccordionTrigger>
                                                 <AccordionContent>
-                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                    <div className="flex flex-col gap-2 pt-2">
                                                         {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
-                                                            <div key={p.id} className="group relative">
-                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 pr-6" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                            <div key={p.id} className="group relative flex items-center">
+                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
                                                                     {p.name}
                                                                 </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="absolute -top-1 -right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                    onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }}
-                                                                >
-                                                                    <Trash2 className="h-3 w-3 text-destructive" />
-                                                                </Button>
+                                                                <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
+                                                                        <Pencil className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
+                                                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -668,6 +698,33 @@ export default function EditImagePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            
+            <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Renommer le prompt</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-2">
+                        <Label htmlFor="edit-prompt-name">Nouveau nom</Label>
+                        <Input
+                            id="edit-prompt-name"
+                            value={editedPromptName}
+                            onChange={(e) => setEditedPromptName(e.target.value)}
+                            disabled={isEditingPrompt}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary" disabled={isEditingPrompt}>Annuler</Button>
+                        </DialogClose>
+                        <Button onClick={handleEditPrompt} disabled={isEditingPrompt || !editedPromptName.trim()}>
+                            {isEditingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Enregistrer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

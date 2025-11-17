@@ -843,6 +843,50 @@ export async function deleteCustomPrompt(firestore: Firestore, userId: string, p
         throw error;
     }
 }
+
+/**
+ * Met à jour le nom d'un prompt personnalisé existant.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param updatedPrompt Le prompt avec son nouveau nom.
+ */
+export async function updateCustomPrompt(firestore: Firestore, userId: string, updatedPrompt: CustomPrompt): Promise<void> {
+    const userDocRef = doc(firestore, 'users', userId);
+    
+    try {
+        const userDoc = await getDoc(userDocRef);
+        if (!userDoc.exists()) {
+            throw new Error("Utilisateur non trouvé.");
+        }
+        
+        const userData = userDoc.data() as UserProfile;
+        const prompts = userData.customPrompts || [];
+        
+        const promptIndex = prompts.findIndex(p => p.id === updatedPrompt.id);
+        
+        if (promptIndex === -1) {
+            throw new Error("Prompt non trouvé.");
+        }
+        
+        // Créer une nouvelle liste avec le prompt mis à jour
+        const newPrompts = [...prompts];
+        newPrompts[promptIndex] = updatedPrompt;
+
+        // Remplacer l'ancienne liste par la nouvelle
+        await updateDoc(userDocRef, {
+            customPrompts: newPrompts
+        });
+
+    } catch (error) {
+         const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: { customPromptToUpdate: updatedPrompt },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
     
 
     
