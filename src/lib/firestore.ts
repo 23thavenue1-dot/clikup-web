@@ -29,6 +29,11 @@ import type { User } from 'firebase/auth';
 import { isBefore, startOfDay, startOfMonth } from 'date-fns';
 
 
+export interface CustomPrompt {
+  id: string;
+  name: string;
+  value: string;
+}
 
 // Correspond à la structure dans backend.json
 export interface UserProfile {
@@ -51,7 +56,7 @@ export interface UserProfile {
   level: number;
   xp: number;
   unlockedAchievements: string[];
-  customPrompts: string[];
+  customPrompts: CustomPrompt[];
   pinnedImageIds?: string[];
   initialPhotoURL: string | null;
   profilePictureUpdateCount: number;
@@ -790,29 +795,27 @@ export async function addMultipleImagesToGalleries(
 
 /**
  * Sauvegarde un prompt personnalisé pour l'utilisateur.
- * Utilise arrayUnion pour éviter les doublons.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
- * @param promptText Le texte du prompt à sauvegarder.
+ * @param prompt Le prompt à sauvegarder.
  */
-export async function saveCustomPrompt(firestore: Firestore, userId: string, promptText: string): Promise<void> {
-    if (!promptText.trim()) {
-        throw new Error("Le prompt ne peut pas être vide.");
+export async function saveCustomPrompt(firestore: Firestore, userId: string, prompt: CustomPrompt): Promise<void> {
+    if (!prompt.name.trim() || !prompt.value.trim()) {
+        throw new Error("Le nom et la valeur du prompt ne peuvent pas être vides.");
     }
     const userDocRef = doc(firestore, 'users', userId);
     
     try {
         await updateDoc(userDocRef, {
-            customPrompts: arrayUnion(promptText)
+            customPrompts: arrayUnion(prompt)
         });
     } catch (error) {
         const permissionError = new FirestorePermissionError({
             path: userDocRef.path,
             operation: 'update',
-            requestResourceData: { customPromptToAdd: promptText },
+            requestResourceData: { customPromptToAdd: prompt },
         });
         errorEmitter.emit('permission-error', permissionError);
-        // Rethrow the original error to be caught by the calling function
         throw error;
     }
 }
