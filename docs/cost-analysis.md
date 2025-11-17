@@ -39,7 +39,7 @@ Notre modèle économique doit être attractif, compétitif et rentable. Nous pr
 
 #### a) Offre Gratuite (L'Actuelle)
 *   **Pour qui ?** Pour attirer un maximum d'utilisateurs et leur faire découvrir la valeur de Clikup.
-*   **Contenu :** 5 tickets Upload/jour, 3 tickets IA/jour, 1 Go de stockage.
+*   **Contenu :** 5 tickets Upload/jour, 3 tickets IA/jour, 200 Mo de stockage.
 
 #### b) Offre "Créateur" (Abonnement)
 *   **Pour qui ?** L'amateur éclairé ou l'utilisateur régulier qui a besoin de plus de flexibilité.
@@ -47,7 +47,7 @@ Notre modèle économique doit être attractif, compétitif et rentable. Nous pr
 *   **Contenu :**
     *   **500** tickets d'upload par mois.
     *   **50** tickets IA par mois.
-    *   20 Go de stockage.
+    *   10 Go de stockage.
     *   Badge "Créateur" sur le profil.
 
 #### c) Offre "Pro" (Abonnement)
@@ -56,7 +56,7 @@ Notre modèle économique doit être attractif, compétitif et rentable. Nous pr
 *   **Contenu :**
     *   Tickets d'upload **illimités**.
     *   **150** tickets IA par mois.
-    *   100 Go de stockage.
+    *   50 Go de stockage.
     *   Badge "Pro" et accès en avant-première aux nouvelles fonctionnalités.
 
 #### d) Offre "Maître" (Abonnement)
@@ -65,7 +65,7 @@ Notre modèle économique doit être attractif, compétitif et rentable. Nous pr
 *   **Contenu :**
     *   Tickets d'upload **illimités**.
     *   **400** tickets IA par mois.
-    *   500 Go de stockage.
+    *   250 Go de stockage.
     *   Badge "Maître" et support client prioritaire.
 
 ### Piste 2 : Les Packs "À la Carte" (Achats Uniques)
