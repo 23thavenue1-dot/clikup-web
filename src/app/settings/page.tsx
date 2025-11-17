@@ -499,58 +499,62 @@ function AccountTab() {
       </Card>
 
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1" className="border rounded-lg">
-          <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline">
-            Historique des Achats
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="px-6 pb-6 pt-0">
-              <p className="text-muted-foreground mb-4">Retrouvez ici la liste de vos achats de packs de tickets et abonnements.</p>
-              {arePaymentsLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : payments && payments.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Produit</TableHead>
-                      <TableHead>Montant</TableHead>
-                      <TableHead className="text-right">Statut</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payments
-                        .filter((payment) => {
-                          const meta = payment.metadata || {};
-                          const hasPackTickets = meta.packUploadTickets || meta.packAiTickets;
-                          const isSyntheticSubscription = payment._generated_for_history === true;
-                          return hasPackTickets || isSyntheticSubscription;
-                        })
-                        .map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell>{format(new Date(payment.created * 1000), 'd MMMM yyyy', { locale: fr })}</TableCell>
-                            <TableCell className="font-medium">{payment.metadata?.productName || payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
-                            <TableCell>{(payment.amount / 100).toFixed(2)} {payment.currency.toUpperCase()}</TableCell>
-                            <TableCell className="text-right">
-                              <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'} className={payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : ''}>
-                                  {payment.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                    <Receipt className="mx-auto h-10 w-10" />
-                    <p className="mt-4 font-medium">Aucun achat pour le moment.</p>
-                    <p className="text-sm">Votre historique d'achats apparaîtra ici.</p>
-                </div>
-              )}
-            </div>
-          </AccordionContent>
+        <AccordionItem value="item-1" className="border-none">
+          <Card>
+            <AccordionTrigger className="p-0 hover:no-underline">
+              <CardHeader className="flex-1 text-left">
+                <CardTitle>Historique des Achats</CardTitle>
+                <CardDescription>Retrouvez ici la liste de vos achats de packs de tickets et abonnements.</CardDescription>
+              </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent className="pt-0">
+                {arePaymentsLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : payments && payments.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Produit</TableHead>
+                        <TableHead>Montant</TableHead>
+                        <TableHead className="text-right">Statut</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payments
+                          .filter((payment) => {
+                            const meta = payment.metadata || {};
+                            const hasPackTickets = meta.packUploadTickets || meta.packAiTickets;
+                            const isSyntheticSubscription = payment._generated_for_history === true;
+                            return hasPackTickets || isSyntheticSubscription;
+                          })
+                          .map((payment) => (
+                            <TableRow key={payment.id}>
+                              <TableCell>{format(new Date(payment.created * 1000), 'd MMMM yyyy', { locale: fr })}</TableCell>
+                              <TableCell className="font-medium">{payment.metadata?.productName || payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
+                              <TableCell>{(payment.amount / 100).toFixed(2)} {payment.currency.toUpperCase()}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'} className={payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : ''}>
+                                    {payment.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                      <Receipt className="mx-auto h-10 w-10" />
+                      <p className="mt-4 font-medium">Aucun achat pour le moment.</p>
+                      <p className="text-sm">Votre historique d'achats apparaîtra ici.</p>
+                  </div>
+                )}
+              </CardContent>
+            </AccordionContent>
+          </Card>
         </AccordionItem>
       </Accordion>
 
