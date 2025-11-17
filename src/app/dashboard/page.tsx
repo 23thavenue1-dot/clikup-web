@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -192,6 +193,21 @@ export default function DashboardPage() {
     },
   ];
   
+  const freeTicketsStats = [
+    {
+        title: 'Tickets d\'upload (Gratuits)',
+        value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.ticketCount ?? 0).toString(),
+        icon: Upload,
+        description: 'Tickets réinitialisés chaque jour.'
+    },
+    {
+        title: 'Tickets IA (Gratuits)',
+        value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.aiTicketCount ?? 0).toString(),
+        icon: Sparkles,
+        description: 'Tickets réinitialisés chaque jour (limite mensuelle).'
+    }
+  ]
+
   const purchasedTicketsStats = [
       {
           title: 'Tickets d\'upload (Packs)',
@@ -292,6 +308,29 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {stats.map((stat) => (
+                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
+                    <div className="bg-primary/10 text-primary p-3 rounded-md">
+                      <stat.icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <div className="text-2xl font-bold">{stat.value}</div>
+                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tickets Gratuits</CardTitle>
+              <CardDescription>Le solde de vos tickets quotidiens offerts.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {freeTicketsStats.map((stat) => (
                   <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
                     <div className="bg-primary/10 text-primary p-3 rounded-md">
                       <stat.icon className="h-6 w-6" />
@@ -449,5 +488,7 @@ export default function DashboardPage() {
     </TooltipProvider>
   );
 }
+
+    
 
     
