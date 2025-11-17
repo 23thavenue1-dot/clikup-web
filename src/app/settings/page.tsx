@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { addDoc, onSnapshot } from 'firebase/firestore';
 
 // Type for a payment document from Stripe extension
 type Payment = {
@@ -315,29 +316,60 @@ function AccountTab() {
   }, [userProfile]);
 
   const redirectToCustomerPortal = async () => {
-      if (!user || !firebaseApp) return;
-      setIsPortalLoading(true);
-
-      try {
-          const functions = getFunctions(firebaseApp, 'us-central1');
-          const createPortalLink = httpsCallable(functions, 'ext-invertase-firestore-stripe-payments-createPortalLink');
-          
-          const { data } = await createPortalLink({
-              returnUrl: window.location.href,
-          });
-
-          const { url } = data as { url: string };
-          window.location.assign(url);
-
-      } catch (error: any) {
-          console.error('Erreur lors de la création du lien du portail:', error);
-          toast({
-              variant: 'destructive',
-              title: 'Erreur d\'accès au portail',
-              description: error.message || "Impossible d'accéder à la gestion de l'abonnement. Veuillez réessayer plus tard.",
-          });
+    if (!user || !firestore) return;
+    setIsPortalLoading(true);
+    
+    // Si l'utilisateur n'a pas encore de stripeCustomerId, on crée une session de "setup"
+    // pour que Stripe en crée un.
+    if (!userProfile?.stripeCustomerId) {
+      toast({ title: 'Initialisation...', description: 'Création de votre portail sécurisé en cours...' });
+      
+      const setupSessionRef = await addDoc(
+        collection(firestore, 'customers', user.uid, 'checkout_sessions'),
+        {
+          mode: 'setup',
+          success_url: window.location.href, // Revenir sur la même page
+          cancel_url: window.location.href,
+        }
+      );
+      
+      onSnapshot(setupSessionRef, (snap) => {
+        const { error, url } = snap.data() || {};
+        if (error) {
+          console.error(error);
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de créer la session de configuration.' });
           setIsPortalLoading(false);
-      }
+        }
+        if (url) {
+          window.location.assign(url);
+        }
+      });
+      return;
+    }
+    
+    // Si l'utilisateur a déjà un stripeCustomerId, on utilise la fonction Cloud.
+    try {
+        const functions = getFunctions(firebaseApp, 'us-central1');
+        const createPortalLink = httpsCallable(functions, 'ext-invertase-firestore-stripe-payments-createPortalLink');
+        
+        const { data } = await createPortalLink({
+            returnUrl: window.location.href,
+            locale: 'auto', // Laisse Stripe choisir la langue
+            customer: userProfile.stripeCustomerId, // On spécifie le client
+        });
+
+        const { url } = data as { url: string };
+        window.location.assign(url);
+
+    } catch (error: any) {
+        console.error('Erreur lors de la création du lien du portail:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Erreur d\'accès au portail',
+            description: "Une erreur interne est survenue. Veuillez réessayer plus tard ou contacter le support.",
+        });
+        setIsPortalLoading(false);
+    }
   };
 
   const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
