@@ -131,11 +131,14 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     const now = new Date();
     const updates: { [key: string]: any } = {};
 
+    let currentMonthlyAiCount = userProfile.aiTicketMonthlyCount ?? 0;
+
     // --- Gestion des Tickets Mensuels (doit être fait avant les tickets journaliers) ---
     const lastMonthlyReset = userProfile.aiTicketMonthlyReset ? userProfile.aiTicketMonthlyReset.toDate() : new Date(0);
     if (isBefore(startOfMonth(lastMonthlyReset), startOfMonth(now))) {
         updates.aiTicketMonthlyCount = 0;
         updates.aiTicketMonthlyReset = serverTimestamp();
+        currentMonthlyAiCount = 0; // Réinitialiser pour le calcul ci-dessous
     }
 
     // --- Gestion des Tickets Journaliers d'Upload ---
@@ -147,15 +150,12 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
 
     // --- Gestion des Tickets Journaliers IA (avec la limite mensuelle) ---
     const lastAiRefill = userProfile.lastAiTicketRefill ? userProfile.lastAiTicketRefill.toDate() : new Date(0);
-    const currentMonthlyCount = 'aiTicketMonthlyCount' in updates 
-        ? 0 
-        : (userProfile.aiTicketMonthlyCount ?? 0);
-    
     if (isBefore(startOfDay(lastAiRefill), startOfDay(now))) {
-        if (currentMonthlyCount < MONTHLY_AI_TICKET_LIMIT) {
-            const ticketsToGrant = Math.min(DAILY_AI_TICKETS, MONTHLY_AI_TICKET_LIMIT - currentMonthlyCount);
+        if (currentMonthlyAiCount < MONTHLY_AI_TICKET_LIMIT) {
+            const ticketsToGrant = Math.min(DAILY_AI_TICKETS, MONTHLY_AI_TICKET_LIMIT - currentMonthlyAiCount);
             if (ticketsToGrant > 0) {
                 updates.aiTicketCount = ticketsToGrant;
+                // Important: on incrémente la valeur qu'on a déjà, ou la nouvelle valeur si elle est dans updates
                 updates.aiTicketMonthlyCount = increment(ticketsToGrant);
             } else {
                  updates.aiTicketCount = 0;
