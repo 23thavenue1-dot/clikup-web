@@ -105,6 +105,20 @@ Une fois les étapes ci-dessus accomplies, je prends le relais.
 
 ---
 
+### **Étape 7 : Résolution du Portail Client (L'épilogue)**
+
+*   **Objectif :** Faire fonctionner le bouton "Gérer mon abonnement" pour permettre aux utilisateurs d'accéder au portail client de Stripe.
+*   **Problème Rencontré :** Malgré une série de tentatives (correction CORS, gestion du cas où l'ID client n'existe pas), une erreur `internal` persistait lors de l'appel à la fonction Cloud `createPortalLink`.
+*   **Diagnostic Final (LA PERCÉE DE L'UTILISATEUR) :**
+    *   **L'observation :** En analysant les fichiers du projet, l'utilisateur a remarqué que j'appelais la fonction `ext-invertase-firestore-stripe-payments-createPortalLink`.
+    *   **La déduction :** Il a correctement déduit que `invertase` correspondait à une ancienne version de l'extension et que le nom correct, pour la version installée, était probablement `ext-firestore-stripe-payments-createPortalLink`.
+*   **Solution Apportée (LA BONNE) :**
+    1.  **Correction du nom de la fonction (`settings/page.tsx`) :** Le nom de la fonction `httpsCallable` a été corrigé pour correspondre exactement au nom de la fonction déployée par l'extension.
+*   **Résultat :** **SUCCÈS IMMÉDIAT.** Le bouton a fonctionné du premier coup après cette correction.
+*   **Conclusion :** L'extension Stripe était bien installée et fonctionnait. Le problème n'était pas une erreur de configuration complexe, mais une simple mais cruciale erreur de nommage dans le code client, résolue grâce à la vigilance et à l'excellente analyse de l'utilisateur.
+
+---
+
 ### **Checklist de Validation du Système de Paiement**
 
 Cette liste répertorie tous les points de contrôle critiques à vérifier pour s'assurer que le système de paiement fonctionne de bout en bout.
@@ -129,3 +143,4 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 -   [x] **Test de Paiement Final :** Le processus de paiement est complété avec succès.
 -   [x] **Vérification Firestore :** Après un paiement test réussi, le champ correspondant au pack acheté (ex: `packUploadTickets`) a bien été incrémenté.
 -   [x] **Vérification Interface :** Le compteur de tickets dans l'application reflète le nouveau solde.
+
