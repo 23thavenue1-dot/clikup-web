@@ -146,8 +146,8 @@ export default function EditImagePage() {
                 hashtags: ''
             };
             
-            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
-            newHistory.push(newHistoryItem);
+            // On ajoute la nouvelle image à la fin de l'historique sans tronquer
+            const newHistory = [...generatedImageHistory, newHistoryItem];
             
             setGeneratedImageHistory(newHistory);
             setHistoryIndex(newHistory.length - 1);
@@ -350,6 +350,24 @@ export default function EditImagePage() {
                                 </div>
                                 <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
                                     <Accordion type="single" collapsible className="w-full">
+                                        {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                                            <AccordionItem value="custom-prompts">
+                                                <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-semibold">Mes Prompts</span>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                        {userProfile.customPrompts.map((p, index) => (
+                                                            <Button key={index} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
+                                                                {p}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )}
                                         {suggestionCategories.map(category => (
                                             <AccordionItem value={category.name} key={category.name}>
                                                 <AccordionTrigger className="text-sm py-2 hover:no-underline">
