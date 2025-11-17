@@ -33,6 +33,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 // Type for a payment document from Stripe extension
 type Payment = {
@@ -314,40 +315,29 @@ function AccountTab() {
   }, [userProfile]);
 
   const redirectToCustomerPortal = async () => {
-    if (!user) return;
-    setIsPortalLoading(true);
-    
-    // The function URL can be found in the Firebase console after deploying the extension.
-    // It's usually in the format: https://<region>-<project-id>.cloudfunctions.net/ext-invertase-firestore-stripe-payments-createPortalLink
-    const functionURL = 'https://us-central1-studio-9587105821-540bd.cloudfunctions.net/ext-invertase-firestore-stripe-payments-createPortalLink';
-    
-    try {
-        const response = await fetch(functionURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              returnUrl: window.location.href, // Redirect back to this page
-              // Note: The function automatically uses the authenticated user's UID on the backend.
-            }),
-        });
+      if (!user || !firebaseApp) return;
+      setIsPortalLoading(true);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Stripe Portal Error:', errorData);
-          throw new Error(errorData.error?.message || 'La création du portail a échoué. Assurez-vous que l\'URL de l\'application est autorisée dans les paramètres de l\'extension Stripe ou que l\'utilisateur a un ID client Stripe valide.');
-        }
+      try {
+          const functions = getFunctions(firebaseApp, 'us-central1');
+          const createPortalLink = httpsCallable(functions, 'ext-invertase-firestore-stripe-payments-createPortalLink');
+          
+          const { data } = await createPortalLink({
+              returnUrl: window.location.href,
+          });
 
-        const { url } = await response.json();
-        window.location.assign(url);
+          const { url } = data as { url: string };
+          window.location.assign(url);
 
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Erreur d\'accès au portail',
-            description: error.message || "Impossible d'accéder au portail de gestion. Si vous n'avez pas encore d'abonnement, cette fonction ne sera pas disponible."
-        });
-        setIsPortalLoading(false);
-    }
+      } catch (error: any) {
+          console.error('Erreur lors de la création du lien du portail:', error);
+          toast({
+              variant: 'destructive',
+              title: 'Erreur d\'accès au portail',
+              description: error.message || "Impossible d'accéder à la gestion de l'abonnement. Veuillez réessayer plus tard.",
+          });
+          setIsPortalLoading(false);
+      }
   };
 
   const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
