@@ -73,6 +73,7 @@ export default function SignupPage() {
         level: 1,
         xp: 0,
         unlockedAchievements: [],
+        customPrompts: [],
         emailNotifications: true,
         initialPhotoURL: user.photoURL,
         profilePictureUpdateCount: 0,

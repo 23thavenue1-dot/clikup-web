@@ -7,13 +7,13 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { editImage } from '@/ai/flows/edit-image-flow';
-import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +74,7 @@ export default function EditImagePage() {
     
     // State pour la sauvegarde finale
     const [isSaving, setIsSaving] = useState(false);
+    const [isSavingPrompt, setIsSavingPrompt] = useState(false);
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -144,9 +145,13 @@ export default function EditImagePage() {
                 description: '',
                 hashtags: ''
             };
+            
+            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
+            newHistory.push(newHistoryItem);
+            
+            setGeneratedImageHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
 
-            setGeneratedImageHistory(prev => [...prev, newHistoryItem]);
-            setHistoryIndex(generatedImageHistory.length);
 
             await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
@@ -245,6 +250,19 @@ export default function EditImagePage() {
             setIsSaving(false);
         }
     };
+    
+    const handleSavePrompt = async () => {
+        if (!prompt.trim() || !user || !firestore) return;
+        setIsSavingPrompt(true);
+        try {
+            await saveCustomPrompt(firestore, user.uid, prompt);
+            toast({ title: "Prompt sauvegardé", description: "Vous pouvez maintenant le retrouver dans 'Mes Prompts'." });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de sauvegarder le prompt.' });
+        } finally {
+            setIsSavingPrompt(false);
+        }
+    };
 
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
@@ -309,13 +327,26 @@ export default function EditImagePage() {
                             <div className="space-y-2 flex-grow">
                                 <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
                                 <div className="space-y-2">
-                                    <Textarea
-                                        placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
-                                        value={prompt}
-                                        onChange={(e) => setPrompt(e.target.value)}
-                                        rows={3}
-                                        disabled={isGenerating || isSaving}
-                                    />
+                                     <div className="relative">
+                                        <Textarea
+                                            placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
+                                            value={prompt}
+                                            onChange={(e) => setPrompt(e.target.value)}
+                                            rows={3}
+                                            disabled={isGenerating || isSaving}
+                                            className="pr-10"
+                                        />
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                            onClick={handleSavePrompt}
+                                            disabled={!prompt.trim() || isSavingPrompt || isGenerating || isSaving}
+                                            aria-label="Sauvegarder le prompt"
+                                        >
+                                            {isSavingPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
                                     <Accordion type="single" collapsible className="w-full">

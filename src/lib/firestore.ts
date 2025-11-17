@@ -51,7 +51,7 @@ export interface UserProfile {
   level: number;
   xp: number;
   unlockedAchievements: string[];
-  customPrompts?: string[];
+  customPrompts: string[];
   pinnedImageIds?: string[];
   initialPhotoURL: string | null;
   profilePictureUpdateCount: number;
@@ -785,6 +785,35 @@ export async function addMultipleImagesToGalleries(
     } catch (error) {
         console.error("Erreur lors de l'opération en batch sur les galeries :", error);
         throw new Error("Impossible de mettre à jour les galeries.");
+    }
+}
+
+/**
+ * Sauvegarde un prompt personnalisé pour l'utilisateur.
+ * Utilise arrayUnion pour éviter les doublons.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param promptText Le texte du prompt à sauvegarder.
+ */
+export async function saveCustomPrompt(firestore: Firestore, userId: string, promptText: string): Promise<void> {
+    if (!promptText.trim()) {
+        throw new Error("Le prompt ne peut pas être vide.");
+    }
+    const userDocRef = doc(firestore, 'users', userId);
+    
+    try {
+        await updateDoc(userDocRef, {
+            customPrompts: arrayUnion(promptText)
+        });
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: { customPromptToAdd: promptText },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Rethrow the original error to be caught by the calling function
+        throw error;
     }
 }
     
