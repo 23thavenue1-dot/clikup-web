@@ -67,12 +67,13 @@ exports.onPaymentSuccess = functions
 /**
  * Cloud Function that triggers on a subscription change.
  * It updates the subscription status and ticket quotas on the user profile.
+ * It also creates a representative document in the 'payments' collection for history.
  */
 exports.onSubscriptionChange = functions
   .region("us-central1")
   .firestore.document("customers/{userId}/subscriptions/{subId}")
   .onWrite(async (change, context) => {
-    const { userId } = context.params;
+    const { userId, subId } = context.params;
     const afterData = change.after.exists ? change.after.data() : null;
     const beforeData = change.before.exists ? change.before.data() : null;
 
@@ -105,8 +106,31 @@ exports.onSubscriptionChange = functions
       };
 
       try {
+          // A. Update user profile with subscription rights
           await userRef.set(updates, { merge: true });
           functions.logger.info(`Succès ABONNEMENT ! Plan '${tier}' activé pour ${userId}.`, { updates });
+
+          // B. Create a representative payment document for purchase history
+          const priceInfo = afterData.items?.[0]?.price;
+          if (priceInfo) {
+              const paymentForHistory = {
+                  created: afterData.created.seconds, // Use subscription creation time
+                  amount: priceInfo.unit_amount,
+                  currency: priceInfo.currency,
+                  status: 'succeeded',
+                  metadata: {
+                      productName: meta.productName || `Abonnement - ${tier}`
+                  },
+                  // Add a marker to distinguish it from a real payment event
+                  _generated_for_history: true, 
+              };
+              
+              // Use the subscription ID as the payment document ID to prevent duplicates
+              const paymentDocRef = db.doc(`customers/${userId}/payments/sub_${subId}`);
+              await paymentDocRef.set(paymentForHistory);
+              functions.logger.info(`Entrée d'historique créée pour l'abonnement ${subId} pour ${userId}.`);
+          }
+
       } catch (error) {
           functions.logger.error(`Erreur ABONNEMENT lors de l'activation pour ${userId}:`, error);
       }
