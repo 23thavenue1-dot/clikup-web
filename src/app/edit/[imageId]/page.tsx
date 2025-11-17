@@ -420,16 +420,17 @@ export default function EditImagePage() {
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {userProfile.customPrompts.map((p) => (
-                                                             <Button
-                                                                key={p.id}
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="text-xs h-auto py-1 px-2"
-                                                                onClick={() => setPrompt(p.value)}
-                                                                disabled={isGenerating || isSaving}
-                                                            >
-                                                                {p.name}
-                                                            </Button>
+                                                            <div key={p.id}>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="text-xs h-auto py-1 px-2"
+                                                                    onClick={() => setPrompt(p.value)}
+                                                                    disabled={isGenerating || isSaving}
+                                                                >
+                                                                    {p.name}
+                                                                </Button>
+                                                            </div>
                                                         ))}
                                                     </div>
                                                 </AccordionContent>
