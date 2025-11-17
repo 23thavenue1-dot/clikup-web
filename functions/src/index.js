@@ -4,12 +4,15 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 
-admin.initializeApp();
+// Only initialize the app if it hasn't been initialized before
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 
 /**
- * Fonction Cloud qui se déclenche lors de la création d'un paiement unique (pack de tickets).
- * Elle crédite les tickets achetés sur le profil de l'utilisateur.
+ * Cloud Function that triggers when a one-time payment (ticket pack) is created.
+ * It credits the purchased tickets to the user's profile.
  */
 exports.onPaymentSuccess = functions
   .region("us-central1")
@@ -19,11 +22,11 @@ exports.onPaymentSuccess = functions
     const { userId } = context.params;
 
     functions.logger.info(
-      `Déclenchement PAIEMENT pour l'utilisateur ${userId}.`,
+      `PAIEMENT déclenché pour l'utilisateur ${userId}.`,
       { paymentData: payment }
     );
 
-    // Les métadonnées sont maintenant directement sur l'objet 'payment'
+    // Metadata is now directly on the 'payment' object
     const meta = payment.metadata || {}; 
     const uploadTickets = Number(meta.packUploadTickets || 0);
     const aiTickets = Number(meta.packAiTickets || 0);
@@ -62,8 +65,8 @@ exports.onPaymentSuccess = functions
 
 
 /**
- * Nouvelle fonction Cloud qui se déclenche lors d'un changement sur un abonnement.
- * Elle met à jour le statut de l'abonnement et les quotas de tickets sur le profil utilisateur.
+ * Cloud Function that triggers on a subscription change.
+ * It updates the subscription status and ticket quotas on the user profile.
  */
 exports.onSubscriptionChange = functions
   .region("us-central1")
@@ -77,23 +80,17 @@ exports.onSubscriptionChange = functions
 
     const userRef = db.doc(`users/${userId}`);
 
-    // --- CAS 1: L'abonnement devient ACTIF (nouvel abonnement ou réactivation) ---
+    // --- CASE 1: Subscription becomes ACTIVE (new or reactivated) ---
     if (afterData && afterData.status === "active" && (!beforeData || beforeData.status !== "active")) {
       
       const meta = afterData.metadata || {};
       const tier = meta.subscriptionTier || 'none';
-      const stripeCustomerId = afterData.customer; // Récupérer l'ID client Stripe
       
       if (tier === 'none') {
         functions.logger.error(`Erreur ABONNEMENT: 'subscriptionTier' non trouvé dans les métadonnées pour ${userId}.`, { metadata: meta });
         return;
       }
       
-      if (!stripeCustomerId) {
-        functions.logger.error(`Erreur ABONNEMENT: 'customer' (ID client Stripe) non trouvé dans l'objet d'abonnement pour ${userId}.`, { subscriptionData: afterData });
-        return;
-      }
-
       const uploadTickets = meta.monthlyUploadTickets === 'unlimited' 
           ? 999999 
           : Number(meta.monthlyUploadTickets || 0);
@@ -105,7 +102,6 @@ exports.onSubscriptionChange = functions
           subscriptionUploadTickets: uploadTickets,
           subscriptionAiTickets: aiTickets,
           subscriptionRenewalDate: afterData.current_period_end, // timestamp
-          stripeCustomerId: stripeCustomerId, // Sauvegarder l'ID client
       };
 
       try {
@@ -117,7 +113,7 @@ exports.onSubscriptionChange = functions
       return;
     }
 
-    // --- CAS 2: L'abonnement est ANNULÉ, EXPIRÉ ou IMPAYÉ (mais pas encore supprimé) ---
+    // --- CASE 2: Subscription is CANCELED, EXPIRED, or UNPAID (but not yet deleted) ---
     if (afterData && ["canceled", "past_due", "unpaid"].includes(afterData.status) && beforeData?.status === "active") {
        const updates = {
           subscriptionTier: 'none',
@@ -134,7 +130,7 @@ exports.onSubscriptionChange = functions
         return;
     }
     
-    // --- CAS 3: Le document d'abonnement est SUPPRIMÉ ---
+    // --- CASE 3: Subscription document is DELETED ---
     if (!afterData && beforeData) {
        const updates = {
           subscriptionTier: 'none',
@@ -150,5 +146,4 @@ exports.onSubscriptionChange = functions
         }
         return;
     }
-
   });

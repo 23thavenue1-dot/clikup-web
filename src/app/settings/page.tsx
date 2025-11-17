@@ -33,8 +33,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { addDoc, onSnapshot } from 'firebase/firestore';
 
 // Type for a payment document from Stripe extension
 type Payment = {
@@ -288,7 +286,6 @@ function AccountTab() {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
@@ -314,63 +311,6 @@ function AccountTab() {
       setEmailNotifications(userProfile.emailNotifications ?? false);
     }
   }, [userProfile]);
-
-  const redirectToCustomerPortal = async () => {
-    if (!user || !firestore) return;
-    setIsPortalLoading(true);
-    
-    // Si l'utilisateur n'a pas encore de stripeCustomerId, on crée une session de "setup"
-    // pour que Stripe en crée un.
-    if (!userProfile?.stripeCustomerId) {
-      toast({ title: 'Initialisation...', description: 'Création de votre portail sécurisé en cours...' });
-      
-      const setupSessionRef = await addDoc(
-        collection(firestore, 'customers', user.uid, 'checkout_sessions'),
-        {
-          mode: 'setup',
-          success_url: window.location.href, // Revenir sur la même page
-          cancel_url: window.location.href,
-        }
-      );
-      
-      onSnapshot(setupSessionRef, (snap) => {
-        const { error, url } = snap.data() || {};
-        if (error) {
-          console.error(error);
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de créer la session de configuration.' });
-          setIsPortalLoading(false);
-        }
-        if (url) {
-          window.location.assign(url);
-        }
-      });
-      return;
-    }
-    
-    // Si l'utilisateur a déjà un stripeCustomerId, on utilise la fonction Cloud.
-    try {
-        const functions = getFunctions(firebaseApp, 'us-central1');
-        const createPortalLink = httpsCallable(functions, 'ext-invertase-firestore-stripe-payments-createPortalLink');
-        
-        const { data } = await createPortalLink({
-            returnUrl: window.location.href,
-            locale: 'auto', // Laisse Stripe choisir la langue
-            customer: userProfile.stripeCustomerId, // On spécifie le client
-        });
-
-        const { url } = data as { url: string };
-        window.location.assign(url);
-
-    } catch (error: any) {
-        console.error('Erreur lors de la création du lien du portail:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Erreur d\'accès au portail',
-            description: "Une erreur interne est survenue. Veuillez réessayer plus tard ou contacter le support.",
-        });
-        setIsPortalLoading(false);
-    }
-  };
 
   const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
     if (!user || !user.email) return;
@@ -452,28 +392,6 @@ function AccountTab() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Abonnement</CardTitle>
-          <CardDescription>Consultez et gérez votre plan d'abonnement actuel.</CardDescription>
-        </CardHeader>
-        <CardContent>
-           <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <p className="text-sm text-muted-foreground">Votre plan actuel</p>
-                <p className="text-lg font-bold capitalize">{userProfile.subscriptionTier === 'none' ? 'Aucun' : userProfile.subscriptionTier}</p>
-              </div>
-              <Button onClick={redirectToCustomerPortal} disabled={isPortalLoading}>
-                  {isPortalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Gérer mon abonnement <ExternalLink className="ml-2 h-4 w-4"/>
-              </Button>
-            </div>
-        </CardContent>
-         <CardFooter>
-            <p className="text-xs text-muted-foreground">Vous serez redirigé vers notre partenaire de paiement Stripe pour gérer votre abonnement, vos factures et vos moyens de paiement en toute sécurité.</p>
-        </CardFooter>
-      </Card>
-      
       <Card>
         <CardHeader>
           <CardTitle>Sécurité</CardTitle>
