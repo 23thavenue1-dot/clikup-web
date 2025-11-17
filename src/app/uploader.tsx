@@ -127,7 +127,9 @@ export function Uploader() {
     try {
       await uploadFn();
       // La décrémentation est maintenant plus intelligente
-      await decrementTicketCount(firestore, user.uid, userProfile);
+      if (totalUploadTickets !== Infinity) {
+          await decrementTicketCount(firestore, user.uid, userProfile);
+      }
       toast({ title: 'Succès', description: 'Votre image a été enregistrée et 1 ticket a été utilisé.' });
       resetState();
     } catch (error) {

@@ -72,6 +72,8 @@ export interface UserProfile {
   // Nouveaux compteurs pour le suivi de l'IA
   totalImageEdits: number;
   totalDescriptionGenerations: number;
+  // Suivi du stockage
+  storageUsed: number;
 }
 
 
@@ -186,6 +188,7 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
  */
 export function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>): void {
     const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
+    const userDocRef = doc(firestore, 'users', user.uid);
 
     const dataToSave = {
         ...metadata,
@@ -196,12 +199,17 @@ export function saveImageMetadata(firestore: Firestore, user: User, metadata: Om
 
     addDoc(imagesCollectionRef, dataToSave)
       .then(docRef => {
-        // On met ensuite à jour ce même document pour y ajouter son propre ID
-        updateDoc(docRef, { id: docRef.id }).catch(error => {
+        // Mettre à jour l'ID de l'image ET incrémenter le stockage utilisé
+        const updatePromises = [
+            updateDoc(docRef, { id: docRef.id }),
+            updateDoc(userDocRef, { storageUsed: increment(metadata.fileSize || 0) })
+        ];
+        
+        Promise.all(updatePromises).catch(error => {
           const permissionError = new FirestorePermissionError({
-            path: docRef.path,
+            path: docRef.path, // or userDocRef.path
             operation: 'update',
-            requestResourceData: { id: docRef.id },
+            requestResourceData: { id: docRef.id, storageUsed: 'increment' },
           });
           errorEmitter.emit('permission-error', permissionError);
         });
@@ -315,6 +323,7 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
         uploadTimestamp: serverTimestamp(),
         likeCount: 0,
         originalName: new URL(metadata.directUrl).pathname.split('/').pop() || 'image-from-url',
+        fileSize: 0, // Taille de fichier inconnue pour les URL externes
     };
 
     addDoc(imagesCollectionRef, dataToSave)
@@ -345,15 +354,31 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
  * @param userId L'ID de l'utilisateur propriétaire.
  * @param imageId L'ID du document de l'image à supprimer.
  */
-export function deleteImageMetadata(firestore: Firestore, userId: string, imageId: string): void {
+export async function deleteImageMetadata(firestore: Firestore, userId: string, imageId: string): Promise<void> {
   const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
-  deleteDoc(imageDocRef).catch(error => {
+  const userDocRef = doc(firestore, 'users', userId);
+
+  try {
+    const imageDoc = await getDoc(imageDocRef);
+    if (!imageDoc.exists()) return;
+
+    const imageData = imageDoc.data() as ImageMetadata;
+    const fileSize = imageData.fileSize || 0;
+
+    await deleteDoc(imageDocRef);
+
+    // Décrémenter l'espace de stockage utilisé
+    if (fileSize > 0) {
+      await updateDoc(userDocRef, { storageUsed: increment(-fileSize) });
+    }
+  } catch (error) {
     const permissionError = new FirestorePermissionError({
         path: imageDocRef.path,
         operation: 'delete',
     });
     errorEmitter.emit('permission-error', permissionError);
-  });
+    throw error;
+  }
 }
 
 /**
@@ -366,21 +391,23 @@ export function deleteImageMetadata(firestore: Firestore, userId: string, imageI
 export async function deleteMultipleImages(firestore: Firestore, storage: Storage, userId: string, imageIds: string[]): Promise<void> {
     const batch = writeBatch(firestore);
     const imageRefsToDelete: DocumentReference[] = [];
+    let totalSizeFreed = 0;
 
-    // Étape 1 : Récupérer les chemins de stockage et préparer la suppression Firestore
+    // Étape 1 : Récupérer les chemins de stockage et la taille, et préparer la suppression Firestore
     for (const imageId of imageIds) {
         const imageDocRef = doc(firestore, `users/${userId}/images`, imageId);
         imageRefsToDelete.push(imageDocRef);
-        batch.delete(imageDocRef);
     }
     
     const imageDocs = await Promise.all(imageRefsToDelete.map(ref => getDoc(ref)));
 
-    // Étape 2 : Supprimer les fichiers de Storage
+    // Étape 2 : Préparer la suppression de Storage et calculer la taille totale
     const storageDeletePromises = imageDocs
         .map(docSnap => docSnap.data() as ImageMetadata)
         .filter(data => data && data.storagePath)
         .map(data => {
+            totalSizeFreed += (data.fileSize || 0);
+            batch.delete(doc(firestore, `users/${userId}/images`, data.id)); // Ajouter la suppression au batch
             const storageRef = ref(storage, data.storagePath);
             return deleteObject(storageRef).catch(error => {
                 console.warn(`Impossible de supprimer le fichier de Storage: ${data.storagePath}`, error);
@@ -389,7 +416,13 @@ export async function deleteMultipleImages(firestore: Firestore, storage: Storag
 
     await Promise.all(storageDeletePromises);
 
-    // Étape 3 : Exécuter la suppression en batch sur Firestore
+    // Étape 3 : Décrémenter le stockage utilisé sur le profil utilisateur
+    if (totalSizeFreed > 0) {
+        const userDocRef = doc(firestore, 'users', userId);
+        batch.update(userDocRef, { storageUsed: increment(-totalSizeFreed) });
+    }
+
+    // Étape 4 : Exécuter toutes les suppressions et mises à jour Firestore
     await batch.commit().catch(error => {
         const permissionError = new FirestorePermissionError({
             path: `users/${userId}/images`,
@@ -398,7 +431,7 @@ export async function deleteMultipleImages(firestore: Firestore, storage: Storag
         errorEmitter.emit('permission-error', permissionError);
     });
 
-    // Étape 4 (Optionnel mais recommandé) : Retirer les IDs des images de toutes les galeries
+    // Étape 5 (Optionnel mais recommandé) : Retirer les IDs des images de toutes les galeries
     const galleriesQuery = query(collection(firestore, 'users', userId, 'galleries'));
     const galleriesSnapshot = await getDocs(galleriesQuery);
     const galleryUpdateBatch = writeBatch(firestore);

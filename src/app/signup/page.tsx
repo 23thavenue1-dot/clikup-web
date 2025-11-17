@@ -83,6 +83,8 @@ export default function SignupPage() {
         // Suivi IA
         totalImageEdits: 0,
         totalDescriptionGenerations: 0,
+        // Suivi Stockage
+        storageUsed: 0,
       });
 
 
