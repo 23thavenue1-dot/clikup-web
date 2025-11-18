@@ -318,6 +318,11 @@ function ShopContent() {
 
                     {/* --- Packs IA --- */}
                     <TabsContent value="ai-packs" className="pt-8">
+                        <div className="text-center mb-8">
+                            <p className="text-sm text-muted-foreground">
+                                <span className="font-semibold">1 Ticket IA = 1 génération ou modification d'image.</span>
+                            </p>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {aiPacks.map((pack) => (
                                 <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
