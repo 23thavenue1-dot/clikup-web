@@ -22,11 +22,11 @@ Notre projet repose principalement sur Firebase et les services Google AI. La pl
 | Service                             | Usage dans Clikup                                    | Facturation                                                               | Impact sur les Coûts |
 | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- | -------------------- |
 | **Génération de Texte (Gemini)**    | Génération des titres, descriptions, hashtags.       | Basée sur le nombre de "tokens" (mots/caractères) en entrée et en sortie.   | **Modéré**   |
-| **Édition d'Image (Gemini)** | Retouche d'image via des prompts textuels.           | Par image générée (plus cher que l'analyse et la génération de texte).      | **Élevé**       |
+| **Édition d'Image (Gemini)** | Retouche d'image via des prompts textuels.           | **Par image générée.** Le coût réel constaté est d'environ **0,0275 € par génération**.      | **Très Élevé**       |
 
 
 **Analyse consolidée :**
-*   Le **stockage** des images (Storage) et l'**édition par IA** sont les deux principaux centres de coûts.
+*   L'**édition d'image par IA** et le **stockage** (Storage) sont les deux principaux centres de coûts.
 *   Votre système actuel de **tickets quotidiens gratuits** est une excellente stratégie pour maîtriser ces coûts pour l'offre gratuite et prévenir les abus. Il constitue la base de notre modèle Freemium.
 
 ---
@@ -64,7 +64,7 @@ Notre modèle économique doit être attractif, compétitif et rentable. Nous pr
 *   **Prix Proposé :** **19,99 € / mois**.
 *   **Contenu :**
     *   Tickets d'upload **illimités**.
-    *   **400** tickets IA par mois.
+    *   **300** tickets IA par mois.
     *   250 Go de stockage.
     *   Badge "Maître" et support client prioritaire.
 
@@ -93,6 +93,36 @@ Pour les utilisateurs (gratuits ou abonnés) qui ont un besoin ponctuel et inten
 
 *   **Rentabilité :** Les prix proposés pour les abonnements et les packs sont structurés pour couvrir largement les coûts opérationnels estimés (stockage, bande passante, appels API IA), même pour un usage intensif, tout en assurant une marge brute saine pour financer les utilisateurs gratuits et le développement futur.
 *   **Positionnement :** Cette structure tarifaire positionne Clikup comme une solution "premium" mais accessible. Contrairement aux hébergeurs gratuits financés par la publicité, Clikup vend de la **valeur ajoutée** (puissance de l'IA, gain de temps, organisation) et de la **commodité** (limites élevées, stockage étendu). Notre cible n'est pas l'utilisateur qui cherche le "tout gratuit", mais celui qui cherche le **meilleur outil**.
+
+---
+
+### Analyse de Rentabilité - Scénario "Power User" (Abonnement Maître)
+Analysons un cas d'utilisation maximaliste de l'abonnement "Maître" pour vérifier sa rentabilité.
+- **Hypothèses :**
+  - L'utilisateur consomme ses 300 tickets IA.
+  - L'utilisateur atteint 250 Go de stockage.
+- **Calcul des Coûts :**
+  - **Coût IA :** 300 tickets × 0,0275 €/ticket = **8,25 €**
+  - **Coût Stockage :** 250 Go × 0,023 €/Go/mois = **5,75 €**
+  - **Coût Total Mensuel :** 8,25 € + 5,75 € = **14,00 €**
+- **Conclusion :**
+  - **Marge brute :** 19,99 € (prix de l'abonnement) - 14,00 € (coût) = **5,99 €**.
+  - **Le forfait est rentable**, même dans un scénario d'utilisation maximale, ce qui valide la structure tarifaire.
+
+---
+
+### Proposition pour un Futur Forfait "Agence"
+Pour répondre à un besoin de volume encore plus élevé, nous pouvons envisager un forfait "Agence".
+- **Hypothèse :** Forfait offrant 1000 tickets IA par mois.
+- **Calcul des Coûts IA :**
+  - 1000 tickets × 0,0275 €/ticket = **27,50 €**.
+- **Logique de Prix :**
+  - Le prix par ticket de l'abonnement "Maître" est d'environ 0,067 €/ticket. Pour un forfait supérieur, nous pouvons viser un tarif de 0,05 €/ticket pour l'utilisateur.
+  - 1000 tickets × 0,05 €/ticket = 50 €.
+- **Prix Suggéré :** **49,99 € / mois**.
+- **Analyse de Rentabilité :**
+  - **Marge brute (sur les tickets) :** 49,99 € - 27,50 € = **22,49 €**.
+  - Ce prix reste très rentable et cohérent avec la structure dégressive des autres offres.
 
 ---
 
@@ -142,3 +172,4 @@ Cette architecture garantit que l'utilisateur ne perd jamais ce qu'il a payé to
 2.  **Intégrer une solution de paiement :** Mettre en place un service comme Stripe pour gérer les abonnements récurrents et les paiements uniques.
 3.  **Mettre à jour la logique des tickets :** Modifier le code pour que le système puisse gérer les tickets mensuels (pour les abonnés), les quotas de stockage et l'ajout de tickets achetés via les packs.
 4.  **Modifier le modèle de données utilisateur (`backend.json`)** pour inclure les nouveaux champs de tickets.
+```
