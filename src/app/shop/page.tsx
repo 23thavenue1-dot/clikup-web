@@ -99,7 +99,7 @@ const subscriptions = [
         description: 'Pour les agences et les utilisateurs très intensifs ("power users").',
         features: [
             'Tickets d\'upload illimités',
-            '400 tickets IA par mois',
+            '300 tickets IA par mois',
             '250 Go de stockage',
             'Support client prioritaire',
         ],
@@ -108,7 +108,7 @@ const subscriptions = [
         metadata: { 
             subscriptionTier: 'master', 
             monthlyUploadTickets: 'unlimited', 
-            monthlyAiTickets: '400',
+            monthlyAiTickets: '300',
             productName: 'Abonnement - Maître'
         }
     }
