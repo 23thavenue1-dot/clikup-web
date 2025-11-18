@@ -9,6 +9,8 @@ import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl, type UserProfile, decrementTicketCount } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,12 +97,15 @@ export function Uploader() {
 
   const storageLimit = useMemo(() => {
       if (!userProfile) return 0;
+      // @ts-ignore
       return STORAGE_LIMITS[userProfile.subscriptionTier] ?? STORAGE_LIMITS.none;
   }, [userProfile]);
 
   const storageUsed = userProfile?.storageUsed ?? 0;
   const storagePercentage = storageLimit > 0 ? (storageUsed / storageLimit) * 100 : 0;
-  const showStorageWarning = storagePercentage >= 80;
+  
+  const isInGracePeriod = !!(userProfile?.gracePeriodEndDate && userProfile.gracePeriodEndDate.toDate() > new Date());
+  const showStorageWarning = storagePercentage >= 80 && !isInGracePeriod;
 
 
   const resetState = () => {
@@ -271,6 +276,31 @@ export function Uploader() {
 
   return (
     <>
+      {isInGracePeriod && (
+          <Card className="border-destructive bg-destructive/10 dark:bg-destructive/20 mb-6">
+              <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                  <div className="text-destructive mt-1">
+                      <AlertTriangle />
+                  </div>
+                  <div>
+                      <CardTitle className="text-destructive">Action Requise : Stockage Dépassé</CardTitle>
+                      <CardDescription className="text-destructive/80">
+                          Votre abonnement a pris fin et votre stockage utilisé dépasse la limite gratuite.
+                          Vos fichiers les plus anciens seront supprimés après le <strong>{format(userProfile.gracePeriodEndDate!.toDate(), 'd MMMM yyyy', { locale: fr })}</strong>.
+                      </CardDescription>
+                  </div>
+              </CardHeader>
+              <CardFooter>
+                 <Button asChild variant="destructive" size="sm">
+                      <Link href="/shop">
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          Se Réabonner
+                      </Link>
+                  </Button>
+              </CardFooter>
+          </Card>
+      )}
+
       {showStorageWarning && (
           <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/50 mb-6">
               <CardHeader className="flex flex-row items-start gap-4 space-y-0">
@@ -354,17 +384,17 @@ export function Uploader() {
               </TabsList>
 
               <TabsContent value="storage" className="space-y-4 pt-6">
-                   {renderFilePicker(isUploading)}
+                   {renderFilePicker(isUploading || isInGracePeriod)}
                    <Textarea
                       placeholder="Ajoutez une description (optionnel)..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      disabled={isUploading}
+                      disabled={isUploading || isInGracePeriod}
                    />
                    {status.state === 'uploading' && <Progress value={status.progress} className="w-full" />}
                    <Button 
                       onClick={handleStorageUpload} 
-                      disabled={isUploading || !selectedFile} 
+                      disabled={isUploading || !selectedFile || isInGracePeriod} 
                       className="w-full"
                    >
                       {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -378,15 +408,15 @@ export function Uploader() {
                       placeholder="https://example.com/image.png"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      disabled={isUploading}
+                      disabled={isUploading || isInGracePeriod}
                   />
                    <Textarea
                       placeholder="Ajoutez une description (optionnel)..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      disabled={isUploading}
+                      disabled={isUploading || isInGracePeriod}
                   />
-                  <Button onClick={handleUrlUpload} disabled={isUploading || !imageUrl.trim()} className="w-full">
+                  <Button onClick={handleUrlUpload} disabled={isUploading || !imageUrl.trim() || isInGracePeriod} className="w-full">
                       {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Ajouter depuis l'URL
                   </Button>
