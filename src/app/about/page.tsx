@@ -62,7 +62,7 @@ export default function AboutPage() {
                            </p>
                            <ul className="mt-2 pl-6 list-disc">
                                <li><strong>5 tickets de téléversement</strong> par jour.</li>
-                               <li><strong>3 tickets IA</strong> par jour (pour la génération de description ou l'édition d'image).</li>
+                               <li><strong>3 tickets IA</strong> par jour (pour la génération de description ou l'édition d'image), avec une limite de 20 tickets gratuits par mois.</li>
                            </ul>
                            <p className="mt-2">Ce quota est réinitialisé automatiquement toutes les 24 heures.</p>
                        </details>
@@ -83,7 +83,14 @@ export default function AboutPage() {
                             <li>Nous nous réservons le droit de supprimer tout contenu enfreignant ces règles, et le cas échéant, de suspendre ou supprimer le compte utilisateur associé, sans préavis.</li>
                         </ul>
 
-                        <h4 className="font-semibold">b) Limitation de Responsabilité (Concernant l'IA)</h4>
+                        <h4 className="font-semibold">b) Politique de Stockage et d'Abonnement</h4>
+                        <ul className="pl-6 list-disc">
+                            <li>Chaque offre (gratuite ou payante) inclut une limite de stockage. Cette limite s'applique uniquement au <strong>téléversement de nouvelles images</strong>.</li>
+                            <li><strong>Vos images existantes ne sont jamais prises en otage.</strong> Si vous annulez votre abonnement et que votre stockage utilisé dépasse la nouvelle limite de votre forfait, vous ne pourrez plus téléverser de nouvelles images, mais vous conserverez l'accès à toutes vos images existantes pour les consulter ou les télécharger.</li>
+                             <li><strong>Rétention des données :</strong> Pour garantir un service durable, si votre stockage utilisé dépasse la limite de votre forfait gratuit après l'expiration d'un abonnement, une <strong>période de grâce de 90 jours</strong> commence. Durant cette période, nous vous notifierons pour vous inviter à vous réabonner ou à télécharger vos fichiers. Passé ce délai, vos images les plus anciennes seront supprimées jusqu'à ce que votre quota de stockage respecte la limite du forfait gratuit.</li>
+                        </ul>
+
+                        <h4 className="font-semibold">c) Limitation de Responsabilité (Concernant l'IA)</h4>
                          <ul className="pl-6 list-disc">
                             <li>Nos fonctionnalités basées sur l'intelligence artificielle (Gemini) sont des outils créatifs expérimentaux. Les résultats générés (images, textes) peuvent être imprévisibles et ne pas correspondre à vos attentes.</li>
                             <li><strong>Clikup ne peut être tenu responsable</strong> de la nature, de la qualité, ou de la pertinence des résultats produits par l'IA. Nous ne garantissons pas que les résultats seront satisfaisants, précis ou exempts d'artefacts.</li>
