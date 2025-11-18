@@ -11,12 +11,13 @@ import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Image from 'next/image';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2 } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -50,6 +51,13 @@ function formatBytes(bytes: number, decimals = 2) {
     const sizes = ['Octets', 'Ko', 'Mo', 'Go', 'To'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+// Helper pour convertir un data URI en objet File
+async function dataUriToBlob(dataUri: string): Promise<Blob> {
+    const response = await fetch(dataUri);
+    const blob = await response.blob();
+    return blob;
 }
 
 
@@ -263,6 +271,7 @@ export function Uploader() {
     }
     
     setIsGenerating(true);
+    setGeneratedImageUrl(null);
 
     try {
       const result = await generateImage({ prompt });
@@ -278,6 +287,43 @@ export function Uploader() {
         setIsGenerating(false);
     }
   };
+
+  const handleSaveGeneratedImage = async () => {
+        if (!generatedImageUrl || !user || !firebaseApp || !userProfile) return;
+
+        // Estimer la taille du fichier généré et vérifier l'espace
+        const blob = await dataUriToBlob(generatedImageUrl);
+        if ((storageUsed + blob.size) > storageLimit) {
+            toast({
+                variant: 'destructive',
+                title: 'Espace de stockage insuffisant',
+                description: 'L\'image générée est trop volumineuse pour votre quota actuel. Libérez de l\'espace.'
+            });
+            return;
+        }
+
+        const storage = getStorage(firebaseApp);
+        
+        // Utiliser la fonction handleUpload générique
+        await handleUpload(async () => {
+            const newFileName = `ai-generated-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const metadata = await uploadFileAndGetMetadata(
+                storage,
+                user,
+                imageFile,
+                `Généré par IA: ${prompt}`,
+                (progress) => setStatus({ state: 'uploading', progress })
+            );
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Généré par IA: ${prompt}`,
+                description: "Image entièrement générée par l'intelligence artificielle de Clikup."
+            });
+        });
+    };
 
 
   const renderFilePicker = (disabled: boolean) => (
@@ -472,18 +518,49 @@ export function Uploader() {
               </TabsContent>
 
               <TabsContent value="ai" className="space-y-4 pt-6">
-                  <Textarea
-                    placeholder="Décrivez l'image que vous souhaitez créer (ex: un astronaute faisant du surf sur une vague de nébuleuses, style réaliste)..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    rows={4}
-                    disabled={isGenerating}
-                  />
-                  <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt.trim()} className="w-full">
-                      {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                      Générer l'image (1 Ticket IA)
-                  </Button>
-                  {/* Preview and save will go here in the next step */}
+                  {generatedImageUrl ? (
+                    <div className="space-y-4">
+                        <div className="aspect-square relative w-full rounded-lg border bg-muted flex items-center justify-center">
+                            <Image src={generatedImageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
+                        </div>
+                        <Button onClick={handleSaveGeneratedImage} disabled={isUploading} className="w-full">
+                           {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                           Enregistrer dans ma galerie
+                        </Button>
+                        <Button variant="outline" onClick={() => setGeneratedImageUrl(null)} disabled={isUploading}>
+                            Générer une autre image
+                        </Button>
+                    </div>
+                  ) : (
+                    <>
+                        <div className="aspect-square w-full rounded-lg border-2 border-dashed bg-muted flex items-center justify-center">
+                            {isGenerating ? (
+                                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                            ) : (
+                                <Wand2 className="h-10 w-10 text-muted-foreground/30" />
+                            )}
+                        </div>
+                        <Textarea
+                            placeholder="Décrivez l'image que vous souhaitez créer (ex: un astronaute faisant du surf sur une vague de nébuleuses, style réaliste)..."
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            rows={3}
+                            disabled={isGenerating}
+                        />
+                        <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full">
+                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                            Générer l'image (1 Ticket IA)
+                        </Button>
+                        {totalAiTickets <= 0 && !isGenerating && (
+                             <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
+                                <Link href="/shop">
+                                    <ShoppingCart className="mr-2 h-4 w-4"/>
+                                    Plus de tickets ? Rechargez dans la boutique !
+                                </Link>
+                            </Button>
+                        )}
+                    </>
+                  )}
               </TabsContent>
           </Tabs>
           
