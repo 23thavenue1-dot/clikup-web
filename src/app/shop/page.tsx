@@ -5,12 +5,13 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-react';
+import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebase, useUser } from '@/firebase';
-import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/firestore';
 
 
 // Mettre les ID de prix ici pour la configuration.
@@ -32,6 +33,21 @@ const PACK_IDS = {
 
 
 const subscriptions = [
+     {
+        id: 'free_plan',
+        title: 'Gratuit',
+        price: '0 €',
+        period: '/ toujours',
+        description: 'Parfait pour découvrir la plateforme et pour un usage occasionnel.',
+        features: [
+            '5 tickets d\'upload / jour',
+            '3 tickets IA / jour (max 20 / mois)',
+            '200 Mo de stockage',
+            'Accès à toutes les fonctionnalités de base',
+        ],
+        icon: Package,
+        mode: 'free',
+    },
     {
         id: SUBSCRIPTION_IDS.creator,
         title: 'Créateur',
@@ -111,11 +127,19 @@ const aiPacks = [
 ];
 
 
-function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
+function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled: boolean, isCurrentPlan: boolean }) {
     const { firestore } = useFirebase();
     const { user } = useUser();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    
+    if (item.mode === 'free' || isCurrentPlan) {
+        return (
+             <Button disabled className="w-full">
+                {isCurrentPlan ? 'Votre plan actuel' : 'Déjà inclus'}
+            </Button>
+        )
+    }
 
     const handleCheckout = async () => {
         if (!user || !firestore) {
@@ -179,9 +203,15 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
 }
 
 function ShopContent() {
-    const { user } = useUser();
+    const { user, firestore } = useFirebase();
     const { toast } = useToast();
     const searchParams = useSearchParams();
+
+    const userDocRef = useMemoFirebase(() => {
+      if (!user || !firestore) return null;
+      return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
     useEffect(() => {
         const success = searchParams.get('success');
@@ -206,7 +236,7 @@ function ShopContent() {
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="w-full max-w-5xl mx-auto space-y-12">
+            <div className="w-full max-w-7xl mx-auto space-y-12">
                 <header className="text-center">
                     <h1 className="text-4xl font-bold tracking-tight">Boutique</h1>
                     <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -223,7 +253,7 @@ function ShopContent() {
 
                     {/* --- Abonnements --- */}
                     <TabsContent value="subscriptions" className="pt-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {subscriptions.map((sub) => (
                                 <Card key={sub.title} className={sub.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
                                     <CardHeader className="text-center">
@@ -248,7 +278,14 @@ function ShopContent() {
                                         </ul>
                                     </CardContent>
                                     <CardFooter className="mt-auto">
-                                        <CheckoutButton item={sub} disabled={!isUserConnected} />
+                                        <CheckoutButton 
+                                            item={sub} 
+                                            disabled={!isUserConnected} 
+                                            isCurrentPlan={
+                                                (sub.mode === 'free' && (!userProfile || userProfile.subscriptionTier === 'none')) ||
+                                                (sub.metadata?.subscriptionTier === userProfile?.subscriptionTier)
+                                            }
+                                        />
                                     </CardFooter>
                                 </Card>
                             ))}
@@ -272,7 +309,7 @@ function ShopContent() {
                                         <p className="text-sm text-muted-foreground">{pack.description}</p>
                                     </CardContent>
                                     <CardFooter className="mt-auto">
-                                        <CheckoutButton item={pack} disabled={!isUserConnected} />
+                                        <CheckoutButton item={pack} disabled={!isUserConnected} isCurrentPlan={false} />
                                     </CardFooter>
                                 </Card>
                             ))}
@@ -296,7 +333,7 @@ function ShopContent() {
                                         <p className="text-sm text-muted-foreground">{pack.description}</p>
                                     </CardContent>
                                     <CardFooter className="mt-auto">
-                                        <CheckoutButton item={pack} disabled={!isUserConnected} />
+                                        <CheckoutButton item={pack} disabled={!isUserConnected} isCurrentPlan={false} />
                                     </CardFooter>
                                 </Card>
                             ))}
@@ -324,5 +361,3 @@ export default function ShopPage() {
         </Suspense>
     )
 }
-
-    
