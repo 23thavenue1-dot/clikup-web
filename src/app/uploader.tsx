@@ -289,23 +289,25 @@ export function Uploader() {
   };
 
   const handleSaveGeneratedImage = async () => {
-        if (!generatedImageUrl || !user || !firebaseApp || !userProfile) return;
+        if (!generatedImageUrl || !user || !firebaseApp || !userProfile || !firestore) return;
 
-        // Estimer la taille du fichier généré et vérifier l'espace
-        const blob = await dataUriToBlob(generatedImageUrl);
-        if ((storageUsed + blob.size) > storageLimit) {
-            toast({
-                variant: 'destructive',
-                title: 'Espace de stockage insuffisant',
-                description: 'L\'image générée est trop volumineuse pour votre quota actuel. Libérez de l\'espace.'
-            });
-            return;
-        }
+        setIsUploading(true);
+        setStatus({ state: 'processing' });
 
-        const storage = getStorage(firebaseApp);
-        
-        // Utiliser la fonction handleUpload générique
-        await handleUpload(async () => {
+        try {
+            const blob = await dataUriToBlob(generatedImageUrl);
+
+            if ((storageUsed + blob.size) > storageLimit) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Espace de stockage insuffisant',
+                    description: 'L\'image générée est trop volumineuse pour votre quota actuel. Libérez de l\'espace.'
+                });
+                setIsUploading(false);
+                return;
+            }
+
+            const storage = getStorage(firebaseApp);
             const newFileName = `ai-generated-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
@@ -322,7 +324,17 @@ export function Uploader() {
                 title: `Généré par IA: ${prompt}`,
                 description: "Image entièrement générée par l'intelligence artificielle de Clikup."
             });
-        });
+
+            toast({ title: "Création enregistrée !", description: "Votre nouvelle image a été ajoutée à votre galerie." });
+            resetState();
+
+        } catch (error) {
+             const errorMessage = (error as Error).message;
+             setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
+             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: errorMessage });
+        } finally {
+            setIsUploading(false);
+        }
     };
 
 
