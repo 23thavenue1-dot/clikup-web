@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
-import { saveImageMetadata, saveImageFromUrl, type UserProfile, decrementTicketCount } from '@/lib/firestore';
+import { saveImageMetadata, saveImageFromUrl, type UserProfile, decrementTicketCount, decrementAiTicketCount } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -31,6 +31,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import Link from 'next/link';
+import { generateImage } from '@/ai/flows/generate-image-flow';
+
 
 // Limites de stockage en octets (NOUVELLES LIMITES)
 const STORAGE_LIMITS = {
@@ -77,6 +79,11 @@ export function Uploader() {
 
   const [imageUrl, setImageUrl] = useState('');
   
+  // State pour la génération IA
+  const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-gestion du userProfile
@@ -93,6 +100,11 @@ export function Uploader() {
       return Infinity;
     }
     return (userProfile.ticketCount || 0) + (userProfile.subscriptionUploadTickets || 0) + (userProfile.packUploadTickets || 0);
+  }, [userProfile]);
+
+  const totalAiTickets = useMemo(() => {
+    if (!userProfile) return 0;
+    return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
   }, [userProfile]);
 
   const storageLimit = useMemo(() => {
@@ -114,7 +126,10 @@ export function Uploader() {
     setCustomName('');
     setDescription('');
     setImageUrl('');
+    setPrompt('');
+    setGeneratedImageUrl(null);
     setIsUploading(false);
+    setIsGenerating(false);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -229,6 +244,39 @@ export function Uploader() {
       );
       await saveImageMetadata(firestore, user, { ...metadata, description });
     });
+  };
+
+  const handleGenerateImage = async () => {
+    if (!prompt.trim() || !user || !firestore || !userProfile) return;
+
+    if (totalAiTickets <= 0) {
+        toast({
+            variant: 'destructive',
+            title: 'Tickets IA épuisés',
+            description: (
+                <Link href="/shop" className="font-bold underline text-white">
+                    Rechargez dans la boutique !
+                </Link>
+            ),
+        });
+        return;
+    }
+    
+    setIsGenerating(true);
+
+    try {
+      const result = await generateImage({ prompt });
+      setGeneratedImageUrl(result.imageUrl);
+      
+      await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+      
+      toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant l\'enregistrer.' });
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
 
@@ -378,9 +426,10 @@ export function Uploader() {
         </CardHeader>
         <CardContent>
         <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
                   <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
+                  <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4"/>Générer par IA</TabsTrigger>
               </TabsList>
 
               <TabsContent value="storage" className="space-y-4 pt-6">
@@ -420,6 +469,21 @@ export function Uploader() {
                       {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Ajouter depuis l'URL
                   </Button>
+              </TabsContent>
+
+              <TabsContent value="ai" className="space-y-4 pt-6">
+                  <Textarea
+                    placeholder="Décrivez l'image que vous souhaitez créer (ex: un astronaute faisant du surf sur une vague de nébuleuses, style réaliste)..."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={4}
+                    disabled={isGenerating}
+                  />
+                  <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt.trim()} className="w-full">
+                      {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                      Générer l'image (1 Ticket IA)
+                  </Button>
+                  {/* Preview and save will go here in the next step */}
               </TabsContent>
           </Tabs>
           
