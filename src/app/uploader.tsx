@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -33,6 +33,12 @@ import {
 } from "@/components/ui/dialog"
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
+import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
 
 // Limites de stockage en octets (NOUVELLES LIMITES)
@@ -91,6 +97,13 @@ export function Uploader() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  
+  // State pour la description générée
+  const [generatedTitle, setGeneratedTitle] = useState('');
+  const [generatedDescription, setGeneratedDescription] = useState('');
+  const [generatedHashtags, setGeneratedHashtags] = useState('');
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -136,8 +149,12 @@ export function Uploader() {
     setImageUrl('');
     setPrompt('');
     setGeneratedImageUrl(null);
+    setGeneratedTitle('');
+    setGeneratedDescription('');
+    setGeneratedHashtags('');
     setIsUploading(false);
     setIsGenerating(false);
+    setIsGeneratingDescription(false);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -279,7 +296,7 @@ export function Uploader() {
       
       await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
       
-      toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant l\'enregistrer.' });
+      toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant ajouter une description et l\'enregistrer.' });
     } catch (error) {
       const errorMessage = (error as Error).message;
       toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
@@ -288,8 +305,46 @@ export function Uploader() {
     }
   };
 
+  const handleGenerateDescription = async (platform: Platform) => {
+    if (!generatedImageUrl || !user || !userProfile || !firestore) return;
+    if (totalAiTickets <= 0) {
+         toast({
+            variant: 'destructive',
+            title: 'Tickets IA épuisés',
+            description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez dans la boutique ! </Link> )
+        });
+        return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+        const result = await generateImageDescription({ imageUrl: generatedImageUrl, platform: platform });
+        
+        setGeneratedTitle(result.title);
+        setGeneratedDescription(result.description);
+        setGeneratedHashtags(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+
+        await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
+        toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération de description n'a pas pu répondre." });
+    } finally {
+        setIsGeneratingDescription(false);
+    }
+};
+
   const handleSaveGeneratedImage = async () => {
         if (!generatedImageUrl || !user || !firebaseApp || !userProfile || !firestore) return;
+
+        // On vérifie les tickets d'upload ici car c'est une opération d'upload
+        if (totalUploadTickets <= 0 && totalUploadTickets !== Infinity) {
+            toast({
+                variant: 'destructive',
+                title: 'Tickets d\'upload épuisés',
+                description: 'Vous n\'avez plus de tickets pour enregistrer cette image.',
+            });
+            return;
+        }
 
         setIsUploading(true);
         setStatus({ state: 'processing' });
@@ -321,11 +376,18 @@ export function Uploader() {
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Généré par IA: ${prompt}`,
-                description: "Image entièrement générée par l'intelligence artificielle de Clikup."
+                title: generatedTitle || `Généré par IA: ${prompt}`,
+                description: generatedDescription,
+                hashtags: generatedHashtags,
+                generatedByAI: true,
             });
 
-            toast({ title: "Création enregistrée !", description: "Votre nouvelle image a été ajoutée à votre galerie." });
+            // On décrémente un ticket d'upload car c'est une action de sauvegarde
+            if (totalUploadTickets !== Infinity) {
+                await decrementTicketCount(firestore, user.uid, userProfile);
+            }
+
+            toast({ title: "Création enregistrée !", description: "Votre nouvelle image a été ajoutée à votre galerie et 1 ticket upload a été utilisé." });
             resetState();
 
         } catch (error) {
@@ -535,9 +597,43 @@ export function Uploader() {
                         <div className="aspect-square relative w-full rounded-lg border bg-muted flex items-center justify-center">
                             <Image src={generatedImageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
                         </div>
-                        <Button onClick={handleSaveGeneratedImage} disabled={isUploading} className="w-full">
+
+                        <Separator/>
+                        
+                        <div className="space-y-2">
+                          <Label>Titre (optionnel)</Label>
+                          <Input value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description (optionnel)</Label>
+                          <Textarea value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} placeholder="Une description pour votre image..."/>
+                        </div>
+                         <div className="space-y-2">
+                          <Label>Hashtags (optionnel)</Label>
+                          <Input value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} placeholder="#style #art #ia"/>
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full" disabled={isGeneratingDescription || totalAiTickets <= 0}>
+                                {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket IA)"}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56">
+                              <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Separator/>
+
+                        <Button onClick={handleSaveGeneratedImage} disabled={isUploading || (totalUploadTickets <= 0 && totalUploadTickets !== Infinity)} className="w-full">
                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                           Enregistrer dans ma galerie
+                           Enregistrer (1 Ticket Upload)
                         </Button>
                         <Button variant="outline" onClick={() => setGeneratedImageUrl(null)} disabled={isUploading}>
                             Générer une autre image
