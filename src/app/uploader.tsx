@@ -291,7 +291,7 @@ export function Uploader() {
         toast({
             variant: 'destructive',
             title: 'Espace de stockage plein',
-            description: `Libérez de l'espace ou augmentez votre quota pour ajouter de nouvelles images.`
+            description: `Libérez de l'espace ou augmentez votre quota pour ajouter de nouvelles images.`,
         });
         return;
     }
@@ -451,6 +451,7 @@ export function Uploader() {
         });
 
         toast({ title: 'Succès', description: 'Votre image a été enregistrée dans votre galerie.' });
+        // Ne pas réinitialiser l'état ici pour conserver l'historique
         setStatus({ state: 'success', url: metadata.directUrl });
 
     } catch (error) {
