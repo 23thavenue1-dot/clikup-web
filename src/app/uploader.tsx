@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
-import { saveImageMetadata, saveImageFromUrl, type UserProfile, decrementTicketCount, decrementAiTicketCount } from '@/lib/firestore';
+import { saveImageMetadata, saveImageFromUrl, type UserProfile, type CustomPrompt, decrementTicketCount, decrementAiTicketCount, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2 } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -30,13 +30,26 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { suggestionCategories } from '@/lib/ai-prompts';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
@@ -116,6 +129,21 @@ export function Uploader() {
   const [generatedDescription, setGeneratedDescription] = useState('');
   const [generatedHashtags, setGeneratedHashtags] = useState('');
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  
+  // --- States pour la gestion des prompts favoris ---
+  const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
+  const [promptToSave, setPromptToSave] = useState("");
+  const [newPromptName, setNewPromptName] = useState("");
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+
+  const [isDeletePromptDialogOpen, setIsDeletePromptDialogOpen] = useState(false);
+  const [promptToDelete, setPromptToDelete] = useState<CustomPrompt | null>(null);
+  const [isDeletingPrompt, setIsDeletingPrompt] = useState(false);
+
+  const [isEditPromptDialogOpen, setIsEditPromptDialogOpen] = useState(false);
+  const [promptToEdit, setPromptToEdit] = useState<CustomPrompt | null>(null);
+  const [editedPromptName, setEditedPromptName] = useState("");
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -429,6 +457,60 @@ export function Uploader() {
   const handleRedoGeneration = () => {
       if (historyIndex < generatedImageHistory.length - 1) {
           setHistoryIndex(prev => prev + 1);
+      }
+  };
+
+  const openSavePromptDialog = () => {
+    const promptToSaveValue = prompt.trim();
+    if (!promptToSaveValue) return;
+    setPromptToSave(promptToSaveValue);
+    setNewPromptName("");
+    setIsSavePromptDialogOpen(true);
+  };
+  
+  const handleSavePrompt = async () => {
+      if (!promptToSave || !newPromptName.trim() || !user || !firestore) return;
+      setIsSavingPrompt(true);
+      const newCustomPrompt: CustomPrompt = { id: `prompt_${Date.now()}`, name: newPromptName, value: promptToSave };
+      try {
+          await saveCustomPrompt(firestore, user.uid, newCustomPrompt);
+          toast({ title: "Prompt sauvegardé" });
+          setIsSavePromptDialogOpen(false);
+      } catch (error) {
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de sauvegarder le prompt.' });
+      } finally {
+          setIsSavingPrompt(false);
+      }
+  };
+
+  const openDeletePromptDialog = (p: CustomPrompt) => { setPromptToDelete(p); setIsDeletePromptDialogOpen(true); };
+  const handleDeletePrompt = async () => {
+      if (!promptToDelete || !user || !firestore) return;
+      setIsDeletingPrompt(true);
+      try {
+          await deleteCustomPrompt(firestore, user.uid, promptToDelete);
+          toast({ title: "Prompt supprimé" });
+          setIsDeletePromptDialogOpen(false);
+      } catch (error) {
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le prompt.' });
+      } finally {
+          setIsDeletingPrompt(false);
+      }
+  };
+
+  const openEditPromptDialog = (p: CustomPrompt) => { setPromptToEdit(p); setEditedPromptName(p.name); setIsEditPromptDialogOpen(true); };
+  const handleEditPrompt = async () => {
+      if (!promptToEdit || !editedPromptName.trim() || !user || !firestore) return;
+      setIsEditingPrompt(true);
+      const updatedPrompt = { ...promptToEdit, name: editedPromptName };
+      try {
+          await updateCustomPrompt(firestore, user.uid, updatedPrompt);
+          toast({ title: "Prompt renommé" });
+          setIsEditPromptDialogOpen(false);
+      } catch (error) {
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de renommer le prompt.' });
+      } finally {
+          setIsEditingPrompt(false);
       }
   };
 
@@ -753,13 +835,66 @@ export function Uploader() {
                                 <Wand2 className="h-10 w-10 text-muted-foreground/30" />
                             )}
                         </div>
-                        <Textarea
-                            placeholder="Décrivez l'image que vous souhaitez créer (ex: un astronaute faisant du surf sur une vague de nébuleuses, style réaliste)..."
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            rows={3}
-                            disabled={isGenerating}
-                        />
+                         <div className="relative">
+                            <Textarea
+                                placeholder="Décrivez l'image que vous souhaitez créer..."
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                rows={3}
+                                disabled={isGenerating}
+                                className="pr-10"
+                            />
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                disabled={!prompt.trim() || isGenerating}
+                                onClick={openSavePromptDialog}
+                                aria-label="Sauvegarder le prompt"
+                            >
+                                <Star className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
+                            <Accordion type="single" collapsible className="w-full">
+                                {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                                    <AccordionItem value="custom-prompts">
+                                        <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                                            <div className="flex flex-col text-left"><span className="font-semibold">Mes Prompts</span></div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="flex flex-col gap-2 pt-2">
+                                                {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null).map((p) => (
+                                                    <div key={p.id} className="group relative flex items-center">
+                                                        <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating}>
+                                                            {p.name}
+                                                        </Button>
+                                                        <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditPromptDialog(p)} aria-label="Modifier"><Pencil className="h-3 w-3" /></Button>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openDeletePromptDialog(p)} aria-label="Supprimer"><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                )}
+                                {suggestionCategories.map(category => (
+                                    <AccordionItem value={category.name} key={category.name}>
+                                        <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                                            <div className="flex flex-col text-left"><span className="font-semibold">{category.name}</span></div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                {category.prompts.map((p) => (
+                                                    <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating}>{p.title}</Button>
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        </div>
                         <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full">
                             {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                             Générer l'image (1 Ticket IA)
@@ -783,6 +918,68 @@ export function Uploader() {
 
         </CardContent>
       </Card>
+      
+      {/* --- DIALOGS POUR LA GESTION DES PROMPTS --- */}
+      <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                  <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="prompt-name">Nom du prompt</Label>
+                      <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
+                  </div>
+                  <div className="space-y-2">
+                      <Label>Instruction</Label>
+                      <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
+                  <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                      {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Sauvegarder
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
+                  <AlertDialogDescription>Cette action est irréversible et supprimera définitivement ce prompt de votre liste.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeletingPrompt}>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeletePrompt} disabled={isDeletingPrompt} className="bg-destructive hover:bg-destructive/90">
+                      {isDeletingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Supprimer
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+      
+      <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Renommer le prompt</DialogTitle></DialogHeader>
+              <div className="py-4 space-y-2">
+                  <Label htmlFor="edit-prompt-name">Nouveau nom</Label>
+                  <Input id="edit-prompt-name" value={editedPromptName} onChange={(e) => setEditedPromptName(e.target.value)} disabled={isEditingPrompt} />
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="secondary" disabled={isEditingPrompt}>Annuler</Button></DialogClose>
+                  <Button onClick={handleEditPrompt} disabled={isEditingPrompt || !editedPromptName.trim()}>
+                      {isEditingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Enregistrer
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
     </>
   );
 }
+
