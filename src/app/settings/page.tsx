@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Receipt, ExternalLink } from 'lucide-react';
+import { Loader2, Receipt, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,8 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import Link from 'next/link';
+
 
 // Type for a payment document from Stripe extension
 type Payment = {
@@ -481,19 +483,30 @@ function AccountTab() {
             <CardDescription>Consultez votre statut d'abonnement et gérez vos informations de facturation.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                    <Label className="font-medium">Plan Actuel</Label>
-                    <p className="text-lg font-bold capitalize">
-                        {userProfile.subscriptionTier === 'none' ? 'Aucun' : userProfile.subscriptionTier}
-                    </p>
+            <div className="p-4 border rounded-lg space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label className="font-medium">Plan Actuel</Label>
+                        <p className="text-lg font-bold capitalize">
+                            {userProfile.subscriptionTier === 'none' ? 'Aucun' : userProfile.subscriptionTier}
+                        </p>
+                    </div>
+                    {userProfile.subscriptionTier !== 'none' && (
+                        <Button onClick={handleManageSubscription} disabled={isPortalLoading}>
+                            {isPortalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Gérer mon abonnement
+                        </Button>
+                    )}
                 </div>
-                {userProfile.subscriptionTier !== 'none' && (
-                    <Button onClick={handleManageSubscription} disabled={isPortalLoading}>
-                        {isPortalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Gérer mon abonnement
+                <div className="border-t pt-4">
+                     <Button variant="outline" asChild>
+                        <Link href="https://github.com/23thavenue1-dot/clikup-web/issues" target="_blank" rel="noopener noreferrer">
+                           <AlertTriangle className="mr-2 h-4 w-4" />
+                           Signaler un problème
+                           <ExternalLink className="ml-2 h-4 w-4" />
+                        </Link>
                     </Button>
-                )}
+                </div>
             </div>
         </CardContent>
       </Card>
