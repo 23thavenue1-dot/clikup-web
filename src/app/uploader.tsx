@@ -32,7 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import Link from 'next/link';
-import { generateImage } from '@/ai/flows/generate-image-flow';
+import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -95,6 +95,7 @@ export function Uploader() {
   
   // State pour la génération IA
   const [prompt, setPrompt] = useState('');
+  const [refinePrompt, setRefinePrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   
@@ -148,6 +149,7 @@ export function Uploader() {
     setDescription('');
     setImageUrl('');
     setPrompt('');
+    setRefinePrompt('');
     setGeneratedImageUrl(null);
     setGeneratedTitle('');
     setGeneratedDescription('');
@@ -270,36 +272,38 @@ export function Uploader() {
     }, 'upload');
   };
 
-  const handleGenerateImage = async () => {
-    if (!prompt.trim() || !user || !firestore || !userProfile) return;
+  const handleGenerateImage = async (isRefinement = false) => {
+    const currentPrompt = isRefinement ? refinePrompt : prompt;
+    const baseImageUrl = isRefinement ? generatedImageUrl : undefined;
+    
+    if (!currentPrompt.trim() || !user || !firestore || !userProfile) return;
 
     if (totalAiTickets <= 0) {
         toast({
             variant: 'destructive',
             title: 'Tickets IA épuisés',
-            description: (
-                <Link href="/shop" className="font-bold underline text-white">
-                    Rechargez dans la boutique !
-                </Link>
-            ),
+            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
         });
         return;
     }
     
     setIsGenerating(true);
-    // Ne pas réinitialiser generatedImageUrl ici pour que l'ancienne image reste visible pendant la génération
-    // setGeneratedImageUrl(null);
 
     try {
-      const result = await generateImage({ prompt });
-      setGeneratedImageUrl(result.imageUrl);
+        const result = baseImageUrl
+            ? await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt })
+            : await generateImage({ prompt: currentPrompt });
       
-      await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+        setGeneratedImageUrl(result.imageUrl);
       
-      toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant ajouter une description et l\'enregistrer.' });
+        await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+      
+        toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
+        if (isRefinement) setRefinePrompt('');
+
     } catch (error) {
-      const errorMessage = (error as Error).message;
-      toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
+        const errorMessage = (error as Error).message;
+        toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
     } finally {
         setIsGenerating(false);
     }
@@ -596,6 +600,28 @@ export function Uploader() {
                         <Separator/>
                         
                         <div className="space-y-2">
+                          <Label>Affiner l'image</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                                value={refinePrompt} 
+                                onChange={(e) => setRefinePrompt(e.target.value)} 
+                                placeholder="Ex: change la couleur en rouge..."
+                                disabled={isGenerating || isUploading}
+                            />
+                            <Button 
+                                onClick={() => handleGenerateImage(true)} 
+                                disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
+                                variant="secondary"
+                            >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Affiner
+                            </Button>
+                          </div>
+                        </div>
+
+                        <Separator/>
+
+                        <div className="space-y-2">
                           <Label>Titre (optionnel)</Label>
                           <Input value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
                         </div>
@@ -627,7 +653,7 @@ export function Uploader() {
                         <Separator/>
 
                         <div className="grid grid-cols-2 gap-2">
-                            <Button onClick={handleGenerateImage} disabled={isGenerating || isUploading || totalAiTickets <= 0}>
+                            <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || isUploading || totalAiTickets <= 0}>
                                <RefreshCw className="mr-2 h-4 w-4" />
                                Regénérer
                             </Button>
@@ -656,7 +682,7 @@ export function Uploader() {
                             rows={3}
                             disabled={isGenerating}
                         />
-                        <Button onClick={handleGenerateImage} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full">
+                        <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full">
                             {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                             Générer l'image (1 Ticket IA)
                         </Button>
