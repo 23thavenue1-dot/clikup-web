@@ -18,6 +18,7 @@ const GenerateImageInputSchema = z.object({
     .describe(
       "L'instruction en langage naturel pour créer l'image (ex: 'Un chaton jouant avec une pelote de laine, style peinture à l'huile')."
     ),
+  aspectRatio: z.string().optional().describe("Le ratio d'aspect de l'image à générer (ex: '1:1', '16:9')."),
 });
 export type GenerateImageInput = z.infer<typeof GenerateImageInputSchema>;
 
@@ -40,12 +41,13 @@ const generateImageFlow = ai.defineFlow(
     inputSchema: GenerateImageInputSchema,
     outputSchema: GenerateImageOutputSchema,
   },
-  async ({ prompt }) => {
+  async ({ prompt, aspectRatio }) => {
     
     const { media } = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
         prompt: prompt,
         config: {
+             aspectRatio: aspectRatio, // Passer le ratio d'aspect ici
              safetySettings: [
                 { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },

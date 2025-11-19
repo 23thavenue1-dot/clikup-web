@@ -50,6 +50,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { suggestionCategories } from '@/lib/ai-prompts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
@@ -119,6 +120,7 @@ export function Uploader() {
   const [prompt, setPrompt] = useState('');
   const [refinePrompt, setRefinePrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState('1:1');
 
   // Historique des images et descriptions générées
   const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
@@ -289,7 +291,7 @@ export function Uploader() {
         toast({
             variant: 'destructive',
             title: 'Espace de stockage plein',
-            description: `Libérez de l'espace ou augmentez votre quota pour ajouter de nouvelles images.`,
+            description: `Libérez de l'espace ou augmentez votre quota pour ajouter de nouvelles images.`
         });
         return;
     }
@@ -349,7 +351,7 @@ export function Uploader() {
     try {
         const result = baseImageUrl
             ? await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt })
-            : await generateImage({ prompt: currentPrompt });
+            : await generateImage({ prompt: currentPrompt, aspectRatio: aspectRatio });
       
         const newHistoryItem: ImageHistoryItem = {
             imageUrl: result.imageUrl,
@@ -418,7 +420,7 @@ export function Uploader() {
  const handleSaveGeneratedImage = async () => {
     if (!currentHistoryItem || !user || !firebaseApp || !userProfile || !firestore) return;
     
-    setIsUploading(true); // Re-use isUploading state to disable buttons
+    setIsUploading(true);
     
     try {
         setStatus({ state: 'processing' });
@@ -449,7 +451,6 @@ export function Uploader() {
         });
 
         toast({ title: 'Succès', description: 'Votre image a été enregistrée dans votre galerie.' });
-        // Ne pas appeler resetState() ici pour conserver l'historique
         setStatus({ state: 'success', url: metadata.directUrl });
 
     } catch (error) {
@@ -462,7 +463,7 @@ export function Uploader() {
 };
 
   const handleUndoGeneration = () => {
-      if (historyIndex > 0) {
+      if (historyIndex >= 0) {
           setHistoryIndex(prev => prev - 1);
       }
   };
@@ -755,7 +756,7 @@ export function Uploader() {
                            
                            {!isGenerating && generatedImageHistory.length > 0 && (
                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
-                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler" disabled={historyIndex <= 0}>
+                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
                                         <Undo2 className="h-5 w-5" />
                                     </Button>
                                     <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
@@ -826,29 +827,26 @@ export function Uploader() {
                         <Separator/>
 
                         <div className="grid grid-cols-2 gap-2">
-                            <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || isUploading || totalAiTickets <= 0}>
+                            <Button onClick={() => resetState()} disabled={isGenerating || isUploading}>
                                <RefreshCw className="mr-2 h-4 w-4" />
-                               Regénérer
+                               Nouveau
                             </Button>
                             <Button onClick={handleSaveGeneratedImage} disabled={isUploading || isGenerating || (totalUploadTickets <= 0 && totalUploadTickets !== Infinity)}>
                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                Enregistrer
                             </Button>
                         </div>
-                        <Button variant="outline" onClick={() => resetState()} disabled={isUploading || isGenerating}>
-                            Créer une nouvelle image
-                        </Button>
                     </div>
                   ) : (
                     <>
-                        <div className="aspect-square w-full rounded-lg border-2 border-dashed bg-muted flex items-center justify-center">
+                        <div className={cn("aspect-square w-full rounded-lg border-2 border-dashed bg-muted flex items-center justify-center", aspectRatio === '4:5' && 'aspect-[4/5]', aspectRatio === '16:9' && 'aspect-video', aspectRatio === '9:16' && 'aspect-[9/16]')}>
                             {isGenerating ? (
                                 <Loader2 className="h-10 w-10 text-primary animate-spin" />
                             ) : (
                                 <Wand2 className="h-10 w-10 text-muted-foreground/30" />
                             )}
                         </div>
-                         <div className="relative">
+                        <div className='flex gap-2'>
                             <Textarea
                                 placeholder="Décrivez l'image que vous souhaitez créer..."
                                 value={prompt}
@@ -857,16 +855,31 @@ export function Uploader() {
                                 disabled={isGenerating}
                                 className="pr-10"
                             />
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
-                                disabled={!prompt.trim() || isGenerating}
-                                onClick={openSavePromptDialog}
-                                aria-label="Sauvegarder le prompt"
-                            >
-                                <Star className="h-4 w-4" />
-                            </Button>
+                             <div className="relative">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                    disabled={!prompt.trim() || isGenerating}
+                                    onClick={openSavePromptDialog}
+                                    aria-label="Sauvegarder le prompt"
+                                >
+                                    <Star className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Format de l'image" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1:1">Carré (1:1)</SelectItem>
+                                    <SelectItem value="4:5">Portrait (4:5)</SelectItem>
+                                    <SelectItem value="16:9">Paysage (16:9)</SelectItem>
+                                    <SelectItem value="9:16">Story (9:16)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
                             <Accordion type="single" collapsible className="w-full">
