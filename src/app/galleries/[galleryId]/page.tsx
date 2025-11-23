@@ -2,6 +2,7 @@
 
 
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
@@ -38,7 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 
-type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
 
 export default function GalleryDetailPage() {
@@ -618,7 +619,7 @@ export default function GalleryDetailPage() {
                                         <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
                                             <Button 
                                                 variant="outline" 
-                                                className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600"
+                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
                                                 aria-label="Générer avec l'IA"
                                             >
                                                 {isGeneratingDescription ? (
@@ -642,6 +643,11 @@ export default function GalleryDetailPage() {
                                     )}
                                 </Tooltip>
                                 <DropdownMenuContent className="w-56">
+                                     <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}>
+                                        <ShoppingCart className="mr-2 h-4 w-4" />
+                                        <span>Annonce E-commerce</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
                                         <Instagram className="mr-2 h-4 w-4" />
                                         <span>Instagram</span>

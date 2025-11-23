@@ -507,14 +507,16 @@ export function ImageList() {
                                     onClick={() => {
                                         if (isSelectionMode) {
                                             toggleImageSelection(image.id);
+                                        } else {
+                                            openEditDialog(new MouseEvent('click'), image);
                                         }
                                     }}
                                     className={cn(
                                         "group relative flex flex-col transition-all",
-                                        isSelectionMode && "cursor-pointer"
+                                        "cursor-pointer"
                                     )}
                                 >
-                                     <Link href={isSelectionMode ? `#` : `/edit/${image.id}`} className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
+                                     <div className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
                                         {isSelectionMode ? (
                                             <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                                 <div className={cn(
@@ -559,7 +561,7 @@ export function ImageList() {
                                                                 variant="secondary"
                                                                 size="icon"
                                                                 className="h-8 w-8"
-                                                                onClick={(e) => e.preventDefault()}
+                                                                onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 <MoreHorizontal size={16} />
                                                             </Button>
@@ -570,9 +572,11 @@ export function ImageList() {
                                                                 <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
-                                                                <Wand2 className="mr-2 h-4 w-4" />
-                                                                <span>Générer une description</span>
+                                                             <DropdownMenuItem asChild>
+                                                                <Link href={`/edit/${image.id}`} onClick={(e) => e.stopPropagation()}>
+                                                                    <Sparkles className="mr-2 h-4 w-4" />
+                                                                    <span>Éditer avec l'IA</span>
+                                                                </Link>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
                                                                 <CopyPlus className="mr-2 h-4 w-4" />
@@ -580,7 +584,7 @@ export function ImageList() {
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem asChild>
-                                                                <Link href={`/image/${image.id}`}>
+                                                                <Link href={`/image/${image.id}`} onClick={(e) => e.stopPropagation()}>
                                                                     <Share2 className="mr-2 h-4 w-4" />
                                                                     <span>Détails et Partage</span>
                                                                 </Link>
@@ -620,7 +624,7 @@ export function ImageList() {
                                                 {image.description || (image.title ? '' : 'Aucune description.')}
                                             </p>
                                         </div>
-                                    </Link>
+                                    </div>
                                 </div>
                             )})}
                         </div>
@@ -727,7 +731,7 @@ export function ImageList() {
                                             <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
                                                 <Button 
                                                     variant="outline" 
-                                                    className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600"
+                                                    className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
                                                     aria-label="Générer avec l'IA"
                                                 >
                                                     {isGeneratingDescription ? (
