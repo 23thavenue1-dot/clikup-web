@@ -481,26 +481,25 @@ export function ImageList() {
             <Card>
                 <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
                     <AccordionItem value="item-1" className="border-b-0">
-                        <div className="flex items-center justify-between pr-6">
-                            <AccordionTrigger className="flex-1 p-6 hover:no-underline">
-                                <CardHeader className="flex flex-row items-center justify-between p-0 w-full">
-                                    <div className="text-left">
-                                        <CardTitle>Mes images</CardTitle>
-                                        <CardDescription>
-                                            Voici la liste de vos images téléversées ou ajoutées par URL.
-                                        </CardDescription>
-                                    </div>
-                                </CardHeader>
-                            </AccordionTrigger>
-                            {images && images.length > 0 && (
-                                <Button variant="outline" onClick={handleToggleSelectionMode} disabled={isSelectionMode}>
-                                    <BoxSelect className="mr-2 h-4 w-4"/> Sélectionner
-                                </Button>
-                            )}
+                        <div className="flex items-center justify-between p-6">
+                            <div className="flex-1">
+                                <CardTitle>Mes images</CardTitle>
+                                <CardDescription>
+                                    Voici la liste de vos images téléversées ou ajoutées par URL.
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {images && images.length > 0 && (
+                                    <Button variant="outline" onClick={handleToggleSelectionMode} disabled={isSelectionMode}>
+                                        <BoxSelect className="mr-2 h-4 w-4"/> Sélectionner
+                                    </Button>
+                                )}
+                                <AccordionTrigger className="p-2 hover:no-underline [&>svg]:h-5 [&>svg]:w-5" />
+                            </div>
                         </div>
 
                         <AccordionContent>
-                            <CardContent>
+                            <CardContent className="pt-0">
                                 {isLoading && renderSkeleton()}
 
                                 {!isLoading && (!sortedImages || sortedImages.length === 0) && (
@@ -586,7 +585,7 @@ export function ImageList() {
                                                                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                                                         <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
                                                                             <Wand2 className="mr-2 h-4 w-4" />
-                                                                            <span>Modifier la description</span>
+                                                                            <span>Générer une description</span>
                                                                         </DropdownMenuItem>
                                                                         <DropdownMenuSeparator/>
                                                                         <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
