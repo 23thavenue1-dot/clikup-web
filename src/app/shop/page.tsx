@@ -34,7 +34,7 @@ const PACK_IDS = {
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
     ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
     ai_l: 'price_1SU5LQFxufdYfSFc1Eo4tjSP',
-    ai_xl: 'price_1SWDfZFxufdYfSFc0Ww3mD6v', // Nouveau pack 500 tickets
+    ai_xl: 'price_1SWe9iFxufdYfSFcjNtSHtwk', // Nouveau pack 500 tickets
     ai_xxl: 'price_1SWDfrFxufdYfSFc4d0yJjU6', // Nouveau pack 1000 tickets
 };
 
