@@ -107,10 +107,10 @@ export default function ImageDetailPage() {
                                 unoptimized
                             />
                         </div>
-                        <div className="group/copy-item relative">
+                        <div className="relative">
                             <CardTitle className="text-3xl break-words pr-10">{image.title || 'Sans titre'}</CardTitle>
                              {image.title && (
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.title!, 'details-title', 'Titre copié !')}>
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.title!, 'details-title', 'Titre copié !')}>
                                     {copiedField === 'details-title' ? <Check className="text-green-500" /> : <Copy size={16} />}
                                 </Button>
                             )}
@@ -122,21 +122,21 @@ export default function ImageDetailPage() {
                     <CardContent className="space-y-6">
                          <Separator/>
                          <div className="space-y-4">
-                            <div className="group/copy-item relative">
+                            <div className="relative">
                                 <Label className="text-muted-foreground">Description</Label>
                                 <p className="text-base whitespace-pre-wrap pr-8">{image.description || 'Aucune description'}</p>
                                 {image.description && (
-                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.description!, 'details-desc', 'Description copiée !')}>
+                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.description!, 'details-desc', 'Description copiée !')}>
                                         {copiedField === 'details-desc' ? <Check className="text-green-500" /> : <Copy size={16} />}
                                     </Button>
                                 )}
                             </div>
 
-                             <div className="group/copy-item relative">
+                             <div className="relative">
                                 <Label className="text-muted-foreground">Hashtags</Label>
                                 <p className="text-base text-primary pr-8 break-words">{image.hashtags || 'Aucun hashtag'}</p>
                                 {image.hashtags && (
-                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.hashtags!, 'details-tags', 'Hashtags copiés !')}>
+                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.hashtags!, 'details-tags', 'Hashtags copiés !')}>
                                         {copiedField === 'details-tags' ? <Check className="text-green-500" /> : <Copy size={16} />}
                                     </Button>
                                 )}
@@ -146,26 +146,26 @@ export default function ImageDetailPage() {
                          <Separator/>
 
                         <div className="space-y-4">
-                             <div className="group/copy-item relative">
+                             <div className="relative">
                                 <Label className="text-muted-foreground">Lien direct (URL)</Label>
                                 <p className="text-sm pr-8 truncate">{image.directUrl}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.directUrl, 'direct', 'Lien copié !')}>
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.directUrl, 'direct', 'Lien copié !')}>
                                     {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy size={16} />}
                                 </Button>
                             </div>
 
-                             <div className="group/copy-item relative">
+                             <div className="relative">
                                 <Label className="text-muted-foreground">Pour forum (BBCode)</Label>
                                 <p className="text-sm pr-8 truncate">{image.bbCode}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.bbCode, 'bbcode', 'BBCode copié !')}>
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.bbCode, 'bbcode', 'BBCode copié !')}>
                                     {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy size={16} />}
                                 </Button>
                             </div>
 
-                             <div className="group/copy-item relative">
+                             <div className="relative">
                                 <Label className="text-muted-foreground">Pour site web (HTML)</Label>
                                 <p className="text-sm pr-8 truncate">{image.htmlCode}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(image.htmlCode, 'html', 'Code HTML copié !')}>
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.htmlCode, 'html', 'Code HTML copié !')}>
                                     {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy size={16} />}
                                 </Button>
                             </div>
