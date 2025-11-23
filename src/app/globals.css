@@ -1,5 +1,4 @@
 @tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 @layer base {
@@ -101,5 +100,11 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-gradient-ia {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-transparent bg-clip-text;
   }
 }
