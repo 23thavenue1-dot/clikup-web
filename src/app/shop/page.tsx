@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
@@ -130,8 +131,8 @@ const storagePlans = [
         description: 'Pour les collectionneurs d\'images qui ont besoin d\'un espace de départ confortable.',
         features: [
             '250 Go de stockage',
-            'Tickets gratuits journaliers inclus',
-            'Pas de tickets d\'abonnement',
+            'Vos tickets quotidiens gratuits sont conservés',
+            'Abonnement focalisé sur le stockage uniquement',
         ],
         icon: HardDrive,
         mode: 'subscription',
@@ -148,8 +149,8 @@ const storagePlans = [
         description: 'Un espace de stockage conséquent pour les projets d\'envergure et les archives.',
         features: [
             '500 Go de stockage',
-            'Tickets gratuits journaliers inclus',
-            'Pas de tickets d\'abonnement',
+            'Vos tickets quotidiens gratuits sont conservés',
+            'Abonnement focalisé sur le stockage uniquement',
         ],
         icon: HardDrive,
         featured: true,
@@ -167,8 +168,8 @@ const storagePlans = [
         description: 'La solution ultime pour les professionnels et les archivistes du numérique.',
         features: [
             '1 To (1000 Go) de stockage',
-            'Tickets gratuits journaliers inclus',
-            'Pas de tickets d\'abonnement',
+            'Vos tickets quotidiens gratuits sont conservés',
+            'Abonnement focalisé sur le stockage uniquement',
         ],
         icon: HardDrive,
         mode: 'subscription',
