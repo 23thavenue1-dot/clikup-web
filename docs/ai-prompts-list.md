@@ -70,7 +70,31 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 
 ---
 
-## Chapitre 5 : Tendances et Styles Cinématographiques
+## Chapitre 5 : Publicité &amp; Marketing
+
+*Objectif : Créer des visuels de qualité professionnelle pour promouvoir un produit.*
+
+-   **Titre :** "Packshot" E-commerce sur Fond Uni
+    -   **Prompt :** `Détoure parfaitement cet objet et place-le sur un fond de couleur unie et moderne (par exemple, un gris clair #f0f0f0). Ajoute une ombre portée réaliste et douce pour donner du volume. L'éclairage doit être neutre et valorisant, comme dans un studio professionnel, pour révéler les textures du produit.`
+
+-   **Titre :** Mise en Scène "Lifestyle"
+    -   **Prompt :** `Intègre ce produit (vêtement, accessoire, objet) dans une scène de vie quotidienne réaliste et inspirante. L'ambiance doit être chaleureuse et authentique. Assure-toi que le produit reste le point focal de l'image tout en s'intégrant naturellement à son environnement (ex: un café, un parc, un bureau design).`
+
+-   **Titre :** Publicité de Voiture Dynamique
+    -   **Prompt :** `Place cette voiture sur une route de montagne sinueuse au coucher du soleil. Ajoute un effet de flou de mouvement sur les roues et le décor pour simuler une vitesse élevée. L'éclairage doit être spectaculaire, avec des reflets brillants sur la carrosserie pour un rendu dynamique et premium.`
+
+-   **Titre :** Explosion de Saveurs (Culinaire)
+    -   **Prompt :** `Place ce plat ou cette boisson au centre d'une composition dynamique. Ajoute des projections d'ingrédients frais autour (éclaboussures de liquide, herbes volantes, etc.) pour créer une sensation d'explosion de saveurs. L'arrière-plan doit être texturé mais sobre pour faire ressortir le produit.`
+
+-   **Titre :** Présentation Minimaliste &amp; Luxe
+    -   **Prompt :** `Crée une présentation luxueuse et minimaliste pour cet objet (bijou, parfum, technologie). Place-le sur un podium en marbre ou en pierre sombre. L'éclairage doit être très focalisé, créant un "spotlight" sur le produit avec des ombres profondes et des reflets subtils pour un effet haut de gamme.`
+
+-   **Titre :** Avant/Après Impactant
+    -   **Prompt :** `Crée une image "Avant/Après" côte à côte. Sur la partie "Avant", montre une version terne et sans vie du sujet. Sur la partie "Après", montre le même sujet transformé, vibrant de couleur, avec un éclairage parfait et une netteté améliorée pour démontrer l'efficacité d'un produit ou service.`
+
+---
+
+## Chapitre 6 : Tendances et Styles Cinématographiques
 
 *Objectif : Appliquer les looks viraux et les ambiances inspirées du cinéma.*
 
@@ -85,7 +109,7 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 
 ---
 
-## Chapitre 6 : Évasion : Changer l'Arrière-plan
+## Chapitre 7 : Évasion : Changer l'Arrière-plan
 
 *Objectif : Placer le sujet de la photo dans un paysage nouveau et spectaculaire.*
 
@@ -103,7 +127,7 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 
 ---
 
-## Chapitre 7 : Humour & Créativité Décalée
+## Chapitre 8 : Humour &amp; Créativité Décalée
 
 *Objectif : Créer des images amusantes et surprenantes.*
 
@@ -121,7 +145,7 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 
 ---
 
-## Chapitre 8 : Ambiance de Noël
+## Chapitre 9 : Ambiance de Noël
 
 *Objectif : Transformer les photos pour les fêtes de fin d'année.*
 

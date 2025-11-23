@@ -57,6 +57,19 @@ export const suggestionCategories: PromptCategory[] = [
         ]
     },
     {
+        name: "Publicité &amp; Marketing",
+        description: "Créez des visuels de qualité professionnelle pour promouvoir un produit.",
+        icon: "ShoppingBag",
+        prompts: [
+            { title: "'Packshot' E-commerce sur Fond Uni", prompt: "Détoure parfaitement cet objet et place-le sur un fond de couleur unie et moderne (par exemple, un gris clair #f0f0f0). Ajoute une ombre portée réaliste et douce pour donner du volume. L'éclairage doit être neutre et valorisant, comme dans un studio professionnel, pour révéler les textures du produit." },
+            { title: "Mise en Scène 'Lifestyle'", prompt: "Intègre ce produit (vêtement, accessoire, objet) dans une scène de vie quotidienne réaliste et inspirante. L'ambiance doit être chaleureuse et authentique. Assure-toi que le produit reste le point focal de l'image tout en s'intégrant naturellement à son environnement (ex: un café, un parc, un bureau design)." },
+            { title: "Publicité de Voiture Dynamique", prompt: "Place cette voiture sur une route de montagne sinueuse au coucher du soleil. Ajoute un effet de flou de mouvement sur les roues et le décor pour simuler une vitesse élevée. L'éclairage doit être spectaculaire, avec des reflets brillants sur la carrosserie pour un rendu dynamique et premium." },
+            { title: "Explosion de Saveurs (Culinaire)", prompt: "Place ce plat ou cette boisson au centre d'une composition dynamique. Ajoute des projections d'ingrédients frais autour (éclaboussures de liquide, herbes volantes, etc.) pour créer une sensation d'explosion de saveurs. L'arrière-plan doit être texturé mais sobre pour faire ressortir le produit." },
+            { title: "Présentation Minimaliste &amp; Luxe", prompt: "Crée une présentation luxueuse et minimaliste pour cet objet (bijou, parfum, technologie). Place-le sur un podium en marbre ou en pierre sombre. L'éclairage doit être très focalisé, créant un 'spotlight' sur le produit avec des ombres profondes et des reflets subtils pour un effet haut de gamme." },
+            { title: "Avant/Après Impactant", prompt: "Crée une image 'Avant/Après' côte à côte. Sur la partie 'Avant', montre une version terne et sans vie du sujet. Sur la partie 'Après', montre le même sujet transformé, vibrant de couleur, avec un éclairage parfait et une netteté améliorée pour démontrer l'efficacité d'un produit ou service." },
+        ]
+    },
+    {
         name: "Tendances et Styles Cinématographiques",
         description: "Appliquez les looks viraux et les ambiances inspirées du cinéma.",
         icon: "Film",
@@ -78,7 +91,7 @@ export const suggestionCategories: PromptCategory[] = [
         ]
     },
     {
-        name: "Humour & Créativité Décalée",
+        name: "Humour &amp; Créativité Décalée",
         description: "Créez des images amusantes et surprenantes.",
         icon: "PartyPopper",
         prompts: [
