@@ -1,153 +1,138 @@
-# Liste des Prompts IA
+# Liste des Prompts IA : L'Assistant Créatif Ultime
 
-Ce document répertorie toutes les instructions (prompts) prédéfinies utilisées dans la fonctionnalité d'édition d'image par IA, classées par catégorie.
-
----
-
-## Catégorie : Selfie
-
--   **Titre :** Héros de film d'action
-    -   **Prompt :** `Détoure le sujet de la photo et transforme-le en héros d'affiche de film d'action, avec des explosions en arrière-plan et un éclairage dramatique.`
-
--   **Titre :** Portrait d'art
-    -   **Prompt :** `Détoure le sujet et transforme ce selfie en une peinture à l'huile de style classique.`
-
--   **Titre :** Astronaute
-    -   **Prompt :** `Détoure mon visage, ajoute un casque d'astronaute réaliste et place-moi dans l'espace avec un fond de nébuleuses.`
-
--   **Titre :** Cyberpunk
-    -   **Prompt :** `Détoure le sujet et donne-lui une ambiance cyberpunk avec des néons et une atmosphère de nuit pluvieuse en arrière-plan.`
-
--   **Titre :** Aventurier dans la jungle
-    -   **Prompt :** `Détoure le sujet et transforme-moi en aventurier dans une jungle dense et mystérieuse.`
-
--   **Titre :** Style bande dessinée
-    -   **Prompt :** `Applique un style de bande dessinée (comic book) à ce selfie, en détourant bien le sujet.`
-
--   **Titre :** Personnage de jeu vidéo
-    -   **Prompt :** `Fais de ce selfie le portrait d'un personnage de jeu vidéo fantaisie, en détourant parfaitement le sujet de son fond d'origine.`
-
--   **Titre :** Double exposition
-    -   **Prompt :** `Crée un effet de double exposition en superposant mon visage détouré avec un paysage de forêt.`
-
--   **Titre :** Nature sauvage
-    -   **Prompt :** `Détoure le sujet de la photo et remplace l'arrière-plan par un paysage de nature sauvage.`
+Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'image par IA, réorganisées en chapitres thématiques pour une expérience plus moderne, puissante et inspirante.
 
 ---
 
-## Catégorie : Retouches de Portrait
+## Chapitre 1 : Portraits de Qualité Studio
 
--   **Titre :** Lumière douce
-    -   **Prompt :** `Adoucis la lumière sur le visage pour un rendu plus flatteur.`
+*Objectif : Obtenir des portraits dignes d'un photographe professionnel.*
 
--   **Titre :** Peau lissée
-    -   **Prompt :** `Lisse subtilement la peau tout en conservant sa texture naturelle.`
+-   **Titre :** Portrait Idéalisé
+    -   **Prompt :** `Transforme ce portrait pour le rendre plus attractif et charismatique. Optimise la lumière pour sculpter le visage, lisse la peau tout en gardant un aspect naturel, accentue la netteté du regard et donne une expression de confiance subtile.`
 
--   **Titre :** Moins de cernes
-    -   **Prompt :** `Réduis légèrement l'apparence des cernes sous les yeux.`
+-   **Titre :** Portrait "Corporate" Pro
+    -   **Prompt :** `Optimise ce portrait pour un profil professionnel type LinkedIn. Utilise une lumière de studio douce et flatteuse, améliore la netteté des détails et donne au sujet une expression qui inspire la compétence et la confiance.`
 
--   **Titre :** Sourire éclatant
-    -   **Prompt :** `Rends le blanc des yeux et les dents légèrement plus éclatants.`
+-   **Titre :** Lumière Dramatique "Clair-Obscur"
+    -   **Prompt :** `Recrée l'éclairage de ce portrait en style clair-obscur, inspiré des peintures de Rembrandt. Crée un fort contraste entre une lumière douce qui illumine une partie du visage et des ombres profondes pour un effet artistique et intense.`
 
--   **Titre :** Ajouter un sourire
-    -   **Prompt :** `Modifie subtilement l'expression du visage pour ajouter un léger sourire naturel.`
-
--   **Titre :** Regard net
-    -   **Prompt :** `Accentue la netteté sur les yeux, les cils et les sourcils.`
-
--   **Titre :** Couleurs ravivées
-    -   **Prompt :** `Ravive subtilement la couleur naturelle des lèvres et des joues.`
-
--   **Titre :** Effet 'Glow'
-    -   **Prompt :** `Donne à la peau un effet 'glow' sain et lumineux.`
-
--   **Titre :** Anti-brillance
-    -   **Prompt :** `Atténue les reflets de brillance sur la peau.`
-
--   **Titre :** Mâchoire définie
-    -   **Prompt :** `Accentue légèrement la définition de la mâchoire.`
+-   **Titre :** Effet "Glow" Lumineux
+    -   **Prompt :** `Donne à la peau du sujet un effet "glow" sain et lumineux. Adoucis les ombres et ajoute une légère lueur diffuse pour un rendu flatteur et radieux.`
 
 ---
 
-## Catégorie : Changements de Fond
+## Chapitre 2 : Transformeur de Style Artistique
 
--   **Titre :** Plage
-    -   **Prompt :** `Détoure le sujet et remplace l'arrière-plan par une plage de sable blanc et mer turquoise.`
+*Objectif : Appliquer des styles artistiques complets pour réinventer totalement une image.*
 
--   **Titre :** Montagnes
-    -   **Prompt :** `Détoure le sujet et change le fond pour un paysage de montagnes enneigées.`
+-   **Titre :** Style BD Américaine (Comic Book)
+    -   **Prompt :** `Transforme cette photo en une illustration de bande dessinée américaine. Détoure parfaitement le sujet, applique des contours noirs épais, des couleurs primaires vives et un effet de trame (halftone) pour le rendu classique.`
 
--   **Titre :** Tokyo (nuit)
-    -   **Prompt :** `Détoure le sujet et place-le dans une rue de Tokyo la nuit, avec des néons.`
+-   **Titre :** Personnage de Jeu Vidéo AAA
+    -   **Prompt :** `Redessine le sujet comme un personnage principal de jeu vidéo photoréaliste. Détoure-le, intègre une armure légère au design futuriste et place-le dans un décor de science-fiction avec un éclairage épique.`
 
--   **Titre :** Studio
-    -   **Prompt :** `Détoure le sujet et remplace le fond par un fond de studio professionnel gris.`
+-   **Titre :** Figurine Collector
+    -   **Prompt :** `Détoure le sujet et transforme-le en une figurine d'action en plastique articulée, présentée dans son emballage cartonné de jouet collector, comme si elle était neuve.`
 
--   **Titre :** Forêt enchantée
-    -   **Prompt :** `Détoure le sujet et change le fond pour une forêt mystérieuse et enchantée.`
-
--   **Titre :** Champ de lavande
-    -   **Prompt :** `Détoure le sujet et remplace le fond par un champ de lavande au coucher du soleil.`
-
--   **Titre :** Aquarelle
-    -   **Prompt :** `Détoure le sujet et change l'arrière-plan pour un fond abstrait peint à l'aquarelle.`
-
--   **Titre :** Espace
-    -   **Prompt :** `Détoure le sujet et place-le dans l'espace, avec des étoiles et des nébuleuses.`
-
--   **Titre :** Post-apocalyptique
-    -   **Prompt :** `Détoure le sujet et remplace le fond par un paysage urbain post-apocalyptique.`
+-   **Titre :** Peinture à l'Huile Classique
+    -   **Prompt :** `Transforme cette image en une peinture à l'huile de style classique. Imite la texture des coups de pinceau, la richesse des couleurs et la lumière douce typiques des portraits de la Renaissance.`
 
 ---
 
-## Catégorie : Ambiance & Style
+## Chapitre 3 : Voyage dans le Temps
 
--   **Titre :** Cinématographique
-    -   **Prompt :** `Donne à l'image un look cinématographique avec des couleurs intenses.`
+*Objectif : Simuler le vieillissement, le rajeunissement ou donner un aspect historique à une photo.*
 
--   **Titre :** Noir & Blanc
-    -   **Prompt :** `Rends l'image en noir et blanc avec un fort contraste.`
+-   **Titre :** Vision du Futur (Vieillissement)
+    -   **Prompt :** `En te basant sur ce portrait, simule de manière réaliste à quoi pourrait ressembler cette personne dans 30 ans. Ajoute des rides d'expression crédibles, des cheveux grisonnants naturels et ajuste subtilement la texture de la peau pour un effet digne et respectueux.`
 
--   **Titre :** Look Magazine
-    -   **Prompt :** `Augmente le contraste et la saturation pour un look 'couverture de magazine'.`
+-   **Titre :** Retour en Jeunesse
+    -   **Prompt :** `Rajeunis subtilement le sujet de cette photo d'environ 15 ans. Atténue visiblement les rides et ridules, redonne de l'éclat et de l'uniformité à la peau et un peu plus de densité à la chevelure.`
 
--   **Titre :** Style Cyberpunk
-    -   **Prompt :** `Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.`
-
----
-
-## Catégorie : Effets Spéciaux & Créatifs
-
--   **Titre :** Rayons de soleil
-    -   **Prompt :** `Ajoute des rayons de soleil qui traversent l'image.`
-
--   **Titre :** Effet de pluie
-    -   **Prompt :** `Ajoute un effet de pluie et des reflets sur le sol.`
-
--   **Titre :** Effet maquette
-    -   **Prompt :** `Donne à l'image un effet maquette / miniature (tilt-shift).`
-
--   **Titre :** Désintégration
-    -   **Prompt :** `Fais en sorte que le bord du sujet se désintègre en particules.`
-
--   **Titre :** Zoom en mouvement
-    -   **Prompt :** `Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.`
+-   **Titre :** Photo d'Époque (Sépia 1900)
+    -   **Prompt :** `Donne à cette photo l'aspect d'un portrait de studio authentique des années 1900. Applique un filtre sépia riche, un vignettage prononcé, un léger flou sur les bords et une texture de papier ancien.`
 
 ---
 
-## Catégorie : Événements & Saisons
+## Chapitre 4 : Architecte d'Intérieur IA
 
--   **Titre :** Ambiance Noël
-    -   **Prompt :** `Transforme l'éclairage en une ambiance de Noël chaleureuse avec des tons dorés et rouges.`
+*Objectif : Utiliser l'IA pour la décoration et la visualisation d'espaces intérieurs.*
 
--   **Titre :** Neige
-    -   **Prompt :** `Ajoute de la neige qui tombe doucement sur toute l'image.`
+-   **Titre :** Changer de Style (Scandinave)
+    -   **Prompt :** `En gardant la disposition de cette pièce (fenêtres, portes), redécore-la entièrement dans un style scandinave. Utilise du bois clair, une palette de couleurs neutres (blanc, gris, beige), des lignes épurées et ajoute des plantes vertes pour une ambiance lumineuse et minimaliste.`
 
--   **Titre :** Bonnet de Noël
-    -   **Prompt :** `Ajoute un bonnet de Père Noël sur la tête du sujet principal.`
+-   **Titre :** Test de Couleur (Bleu Canard)
+    -   **Prompt :** `Repeins le mur principal de cette pièce en bleu canard. Adapte l'éclairage et les ombres pour que la couleur paraisse naturelle et assure-toi que le mobilier existant s'harmonise avec ce changement.`
 
--   **Titre :** Guirlandes
-    -   **Prompt :** `Incruste des guirlandes lumineuses (bokeh) en arrière-plan.`
+-   **Titre :** Aménagement d'Espace Vide
+    -   **Prompt :** `Aménage cette pièce vide pour en faire un salon moderne et chaleureux. Intègre un canapé confortable, une table basse design, un tapis, des luminaires et des éléments de décoration comme des cadres et des plantes.`
 
--   **Titre :** Fond Hivernal
-    -   **Prompt :** `Change l'arrière-plan pour un paysage d'hiver enneigé.`
+---
+
+## Chapitre 5 : Tendances et Styles Cinématographiques
+
+*Objectif : Appliquer les looks viraux et les ambiances inspirées du cinéma.*
+
+-   **Titre :** Look "Film de Cinéma"
+    -   **Prompt :** `Applique un étalonnage cinématographique à cette image. Ajoute des bandes noires en haut et en bas (format 2.35:1), désature légèrement les couleurs, augmente le contraste et ajoute un grain de film subtil pour un rendu dramatique.`
+
+-   **Titre :** Effet "Pellicule Vintage" (Années 90)
+    -   **Prompt :** `Donne à cette photo l'aspect d'un cliché pris avec une pellicule Kodak Gold des années 90. Applique un grain de film visible, des couleurs chaudes avec des tons jaunes et verts légèrement accentués, et une date orange en bas à droite.`
+
+-   **Trite :** Double Exposition Artistique
+    -   **Prompt :** `Crée un effet de double exposition artistique. Fusionne la silhouette du sujet principal (détouré) avec un paysage de forêt dense, en laissant transparaître les arbres et la lumière à travers le portrait.`
+
+---
+
+## Chapitre 6 : Évasion : Changer l'Arrière-plan
+
+*Objectif : Placer le sujet de la photo dans un paysage nouveau et spectaculaire.*
+
+-   **Titre :** Nuit à Tokyo
+    -   **Prompt :** `Détoure précisément le sujet de l'image et place-le au milieu d'une rue animée de Tokyo la nuit. L'arrière-plan doit être rempli de néons lumineux, de reflets sur le sol mouillé et d'une foule en mouvement.`
+
+-   **Titre :** Sommets des Alpes
+    -   **Prompt :** `Détoure le sujet et intègre-le dans un paysage panoramique des Alpes suisses. L'arrière-plan doit montrer des montagnes majestueuses et enneigées sous un ciel bleu vif.`
+
+-   **Titre :** Plage Paradisiaque
+    -   **Prompt :** `Détoure le sujet et place-le sur une plage de sable blanc des Maldives, avec une mer turquoise et transparente et quelques palmiers en arrière-plan.`
+
+-   **Titre :** Forêt Enchantée
+    -   **Prompt :** `Détoure le sujet et place-le dans une forêt enchantée et mystérieuse, avec des arbres moussus, des rayons de lumière perçant à travers le feuillage et une légère brume au sol.`
+
+---
+
+## Chapitre 7 : Humour & Créativité Décalée
+
+*Objectif : Créer des images amusantes et surprenantes.*
+
+-   **Titre :** La Conquête de la Lune
+    -   **Prompt :** `Détoure le sujet, mets-lui une combinaison d'astronaute, et fais-le planter un drapeau sur la surface de la Lune, avec la Terre visible dans le ciel en arrière-plan.`
+
+-   **Titre :** Mini-Moi
+    -   **Prompt :** `Transforme le sujet en une version miniature (environ 10 cm de haut) et place-le dans l'environnement d'origine pour créer un effet amusant.`
+
+-   **Titre :** Visage sur un Fruit
+    -   **Prompt :** `Prends le visage du sujet et applique-le de manière amusante et caricaturale sur une banane.`
+
+-   **Titre :** Explosion de Popcorn
+    -   **Prompt :** `Remplace l'arrière-plan par une explosion géante de popcorn, avec des grains volant partout autour du sujet.`
+
+---
+
+## Chapitre 8 : Ambiance de Noël
+
+*Objectif : Transformer les photos pour les fêtes de fin d'année.*
+
+-   **Titre :** Fond Hivernal Féérique
+    -   **Prompt :** `Détoure le sujet et remplace l'arrière-plan par un paysage de village enneigé la nuit, avec des lumières de Noël aux fenêtres et un ciel étoilé.`
+
+-   **Titre :** Pull de Noël (et décor)
+    -   **Prompt :** `Habille le sujet avec un pull de Noël un peu kitsch (avec des rennes ou des flocons) et ajoute des décorations de Noël comme des guirlandes lumineuses en arrière-plan.`
+
+-   **Titre :** Studio Photo de Noël
+    -   **Prompt :** `Détoure le sujet et place-le dans un décor de studio photo sur le thème de Noël, avec un sapin décoré, des cadeaux et une fausse neige au sol.`
+
+-   **Titre :** Portrait de Famille version "Noël"
+    -   **Prompt :** `Ajoute un bonnet de Père Noël sur la tête de chaque personne présente sur la photo et transforme l'éclairage pour une ambiance plus chaude et festive.`
