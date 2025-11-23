@@ -711,7 +711,8 @@ export function Uploader() {
                   <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
                   <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
                   <TabsTrigger value="ai" className="data-[state=active]:font-bold">
-                    <Wand2 className="mr-2 h-4 w-4 text-amber-500"/>Générer par IA
+                    <Wand2 className="mr-2 h-4 w-4 text-amber-500"/>
+                    <span className={activeTab === 'ai' ? '' : 'text-foreground'}>Générer par IA</span>
                   </TabsTrigger>
               </TabsList>
 

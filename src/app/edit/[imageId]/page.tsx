@@ -647,8 +647,12 @@ export default function EditImagePage() {
                                             <Separator/>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="outline" className="w-full" disabled={isGeneratingDescription || !hasAiTickets}>
-                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                                    <Button 
+                                                        variant="outline" 
+                                                        className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600" 
+                                                        disabled={isGeneratingDescription || !hasAiTickets}
+                                                    >
+                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
                                                         {isGeneratingDescription ? "Génération..." : "Générer pour..."}
                                                     </Button>
                                                 </DropdownMenuTrigger>
