@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package } from 'lucide-react';
+import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package, HardDrive } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +19,11 @@ import type { UserProfile } from '@/lib/firestore';
 const SUBSCRIPTION_IDS = {
     creator: 'price_1SU6fmFxufdYfSFcC7INtknf',
     pro: 'price_1SU6huFxufdYfSFcWxYURQxZ',
-    master: 'price_1SUAVQFxufdYfSFc6DTV87BX'
+    master: 'price_1SUAVQFxufdYfSFc6DTV87BX',
+    // NOUVEAUX IDs DE STOCKAGE (à créer dans Stripe)
+    storage_250: 'price_STORAGE_250_ID',
+    storage_500: 'price_STORAGE_500_ID',
+    storage_1000: 'price_STORAGE_1000_ID',
 };
 
 const PACK_IDS = {
@@ -110,6 +114,64 @@ const subscriptions = [
             monthlyUploadTickets: 'unlimited', 
             monthlyAiTickets: '300',
             productName: 'Abonnement - Maître'
+        }
+    }
+];
+
+const storagePlans = [
+    {
+        id: SUBSCRIPTION_IDS.storage_250,
+        title: 'Stockage Plus 250',
+        price: '4,99 €',
+        period: '/ mois',
+        description: 'Pour les collectionneurs d\'images qui ont besoin d\'un espace de départ confortable.',
+        features: [
+            '250 Go de stockage',
+            'Tickets gratuits journaliers inclus',
+            'Pas de tickets d\'abonnement',
+        ],
+        icon: HardDrive,
+        mode: 'subscription',
+        metadata: { 
+            subscriptionTier: 'storage_250',
+            productName: 'Abonnement - Stockage 250Go'
+        }
+    },
+    {
+        id: SUBSCRIPTION_IDS.storage_500,
+        title: 'Stockage Plus 500',
+        price: '8,99 €',
+        period: '/ mois',
+        description: 'Un espace de stockage conséquent pour les projets d\'envergure et les archives.',
+        features: [
+            '500 Go de stockage',
+            'Tickets gratuits journaliers inclus',
+            'Pas de tickets d\'abonnement',
+        ],
+        icon: HardDrive,
+        featured: true,
+        mode: 'subscription',
+        metadata: { 
+            subscriptionTier: 'storage_500',
+            productName: 'Abonnement - Stockage 500Go'
+        }
+    },
+    {
+        id: SUBSCRIPTION_IDS.storage_1000,
+        title: 'Stockage Plus 1To',
+        price: '15,99 €',
+        period: '/ mois',
+        description: 'La solution ultime pour les professionnels et les archivistes du numérique.',
+        features: [
+            '1 To (1000 Go) de stockage',
+            'Tickets gratuits journaliers inclus',
+            'Pas de tickets d\'abonnement',
+        ],
+        icon: HardDrive,
+        mode: 'subscription',
+        metadata: { 
+            subscriptionTier: 'storage_1000',
+            productName: 'Abonnement - Stockage 1To'
         }
     }
 ];
@@ -245,13 +307,14 @@ function ShopContent() {
                 </header>
 
                 <Tabs defaultValue="subscriptions" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mx-auto max-w-md">
-                        <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4 mx-auto max-w-2xl">
+                        <TabsTrigger value="subscriptions">Abonnements Créatifs</TabsTrigger>
+                        <TabsTrigger value="storage-plans">Stockage Seul</TabsTrigger>
                         <TabsTrigger value="upload-packs">Packs Upload</TabsTrigger>
                         <TabsTrigger value="ai-packs">Packs IA</TabsTrigger>
                     </TabsList>
 
-                    {/* --- Abonnements --- */}
+                    {/* --- Abonnements Créatifs --- */}
                     <TabsContent value="subscriptions" className="pt-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {subscriptions.map((sub) => (
@@ -291,6 +354,45 @@ function ShopContent() {
                             ))}
                         </div>
                     </TabsContent>
+                    
+                    {/* --- Abonnements Stockage Seul --- */}
+                    <TabsContent value="storage-plans" className="pt-8">
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {storagePlans.map((plan) => (
+                                <Card key={plan.title} className={plan.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
+                                    <CardHeader className="text-center">
+                                        <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
+                                            <plan.icon className="h-6 w-6"/>
+                                        </div>
+                                        <CardTitle>{plan.title}</CardTitle>
+                                        <div>
+                                            <span className="text-3xl font-bold">{plan.price}</span>
+                                            <span className="text-muted-foreground">{plan.period}</span>
+                                        </div>
+                                        <CardDescription>{plan.description}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex-grow">
+                                        <ul className="space-y-2 text-sm">
+                                            {plan.features.map(feature => (
+                                                <li key={feature} className="flex items-center gap-2">
+                                                    <Check className="h-4 w-4 text-green-500"/>
+                                                    <span>{feature}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </CardContent>
+                                    <CardFooter className="mt-auto">
+                                        <CheckoutButton 
+                                            item={plan} 
+                                            disabled={!isUserConnected} 
+                                            isCurrentPlan={plan.metadata?.subscriptionTier === userProfile?.subscriptionTier}
+                                        />
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </div>
+                    </TabsContent>
+
 
                     {/* --- Packs Upload --- */}
                     <TabsContent value="upload-packs" className="pt-8">
