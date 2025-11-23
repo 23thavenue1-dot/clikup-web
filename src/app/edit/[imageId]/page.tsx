@@ -539,7 +539,7 @@ export default function EditImagePage() {
                                         disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets}
                                         className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
                                     >
-                                        {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                                        {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
                                         {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
                                     </Button>
                                 )}
@@ -605,7 +605,7 @@ export default function EditImagePage() {
                                         onClick={() => handleGenerateImage(true)}
                                         disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets || !currentHistoryItem}
                                     >
-                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4 text-amber-400" />}
                                         Affiner la génération
                                     </Button>
                                     {currentHistoryItem?.prompt && (
