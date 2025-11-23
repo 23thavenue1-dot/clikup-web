@@ -125,7 +125,7 @@ const storagePlans = [
     {
         id: SUBSCRIPTION_IDS.storage_250,
         title: 'Stockage Plus 250',
-        price: '4,99 €',
+        price: '7,99 €',
         period: '/ mois',
         description: 'Pour les collectionneurs d\'images qui ont besoin d\'un espace de départ confortable.',
         features: [
@@ -143,7 +143,7 @@ const storagePlans = [
     {
         id: SUBSCRIPTION_IDS.storage_500,
         title: 'Stockage Plus 500',
-        price: '8,99 €',
+        price: '14,99 €',
         period: '/ mois',
         description: 'Un espace de stockage conséquent pour les projets d\'envergure et les archives.',
         features: [
@@ -162,7 +162,7 @@ const storagePlans = [
     {
         id: SUBSCRIPTION_IDS.storage_1000,
         title: 'Stockage Plus 1To',
-        price: '15,99 €',
+        price: '29,99 €',
         period: '/ mois',
         description: 'La solution ultime pour les professionnels et les archivistes du numérique.',
         features: [
@@ -474,3 +474,5 @@ export default function ShopPage() {
         </Suspense>
     )
 }
+
+    
