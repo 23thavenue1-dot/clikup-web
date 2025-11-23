@@ -23,7 +23,7 @@ const SUBSCRIPTION_IDS = {
     // NOUVEAUX IDs DE STOCKAGE (à créer dans Stripe)
     storage_250: 'price_1SWdkzFxufdYfSFcvegKMdHS',
     storage_500: 'price_1SWdpsFxufdYfSFc2Hir38vd',
-    storage_1000: 'price_1SWDbYFxufdYfSFc8V8Q5s9z',
+    storage_1000: 'price_1SWdu1FxufdYfSFcIutiA77D',
 };
 
 const PACK_IDS = {
