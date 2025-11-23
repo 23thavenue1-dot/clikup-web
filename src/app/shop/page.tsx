@@ -30,7 +30,7 @@ const PACK_IDS = {
     upload_s: 'price_1SQImVFxufdYfSFc6oQcKZ3q',
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
-    upload_xl: 'price_1SWDeAFxufdYfSFcFH0Vf8gH', // ID pour le nouveau pack
+    upload_xl: 'price_1SWe4UFxufdYfSFcPngfQNaG', // ID pour le nouveau pack
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
     ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
     ai_l: 'price_1SU5LQFxufdYfSFc1Eo4tjSP',
