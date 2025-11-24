@@ -62,15 +62,15 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="group transition-transform duration-300 ease-out hover:scale-102 hover:-translate-y-0.5">
+        <div>
           <Uploader />
         </div>
 
-        <div className="group transition-transform duration-300 ease-out hover:scale-102 hover:-translate-y-0.5">
+        <div>
           <ImageList />
         </div>
 
-        <div className="group transition-transform duration-300 ease-out hover:scale-102 hover:-translate-y-0.5">
+        <div>
           <NotesSection />
         </div>
 
