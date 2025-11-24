@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
+import { cn } from '@/lib/utils';
 
 
 // Mettre les ID de prix ici pour la configuration.
@@ -325,7 +326,13 @@ function ShopContent() {
                     <TabsContent value="subscriptions" className="pt-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {subscriptions.map((sub) => (
-                                <Card key={sub.title} className={sub.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
+                                <Card 
+                                    key={sub.title} 
+                                    className={cn(
+                                        'flex flex-col transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary',
+                                        sub.featured && 'border-primary ring-2 ring-primary'
+                                    )}
+                                >
                                     <CardHeader className="text-center">
                                         <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <sub.icon className="h-6 w-6"/>
@@ -366,7 +373,13 @@ function ShopContent() {
                     <TabsContent value="storage-plans" className="pt-8">
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {storagePlans.map((plan) => (
-                                <Card key={plan.title} className={plan.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
+                                <Card 
+                                    key={plan.title} 
+                                    className={cn(
+                                        'flex flex-col transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary',
+                                        plan.featured && 'border-primary ring-2 ring-primary'
+                                    )}
+                                >
                                     <CardHeader className="text-center">
                                         <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <plan.icon className="h-6 w-6"/>
@@ -405,7 +418,13 @@ function ShopContent() {
                     <TabsContent value="upload-packs" className="pt-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {uploadPacks.map((pack) => (
-                                <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
+                                <Card 
+                                    key={pack.title} 
+                                    className={cn(
+                                        'flex flex-col transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary',
+                                        pack.featured && 'border-primary ring-2 ring-primary'
+                                    )}
+                                >
                                      <CardHeader className="text-center">
                                          <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <pack.icon className="h-6 w-6"/>
@@ -434,7 +453,13 @@ function ShopContent() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
                             {aiPacks.map((pack) => (
-                                <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
+                                <Card 
+                                    key={pack.title} 
+                                    className={cn(
+                                        'flex flex-col transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary',
+                                        pack.featured && 'border-primary ring-2 ring-primary'
+                                    )}
+                                >
                                     <CardHeader className="text-center">
                                          <div className="inline-block mx-auto p-3 bg-primary/10 text-primary rounded-lg mb-2">
                                             <pack.icon className="h-6 w-6"/>
