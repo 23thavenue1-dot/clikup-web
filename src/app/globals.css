@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 40 33% 97%; /* Ivoire très clair */
+    --background: 40 33% 96%; /* Ivoire légèrement assombri */
     --foreground: 25 50% 15%; /* Brun foncé */
     --card: 38 40% 99%; /* Blanc cassé / Ivoire */
     --card-foreground: 25 50% 15%;
     --popover: 38 40% 99%;
     --popover-foreground: 25 50% 15%;
-    --primary: 340 40% 45%; /* Vieux rose foncé */
+    --primary: 30 15% 40%; /* Taupe / Gris-brun neutre */
     --primary-foreground: 0 0% 100%;
     --secondary: 40 25% 94%; /* Beige clair */
-    --secondary-foreground: 340 40% 45%;
+    --secondary-foreground: 30 15% 30%;
     --muted: 40 25% 94%;
     --muted-foreground: 40 10% 45%; /* Gris-beige */
-    --accent: 340 50% 92%; /* Rose poudré */
-    --accent-foreground: 340 40% 35%;
+    --accent: 40 20% 90%; /* Beige un peu plus soutenu */
+    --accent-foreground: 30 15% 25%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 40 20% 88%; /* Bordure beige */
     --input: 40 20% 88%;
-    --ring: 340 40% 45%;
+    --ring: 30 15% 40%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -101,7 +101,7 @@
   }
   .bg-background {
     background-color: hsl(var(--background));
-    background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--secondary)));
+    background-image: linear-gradient(to top left, hsl(var(--background)) 50%, hsl(var(--secondary)));
     @apply bg-fixed;
   }
   body {
