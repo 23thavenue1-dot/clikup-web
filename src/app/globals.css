@@ -100,8 +100,7 @@
   }
   .bg-background {
     background-color: hsl(var(--background));
-    background-image: 
-        conic-gradient(from 180deg at 50% 50%, hsl(var(--secondary)), hsl(var(--accent) / 0.2), hsl(var(--background)));
+    background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--secondary)));
     @apply bg-fixed;
   }
   body {
