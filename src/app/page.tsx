@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -61,15 +62,15 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="transition-all duration-200 ease-out hover:shadow-xl hover:border-primary border border-transparent rounded-lg">
+        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background">
           <Uploader />
         </div>
 
-        <div className="transition-all duration-200 ease-out hover:shadow-xl hover:border-primary border border-transparent rounded-lg">
+        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background">
           <ImageList />
         </div>
 
-        <div className="transition-all duration-200 ease-out hover:shadow-xl hover:border-primary border border-transparent rounded-lg">
+        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background">
           <NotesSection />
         </div>
 
