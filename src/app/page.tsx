@@ -62,15 +62,15 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background">
+        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary">
           <Uploader />
         </div>
 
-        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background">
+        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary">
           <ImageList />
         </div>
 
-        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background">
+        <div className="rounded-lg transition-all duration-300 hover:shadow-xl hover:border-primary">
           <NotesSection />
         </div>
 
