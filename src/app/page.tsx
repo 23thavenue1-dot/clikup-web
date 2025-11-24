@@ -62,15 +62,15 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="transition-all duration-200 hover:shadow-xl hover:border-primary border border-transparent rounded-lg">
+        <div className="transition-all duration-200 ease-out hover:shadow-xl hover:border-primary border border-transparent rounded-lg hover:animate-shake">
           <Uploader />
         </div>
 
-        <div className="transition-all duration-200 hover:shadow-xl hover:border-primary border border-transparent rounded-lg">
+        <div className="transition-all duration-200 ease-out hover:shadow-xl hover:border-primary border border-transparent rounded-lg hover:animate-shake">
           <ImageList />
         </div>
 
-        <div className="transition-all duration-200 hover:shadow-xl hover:border-primary border border-transparent rounded-lg">
+        <div className="transition-all duration-200 ease-out hover:shadow-xl hover:border-primary border border-transparent rounded-lg hover:animate-shake">
           <NotesSection />
         </div>
 
