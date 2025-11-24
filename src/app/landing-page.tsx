@@ -272,8 +272,11 @@ export function LandingPage() {
 
       {/* Footer */}
       <footer className="py-6 border-t">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Clikup. Tous droits réservés.</p>
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-2">
+            <p>&copy; {new Date().getFullYear()} Clikup. Tous droits réservés.</p>
+            <Link href="/about" className="hover:text-primary hover:underline underline-offset-4 transition-colors">
+                À propos & Guide d'utilisation
+            </Link>
         </div>
       </footer>
     </div>
