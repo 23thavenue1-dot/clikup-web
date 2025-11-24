@@ -558,9 +558,7 @@ export function ImageList() {
                                                             alt={image.originalName || 'Image téléversée'}
                                                             fill
                                                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                                            className={cn(
-                                                                "object-cover bg-muted transition-transform"
-                                                            )}
+                                                            className="object-cover bg-muted"
                                                             unoptimized // Important pour les Data URLs et celles de Storage
                                                         />
                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
