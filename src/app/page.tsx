@@ -63,19 +63,19 @@ export default function Home() {
         </header>
 
         <div className="group">
-          <div className="transition-transform duration-300 ease-out group-hover:scale-[1.03] group-hover:-translate-y-1">
+          <div className="transform transition-transform duration-200 ease-out group-hover:scale-102 group-hover:-translate-y-1">
             <Uploader />
           </div>
         </div>
 
         <div className="group">
-           <div className="transition-transform duration-300 ease-out group-hover:scale-[1.03] group-hover:-translate-y-1">
+           <div className="transform transition-transform duration-200 ease-out group-hover:scale-102 group-hover:-translate-y-1">
             <ImageList />
           </div>
         </div>
 
         <div className="group">
-           <div className="transition-transform duration-300 ease-out group-hover:scale-[1.03] group-hover:-translate-y-1">
+           <div className="transform transition-transform duration-200 ease-out group-hover:scale-102 group-hover:-translate-y-1">
             <NotesSection />
           </div>
         </div>
