@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Navbar } from '@/components/Navbar';
 import { ThemeProvider } from '@/components/theme-provider';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Clikup',
@@ -35,6 +36,14 @@ export default function RootLayout({
             <div className="relative flex flex-col h-full">
               <Navbar />
               <main className="flex-grow pt-16">{children}</main>
+               <footer className="py-4 border-t mt-auto bg-card">
+                <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-2">
+                    <p>&copy; {new Date().getFullYear()} Clikup. Tous droits réservés.</p>
+                    <Link href="/about" className="hover:text-primary hover:underline underline-offset-4 transition-colors">
+                        À propos & Guide d'utilisation
+                    </Link>
+                </div>
+              </footer>
             </div>
             <Toaster />
           </ThemeProvider>
