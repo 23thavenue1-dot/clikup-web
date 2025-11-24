@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -61,16 +62,22 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="group transition-transform duration-200 ease-out hover:scale-[1.01] hover:-translate-y-0.5">
-          <Uploader />
+        <div className="group rounded-lg transition-all duration-300 ease-out hover:shadow-xl">
+          <div className="transition-transform duration-300 ease-out group-hover:scale-[1.005] group-hover:-translate-y-0.5">
+            <Uploader />
+          </div>
         </div>
 
-        <div className="group transition-transform duration-200 ease-out hover:scale-[1.01] hover:-translate-y-0.5">
-          <ImageList />
+        <div className="group rounded-lg transition-all duration-300 ease-out hover:shadow-xl">
+          <div className="transition-transform duration-300 ease-out group-hover:scale-[1.005] group-hover:-translate-y-0.5">
+            <ImageList />
+          </div>
         </div>
 
-        <div className="group transition-transform duration-200 ease-out hover:scale-[1.01] hover:-translate-y-0.5">
-          <NotesSection />
+        <div className="group rounded-lg transition-all duration-300 ease-out hover:shadow-xl">
+          <div className="transition-transform duration-300 ease-out group-hover:scale-[1.005] group-hover:-translate-y-0.5">
+            <NotesSection />
+          </div>
         </div>
 
       </div>
