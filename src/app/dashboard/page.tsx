@@ -292,7 +292,7 @@ export default function DashboardPage() {
               <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
             </header>
 
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
                 <CardHeader>
                     <CardTitle>Progression & Niveau</CardTitle>
                     <CardDescription>Gagnez de l'expérience en débloquant des succès pour monter en niveau.</CardDescription>
@@ -307,7 +307,7 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
 
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
                 <CardHeader>
                     <CardTitle>Utilisation du Stockage</CardTitle>
                     <CardDescription>Votre quota de stockage dépend de votre plan d'abonnement.</CardDescription>
@@ -324,7 +324,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
               <CardHeader>
                 <CardTitle>Statistiques d'Utilisation</CardTitle>
                 <CardDescription>Un aperçu de votre activité sur la plateforme.</CardDescription>
@@ -347,7 +347,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
               <CardHeader>
                 <CardTitle>Tickets Gratuits</CardTitle>
                 <CardDescription>Le solde de vos tickets quotidiens offerts. Cliquez pour en savoir plus.</CardDescription>
@@ -374,7 +374,7 @@ export default function DashboardPage() {
             </Card>
 
             {(userProfile?.subscriptionTier ?? 'none') !== 'none' && (
-              <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+              <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
                   <CardHeader>
                   <CardTitle>Tickets d'Abonnement</CardTitle>
                   <CardDescription>Le solde de vos tickets mensuels inclus dans votre abonnement "{userProfile?.subscriptionTier}".</CardDescription>
@@ -398,7 +398,7 @@ export default function DashboardPage() {
               </Card>
             )}
             
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
               <CardHeader>
                 <CardTitle>Tickets Achetés</CardTitle>
                 <CardDescription>Le solde de vos tickets achetés via des packs dans la boutique.</CardDescription>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
               <CardHeader>
                 <CardTitle>Badges de Niveau</CardTitle>
                 <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5">
+            <Card className="transition-all duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary">
               <CardHeader>
                 <CardTitle>Succès</CardTitle>
                 <CardDescription>Débloquez des succès pour gagner {XP_PER_ACHIEVEMENT} XP chacun.</CardDescription>
