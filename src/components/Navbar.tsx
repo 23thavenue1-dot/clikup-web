@@ -95,8 +95,8 @@ export function Navbar() {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           {/* Left Section */}
           <div className="flex items-center justify-start flex-1">
-            <Link href="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <ImageIcon className="h-6 w-6 text-primary" />
+            <Link href="/" className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+              <ImageIcon className="h-7 w-7 text-primary" />
               <span className="text-gradient-ia">Clikup</span>
             </Link>
           </div>
