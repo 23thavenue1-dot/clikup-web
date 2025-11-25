@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -67,7 +66,6 @@ export default function EditImagePage() {
 
     // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
-    const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     
     // Historique des images et descriptions générées
@@ -139,15 +137,19 @@ export default function EditImagePage() {
             setGeneratedTitle(currentHistoryItem.title);
             setGeneratedDescription(currentHistoryItem.description);
             setGeneratedHashtags(currentHistoryItem.hashtags);
-            // Afficher le prompt qui a généré l'image courante
-            setRefinePrompt(currentHistoryItem.prompt);
+        } else if (originalImage) {
+            // Si on revient à l'état initial, on utilise les infos de l'image originale
+            setGeneratedTitle(originalImage.title || '');
+            setGeneratedDescription(originalImage.description || '');
+            setGeneratedHashtags(originalImage.hashtags || '');
         }
-    }, [currentHistoryItem]);
+    }, [currentHistoryItem, originalImage]);
 
 
-    const handleGenerateImage = async (isRefinement = false) => {
-        const currentPrompt = isRefinement ? refinePrompt : prompt;
-        const baseImageUrl = isRefinement ? currentHistoryItem?.imageUrl : originalImage?.directUrl;
+    const handleGenerateImage = async () => {
+        const currentPrompt = prompt;
+        // On utilise toujours l'image originale comme base pour la première génération
+        const baseImageUrl = originalImage?.directUrl;
 
         if (!currentPrompt || !baseImageUrl || !user || !firestore || !userProfile) return;
 
@@ -168,12 +170,11 @@ export default function EditImagePage() {
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.newImageUrl,
                 prompt: currentPrompt,
-                title: '',
-                description: '',
-                hashtags: ''
+                title: generatedTitle, // On conserve les titres/descriptions précédents
+                description: generatedDescription,
+                hashtags: generatedHashtags
             };
             
-            // Si on est en milieu d'historique, on le coupe avant d'ajouter le nouvel item.
             const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
             newHistory.push(newHistoryItem);
             
@@ -182,8 +183,7 @@ export default function EditImagePage() {
 
 
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
-            if (isRefinement) setRefinePrompt('');
+            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
 
         } catch (error) {
             console.error(error);
@@ -211,7 +211,9 @@ export default function EditImagePage() {
 
 
     const handleGenerateDescription = async (platform: Platform) => {
-        if (!currentHistoryItem || !user || !userProfile) return;
+        const imageToDescribe = currentHistoryItem || originalImage;
+        if (!imageToDescribe || !user || !userProfile) return;
+
         if (totalAiTickets <= 0) {
              toast({
                 variant: 'destructive',
@@ -223,23 +225,33 @@ export default function EditImagePage() {
 
         setIsGeneratingDescription(true);
         try {
-            const result = await generateImageDescription({ imageUrl: currentHistoryItem.imageUrl, platform: platform });
+            const result = await generateImageDescription({ imageUrl: imageToDescribe.directUrl, platform: platform });
             
-            // On met à jour l'item courant de l'historique avec la nouvelle description
-            const updatedHistoryItem: ImageHistoryItem = {
-                ...currentHistoryItem,
-                title: result.title,
-                description: result.description,
-                hashtags: result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ')
-            };
+            const newTitle = result.title;
+            const newDesc = result.description;
+            const newHashtags = result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
+
+            if (currentHistoryItem) {
+                // On met à jour l'item courant de l'historique
+                const updatedHistoryItem: ImageHistoryItem = {
+                    ...currentHistoryItem,
+                    title: newTitle,
+                    description: newDesc,
+                    hashtags: newHashtags,
+                };
+                
+                setGeneratedImageHistory(prev => {
+                    const newHistory = [...prev];
+                    newHistory[historyIndex] = updatedHistoryItem;
+                    return newHistory;
+                });
+            } else {
+                // Pas d'historique, on met à jour l'état local
+                setGeneratedTitle(newTitle);
+                setGeneratedDescription(newDesc);
+                setGeneratedHashtags(newHashtags);
+            }
             
-            setGeneratedImageHistory(prev => {
-                const newHistory = [...prev];
-                newHistory[historyIndex] = updatedHistoryItem;
-                return newHistory;
-            });
-            
-            // L'état local du dialogue sera mis à jour par l'effet sur `currentHistoryItem`
 
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
@@ -251,29 +263,47 @@ export default function EditImagePage() {
     };
 
     const handleSaveAiCreation = async () => {
-        if (!currentHistoryItem || !user || !firebaseApp || !firestore) return;
+        const imageToSave = currentHistoryItem || originalImage;
+        if (!imageToSave || !user || !firebaseApp || !firestore) return;
+        
         setIsSaving(true);
+
         try {
-            const storage = getStorage(firebaseApp);
-            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            const newFileName = `ai-edited-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: blob.type });
-
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
+            const isNewImage = !!currentHistoryItem;
             
-            await saveImageMetadata(firestore, user, { 
-                ...metadata,
-                title: currentHistoryItem.title,
-                description: currentHistoryItem.description,
-                hashtags: currentHistoryItem.hashtags,
-                generatedByAI: true // Marquer que la description vient aussi de l'IA
-            });
+            if (isNewImage) {
+                // Cas 1 : Sauvegarder une NOUVELLE image générée
+                const storage = getStorage(firebaseApp);
+                const blob = await dataUriToBlob(imageToSave.imageUrl);
+                const newFileName = `ai-edited-${Date.now()}.png`;
+                const imageFile = new File([blob], newFileName, { type: blob.type });
 
-            toast({ title: "Création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
+                const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
+                
+                await saveImageMetadata(firestore, user, { 
+                    ...metadata,
+                    title: generatedTitle,
+                    description: generatedDescription,
+                    hashtags: generatedHashtags,
+                    generatedByAI: true
+                });
+                toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
+
+            } else {
+                 // Cas 2 : Mettre à jour la description de l'image ORIGINALE
+                await updateCustomPrompt(firestore, user.uid, {
+                    ...originalImage,
+                    title: generatedTitle,
+                    description: generatedDescription,
+                    hashtags: generatedHashtags,
+                } as any); // Type assertion is a bit loose here
+                toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
+            }
+            router.push('/'); // Rediriger vers l'accueil après la sauvegarde
 
         } catch (error) {
-            console.error("Erreur lors de la sauvegarde de l'image IA :", error);
-            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer la nouvelle image." });
+            console.error("Erreur lors de la sauvegarde :", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer les modifications." });
         } finally {
             setIsSaving(false);
         }
@@ -355,7 +385,7 @@ export default function EditImagePage() {
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex items-center justify-center h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
@@ -379,321 +409,279 @@ export default function EditImagePage() {
 
 
     return (
-        <div className="bg-muted/20 min-h-screen">
-            {/* -- HEADER -- */}
-            <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
-                <div className="container mx-auto p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4"/>
-                                Retour
-                            </Link>
-                        </Button>
-                        <h1 className="text-lg font-semibold tracking-tight hidden sm:block">Édition par IA</h1>
+        <div className="flex h-screen bg-muted/20">
+            {/* -- MAIN CONTENT (Images) -- */}
+            <main className="flex-1 flex flex-col overflow-auto">
+                <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
+                    <div className="container mx-auto p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" size="sm" asChild>
+                                <Link href="/">
+                                    <ArrowLeft className="mr-2 h-4 w-4"/>
+                                    Retour
+                                </Link>
+                            </Button>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <Badge variant="outline" className="h-8 text-sm">
+                                <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                                {totalAiTickets} Tickets IA
+                            </Badge>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                       <Badge variant="outline" className="h-8 text-sm">
-                          <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                           {totalAiTickets} Tickets IA
-                       </Badge>
+                </header>
+
+                <div className="flex-1 container p-4 lg:p-6 flex items-center justify-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full max-w-7xl">
+                        <div className="flex flex-col gap-2">
+                             <p className="text-sm font-semibold text-muted-foreground text-center">AVANT</p>
+                             <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
+                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                             <p className="text-sm font-semibold text-muted-foreground text-center">APRÈS</p>
+                             <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
+                                {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+
+                                {!isGenerating && generatedImageHistory.length > 0 && (
+                                    <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                        <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                            <Undo2 className="h-5 w-5" />
+                                        </Button>
+                                        <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                            <Redo2 className="h-5 w-5" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </header>
-            
-            <div className="container mx-auto">
-                <main className="py-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-                    
-                    {/* --- COLONNE DE GAUCHE : INPUT --- */}
-                    <div className="flex flex-col gap-4">
-                        <p className="text-sm font-semibold text-muted-foreground text-center">AVANT</p>
-                        <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
-                            <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                        </div>
-                        
-                        <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4 flex-grow">
-                            <div className="space-y-2 flex-grow">
-                                <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
-                                <div className="space-y-2">
-                                     <div className="relative">
-                                        <Textarea
-                                            placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
-                                            value={prompt}
-                                            onChange={(e) => setPrompt(e.target.value)}
-                                            rows={3}
-                                            disabled={isGenerating || isSaving}
-                                            className="pr-10"
+            </main>
+
+            {/* --- RIGHT SIDEBAR (Controls) --- */}
+            <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-card border-l flex flex-col h-full">
+                <div className="p-4 border-b">
+                     <h2 className="text-lg font-semibold tracking-tight">Panneau de Contrôle</h2>
+                     <p className="text-sm text-muted-foreground">Pilotez la création de votre image.</p>
+                </div>
+
+                {/* --- Step 1: Generate Image --- */}
+                <div className="p-4 space-y-3">
+                    <Label className="font-semibold">1. Donnez votre instruction</Label>
+                    <div className="relative">
+                        <Textarea
+                            placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            rows={3}
+                            disabled={isGenerating || isSaving}
+                            className="pr-10"
+                        />
+                         <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                    disabled={!prompt || !prompt.trim() || isGenerating || isSaving}
+                                    onClick={openSavePromptDialog}
+                                    aria-label="Sauvegarder le prompt"
+                                >
+                                    <Star className="h-4 w-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                                    <DialogDescription>
+                                        Donnez un nom à cette instruction pour la retrouver facilement plus tard.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="prompt-name">Nom du prompt</Label>
+                                        <Input 
+                                            id="prompt-name"
+                                            value={newPromptName}
+                                            onChange={(e) => setNewPromptName(e.target.value)}
+                                            placeholder="Ex: Style super-héros"
+                                            disabled={isSavingPrompt}
                                         />
-                                        <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
-                                                    disabled={!prompt || !prompt.trim() || isGenerating || isSaving}
-                                                    onClick={openSavePromptDialog}
-                                                    aria-label="Sauvegarder le prompt"
-                                                >
-                                                    <Star className="h-4 w-4" />
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Sauvegarder le prompt</DialogTitle>
-                                                    <DialogDescription>
-                                                        Donnez un nom à cette instruction pour la retrouver facilement plus tard.
-                                                    </DialogDescription>
-                                                </DialogHeader>
-                                                <div className="space-y-4 py-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="prompt-name">Nom du prompt</Label>
-                                                        <Input 
-                                                            id="prompt-name"
-                                                            value={newPromptName}
-                                                            onChange={(e) => setNewPromptName(e.target.value)}
-                                                            placeholder="Ex: Style super-héros"
-                                                            disabled={isSavingPrompt}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label>Instruction</Label>
-                                                        <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
-                                                    </div>
-                                                </div>
-                                                <DialogFooter>
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button>
-                                                    </DialogClose>
-                                                    <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
-                                                        {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                                        Sauvegarder
-                                                    </Button>
-                                                </DialogFooter>
-                                            </DialogContent>
-                                        </Dialog>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Instruction</Label>
+                                        <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
                                     </div>
                                 </div>
-                                <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
-                                    <Accordion type="single" collapsible className="w-full">
-                                        {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
-                                            <AccordionItem value="custom-prompts">
-                                                <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                     <Star className="h-4 w-4 text-yellow-500" />
-                                                    <span className="font-semibold">Mes Prompts</span>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <div className="flex flex-col gap-2 pt-2">
-                                                        {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
-                                                            <div key={p.id} className="group relative flex items-center">
-                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
-                                                                    {p.name}
-                                                                </Button>
-                                                                <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
-                                                                        <Pencil className="h-3 w-3" />
-                                                                    </Button>
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
-                                                                        <Trash2 className="h-3 w-3 text-destructive" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        )}
-                                        {suggestionCategories.map(category => {
-                                            const Icon = getIcon(category.icon);
-                                            return (
-                                                <AccordionItem value={category.name} key={category.name}>
-                                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                        <Icon className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="font-semibold">{category.name}</span>
-                                                    </AccordionTrigger>
-                                                    <AccordionContent>
-                                                        <div className="flex flex-wrap gap-2 pt-2">
-                                                            {category.prompts.map((p) => (
-                                                                <div key={p.title}>
-                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                                        {p.title}
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            );
-                                        })}
-                                    </Accordion>
-                                </div>
-                            </div>
-                            <div className="mt-auto">
-                                 {monthlyLimitReached ? (
-                                    <p className="text-center text-sm text-primary font-semibold">
-                                        Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
-                                    </p>
-                                ) : (
-                                    <Button 
-                                        size="lg"
-                                        onClick={() => handleGenerateImage(false)}
-                                        disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets}
-                                        className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                    >
-                                        {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
-                                        {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button>
+                                    </DialogClose>
+                                    <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                                        {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                        Sauvegarder
                                     </Button>
-                                )}
-                                {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
-                                    <Button variant="link" asChild className="text-sm font-semibold text-primary w-full mt-2">
-                                        <Link href="/shop">
-                                            <ShoppingCart className="mr-2 h-4 w-4"/>
-                                            Plus de tickets ? Rechargez dans la boutique !
-                                        </Link>
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
 
-                     {/* --- COLONNE DE DROITE : OUTPUT --- */}
-                     <div className="flex flex-col gap-4">
-                        <p className="text-sm font-semibold text-muted-foreground text-center">APRÈS</p>
-                        <div className="aspect-square w-full relative rounded-lg border bg-background flex items-center justify-center shadow-sm">
-                            {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                            {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                            {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-
-                           {!isGenerating && generatedImageHistory.length > 0 && (
-                                <div className="absolute top-2 left-2 z-10 flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleUndoGeneration}
-                                        className="bg-background/80"
-                                        aria-label="Annuler la dernière génération"
-                                        disabled={historyIndex < 0}
-                                    >
-                                        <Undo2 className="h-5 w-5" />
-                                    </Button>
-                                     <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleRedoGeneration}
-                                        className="bg-background/80"
-                                        aria-label="Rétablir la génération"
-                                        disabled={historyIndex >= generatedImageHistory.length - 1}
-                                    >
-                                        <Redo2 className="h-5 w-5" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                            <div className="space-y-2 flex-grow">
-                                <h2 className="text-base font-semibold">2. Affinez ou publiez</h2>
-                                <div className="space-y-2">
-                                    <Textarea
-                                        placeholder="Ex: C'est bien, mais rends-le plus lumineux..."
-                                        value={refinePrompt}
-                                        onChange={(e) => setRefinePrompt(e.target.value)}
-                                        rows={2}
-                                        disabled={isGenerating || isSaving || !currentHistoryItem}
-                                    />
-                                    <Button 
-                                        variant="secondary" 
-                                        className="w-full"
-                                        onClick={() => handleGenerateImage(true)}
-                                        disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets || !currentHistoryItem}
-                                    >
-                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4 text-amber-400" />}
-                                        Affiner la génération
-                                    </Button>
-                                    {currentHistoryItem?.prompt && (
-                                        <div className="text-xs text-muted-foreground pt-1 italic">
-                                            Instruction pour cette image : "{currentHistoryItem.prompt}"
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="mt-auto pt-4 space-y-2">
-                                <Separator />
-                                <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full" disabled={!currentHistoryItem || isGenerating || isSaving}>
-                                            <Text className="mr-2 h-4 w-4"/> Générer une description
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Générer une description optimisée</DialogTitle>
-                                            <DialogDescription>
-                                                L'IA va créer un titre, une description et des hashtags pour votre nouvelle image. Un ticket IA sera utilisé.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="gen-title">Titre</Label>
-                                                <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
-                                            </div>
-                                             <div className="space-y-2">
-                                                <Label htmlFor="gen-desc">Description</Label>
-                                                <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
-                                            </div>
-                                             <div className="space-y-2">
-                                                <Label htmlFor="gen-tags">Hashtags</Label>
-                                                <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription}/>
-                                            </div>
-                                            <Separator/>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button 
-                                                        variant="outline" 
-                                                        className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600" 
-                                                        disabled={isGeneratingDescription || !hasAiTickets}
-                                                    >
-                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
-                                                        {isGeneratingDescription ? "Génération..." : "Générer pour..."}
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                             {!hasAiTickets && !isGeneratingDescription && (
-                                                <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
-                                                    <Link href="/shop">
-                                                        <ShoppingCart className="mr-2 h-4 w-4"/>
-                                                        Plus de tickets ? Rechargez dans la boutique !
-                                                    </Link>
+                    {monthlyLimitReached ? (
+                        <p className="text-center text-sm text-primary font-semibold">
+                            Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
+                        </p>
+                    ) : (
+                        <Button 
+                            size="lg"
+                            onClick={() => handleGenerateImage()}
+                            disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets}
+                            className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                        >
+                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
+                            {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
+                        </Button>
+                    )}
+                    {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
+                        <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
+                            <Link href="/shop">
+                                <ShoppingCart className="mr-2 h-4 w-4"/>
+                                Plus de tickets ? Rechargez dans la boutique !
+                            </Link>
+                        </Button>
+                    )}
+                </div>
+                
+                 {/* --- Suggestions --- */}
+                <div className="flex-1 overflow-y-auto px-4">
+                    <Accordion type="single" collapsible className="w-full">
+                        {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                            <AccordionItem value="custom-prompts">
+                                <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                     <Star className="h-4 w-4 text-yellow-500" />
+                                    <span className="font-semibold">Mes Prompts</span>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="flex flex-col gap-2 pt-2">
+                                        {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
+                                            <div key={p.id} className="group relative flex items-center">
+                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                    {p.name}
                                                 </Button>
-                                            )}
+                                                <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
+                                                        <Pencil className="h-3 w-3" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
+                                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        )}
+                        {suggestionCategories.map(category => {
+                            const Icon = getIcon(category.icon);
+                            return (
+                                <AccordionItem value={category.name} key={category.name}>
+                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                        <Icon className="h-4 w-4 text-muted-foreground" />
+                                        <span className="font-semibold">{category.name}</span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {category.prompts.map((p) => (
+                                                <div key={p.title}>
+                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                        {p.title}
+                                                    </Button>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <DialogFooter>
-                                            <DialogClose asChild>
-                                                <Button variant="default">Valider la description</Button>
-                                            </DialogClose>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            );
+                        })}
+                    </Accordion>
+                </div>
 
-                                <Button onClick={handleSaveAiCreation} disabled={!currentHistoryItem || isSaving || isGenerating} size="lg" className="w-full">
-                                    {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
-                                    Enregistrer la création
+
+                {/* --- Step 2: Generate Description & Save --- */}
+                <div className="p-4 mt-auto border-t space-y-3 bg-card">
+                     <Label className="font-semibold">2. Ajoutez une description et sauvegardez</Label>
+                    <div className="flex gap-2">
+                         <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full" disabled={!originalImage || isGenerating || isSaving}>
+                                    <Text className="mr-2 h-4 w-4"/> Rédiger
                                 </Button>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
+                            </DialogTrigger>
+                             <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Générer ou modifier la description</DialogTitle>
+                                    <DialogDescription>
+                                        Rédigez le contenu vous-même ou laissez l'IA créer un titre, une description et des hashtags. (1 ticket IA)
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gen-title">Titre</Label>
+                                        <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gen-desc">Description</Label>
+                                        <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gen-tags">Hashtags</Label>
+                                        <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription}/>
+                                    </div>
+                                    <Separator/>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button 
+                                                variant="outline" 
+                                                className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600" 
+                                                disabled={isGeneratingDescription || !hasAiTickets}
+                                            >
+                                                {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
+                                                {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="default">Valider</Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
 
-            <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
+                        <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full">
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                            Enregistrer
+                        </Button>
+                    </div>
+                </div>
+
+            </aside>
+
+             <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
@@ -744,6 +732,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-
-    
