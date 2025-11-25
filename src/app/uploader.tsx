@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -822,18 +823,28 @@ export function Uploader() {
                                       </div>
                                   </div>
                                   <Separator/>
-                                   <div className="space-y-2">
-                                      <Label>Titre (optionnel)</Label>
-                                      <Input value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label>Description (optionnel)</Label>
-                                      <Textarea value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} placeholder="Une description pour votre image..."/>
-                                    </div>
-                                     <div className="space-y-2">
-                                      <Label>Hashtags (optionnel)</Label>
-                                      <Input value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} placeholder="#style #art #ia"/>
-                                    </div>
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="manual-desc" className="border-b-0">
+                                            <AccordionTrigger className="text-xs font-semibold py-1 hover:no-underline flex items-center gap-2">
+                                                <Pencil className="h-4 w-4" />
+                                                Ajouter une description manuelle
+                                            </AccordionTrigger>
+                                            <AccordionContent className="space-y-2 pt-2">
+                                                <div className="space-y-1">
+                                                  <Label htmlFor="gen-title" className="text-xs">Titre (optionnel)</Label>
+                                                  <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
+                                                </div>
+                                                <div className="space-y-1">
+                                                  <Label htmlFor="gen-desc" className="text-xs">Description (optionnel)</Label>
+                                                  <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} placeholder="Une description..."/>
+                                                </div>
+                                                 <div className="space-y-1">
+                                                  <Label htmlFor="gen-tags" className="text-xs">Hashtags (optionnel)</Label>
+                                                  <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} placeholder="#style #art #ia"/>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
 
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
