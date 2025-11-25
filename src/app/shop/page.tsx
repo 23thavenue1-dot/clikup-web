@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
@@ -20,25 +18,25 @@ import { getStripe } from '@/lib/stripe-client'; // Assurez-vous que ce fichier 
 // Mettre les ID de prix ici pour la configuration.
 // Ces ID doivent correspondre à ceux de votre tableau de bord Stripe.
 const SUBSCRIPTION_IDS = {
-    creator: 'price_1SU6fmFxufdYfSFcC7INtknf',
-    pro: 'price_1SU6huFxufdYfSFcWxYURQxZ',
-    master: 'price_1SUAVQFxufdYfSFc6DTV87BX',
+    creator: 'price_1SXQhCCL0iCpjJii9y46m6uk',
+    pro: 'price_1SXQh9CL0iCpjJiifbU0fjV9',
+    master: 'price_1SXQh6CL0iCpjJiiSn7Jur4x',
     // NOUVEAUX IDs DE STOCKAGE (à créer dans Stripe)
-    storage_250: 'price_1SWdkzFxufdYfSFcvegKMdHS',
-    storage_500: 'price_1SWdpsFxufdYfSFc2Hir38vd',
-    storage_1000: 'price_1SWdu1FxufdYfSFcIutiA77D',
+    storage_250: 'price_1SXQh0CL0iCpjJii8LKkxPgX',
+    storage_500: 'price_1SXQgvCL0iCpjJiiwOXmyVjm',
+    storage_1000: 'price_1SXQgsCL0iCpjJiizxBU54QP',
 };
 
 const PACK_IDS = {
-    upload_s: 'price_1SQImVFxufdYfSFc6oQcKZ3q',
-    upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
-    upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
-    upload_xl: 'price_1SWe4UFxufdYfSFcPngfQNaG', // ID pour le nouveau pack
-    ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
-    ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
-    ai_l: 'price_1SU5LQFxufdYfSFc1Eo4tjSP',
-    ai_xl: 'price_1SWe9iFxufdYfSFcjNtSHtwk', // Nouveau pack 500 tickets
-    ai_xxl: 'price_1SWeE7FxufdYfSFcTps1xqqy', // Nouveau pack 1000 tickets
+    upload_s: 'price_1SXQkRCL0iCpjJii6jhlInvh',
+    upload_m: 'price_1SXQkPCL0iCpjJiippSEbykn',
+    upload_l: 'price_1SXQhSCL0iCpjJiiV16zv5oa',
+    upload_xl: 'price_1SXQgpCL0iCpjJiiAVWBKV1u', // ID pour le nouveau pack
+    ai_s: 'price_1SXQhOCL0iCpjJiiviouOczZ',
+    ai_m: 'price_1SXQhKCL0iCpjJii345BiFGt',
+    ai_l: 'price_1SXQhGCL0iCpjJiiiAn9JQbW',
+    ai_xl: 'price_1SXQgmCL0iCpjJii024e3ntr', // Nouveau pack 500 tickets
+    ai_xxl: 'price_1SXQgcCL0iCpjJiiHvbVStUw', // Nouveau pack 1000 tickets
 };
 
 
