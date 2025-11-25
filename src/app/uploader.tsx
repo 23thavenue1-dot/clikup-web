@@ -755,17 +755,26 @@ export function Uploader() {
               </TabsContent>
 
               <TabsContent value="ai" className="space-y-4 pt-6">
-                  {currentHistoryItem ? (
-                    <div className="space-y-4">
-                        <div className="aspect-square relative w-full rounded-lg border bg-muted flex items-center justify-center">
-                           {isGenerating && (
-                              <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg">
-                                 <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                              </div>
-                           )}
-                           <Image src={currentHistoryItem.imageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
-                           
-                           {!isGenerating && generatedImageHistory.length > 0 && (
+                <div className="flex flex-col md:flex-row gap-4 h-full">
+                    {/* Main Content (Image Preview) */}
+                    <main className="flex-1 flex flex-col gap-2">
+                        <div className={cn(
+                            "aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-sm",
+                             aspectRatio === '4:5' && 'aspect-[4/5]',
+                             aspectRatio === '16:9' && 'aspect-video',
+                             aspectRatio === '9:16' && 'aspect-[9/16]'
+                        )}>
+                            {isGenerating && (
+                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg">
+                                   <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                                </div>
+                            )}
+                            {currentHistoryItem?.imageUrl ? (
+                                <Image src={currentHistoryItem.imageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
+                            ) : (
+                                <Wand2 className="h-12 w-12 text-muted-foreground/30"/>
+                            )}
+                             {!isGenerating && generatedImageHistory.length > 0 && (
                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
                                     <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
                                         <Undo2 className="h-5 w-5" />
@@ -776,187 +785,196 @@ export function Uploader() {
                                 </div>
                             )}
                         </div>
+                         {currentHistoryItem?.prompt && (
+                           <div className="text-xs text-muted-foreground pt-1 italic text-center">
+                               Instruction pour cette image : "{currentHistoryItem.prompt}"
+                           </div>
+                       )}
+                    </main>
 
-                        <Separator/>
+                    {/* Right Sidebar (Controls) */}
+                    <aside className="w-full md:w-[320px] flex-shrink-0 bg-card rounded-lg border flex flex-col h-full">
+                         <div className="p-4 border-b">
+                             <h2 className="text-base font-semibold tracking-tight">Générer par IA</h2>
+                             <p className="text-xs text-muted-foreground">Créez une image de zéro ou affinez une création.</p>
+                        </div>
                         
-                        <div className="space-y-2">
-                          <Label>Affiner l'image</Label>
-                          <div className="flex items-center gap-2">
-                            <Input 
-                                value={refinePrompt} 
-                                onChange={(e) => setRefinePrompt(e.target.value)} 
-                                placeholder="Ex: change la couleur en rouge..."
-                                disabled={isGenerating || isUploading}
-                            />
-                            <Button 
-                                onClick={() => handleGenerateImage(true)} 
-                                disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
-                                variant="secondary"
-                            >
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Affiner
-                            </Button>
-                          </div>
-                           {currentHistoryItem?.prompt && (
-                               <div className="text-xs text-muted-foreground pt-1 italic">
-                                   Instruction pour cette image : "{currentHistoryItem.prompt}"
-                               </div>
-                           )}
-                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {currentHistoryItem ? (
+                                <>
+                                  <div className="space-y-2">
+                                      <Label>Affiner l'image</Label>
+                                      <div className="flex items-center gap-2">
+                                        <Input 
+                                            value={refinePrompt} 
+                                            onChange={(e) => setRefinePrompt(e.target.value)} 
+                                            placeholder="Ex: change la couleur en rouge..."
+                                            disabled={isGenerating || isUploading}
+                                        />
+                                        <Button 
+                                            onClick={() => handleGenerateImage(true)} 
+                                            disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
+                                            variant="secondary"
+                                            size="icon"
+                                        >
+                                            <RefreshCw className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                  </div>
+                                  <Separator/>
+                                   <div className="space-y-2">
+                                      <Label>Titre (optionnel)</Label>
+                                      <Input value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Description (optionnel)</Label>
+                                      <Textarea value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} placeholder="Une description pour votre image..."/>
+                                    </div>
+                                     <div className="space-y-2">
+                                      <Label>Hashtags (optionnel)</Label>
+                                      <Input value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} placeholder="#style #art #ia"/>
+                                    </div>
 
-                        <Separator/>
-
-                        <div className="space-y-2">
-                          <Label>Titre (optionnel)</Label>
-                          <Input value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description (optionnel)</Label>
-                          <Textarea value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} placeholder="Une description pour votre image..."/>
-                        </div>
-                         <div className="space-y-2">
-                          <Label>Hashtags (optionnel)</Label>
-                          <Input value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} placeholder="#style #art #ia"/>
-                        </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                             <Button 
-                                variant="outline" 
-                                className="w-full" 
-                                disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}
-                            >
-                                {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
-                                {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket IA)"}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56">
-                              <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <Separator/>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            <Button onClick={() => resetState()} disabled={isGenerating || isUploading}>
-                               <RefreshCw className="mr-2 h-4 w-4" />
-                               Nouveau
-                            </Button>
-                            <Button onClick={handleSaveGeneratedImage} disabled={isUploading || isGenerating || (totalUploadTickets <= 0 && totalUploadTickets !== Infinity)}>
-                               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                               Enregistrer
-                            </Button>
-                        </div>
-                    </div>
-                  ) : (
-                    <>
-                        <div className={cn("aspect-square w-full rounded-lg border-2 border-dashed bg-muted flex items-center justify-center", aspectRatio === '4:5' && 'aspect-[4/5]', aspectRatio === '16:9' && 'aspect-video', aspectRatio === '9:16' && 'aspect-[9/16]')}>
-                            {isGenerating ? (
-                                <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                            ) : (
-                                <Wand2 className="h-10 w-10 text-muted-foreground/30" />
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                         <Button 
+                                            variant="outline" 
+                                            className="w-full" 
+                                            disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}
+                                        >
+                                            {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                            {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket)"}
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent className="w-56">
+                                          <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </>
+                            ): (
+                                <>
+                                    <div className='flex gap-2'>
+                                        <Textarea
+                                            placeholder="Décrivez l'image que vous souhaitez créer..."
+                                            value={prompt}
+                                            onChange={(e) => setPrompt(e.target.value)}
+                                            rows={3}
+                                            disabled={isGenerating}
+                                            className="pr-10"
+                                        />
+                                         <div className="relative">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                                disabled={!prompt.trim() || isGenerating}
+                                                onClick={openSavePromptDialog}
+                                                aria-label="Sauvegarder le prompt"
+                                            >
+                                                <Star className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Format de l'image" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="1:1">Carré (1:1)</SelectItem>
+                                                <SelectItem value="4:5">Portrait (4:5)</SelectItem>
+                                                <SelectItem value="16:9">Paysage (16:9)</SelectItem>
+                                                <SelectItem value="9:16">Story (9:16)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-[200px]">
+                                        <Accordion type="single" collapsible className="w-full">
+                                            {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                                                <AccordionItem value="custom-prompts">
+                                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                        <Star className="h-4 w-4 text-yellow-500" />
+                                                        <span className="font-semibold">Mes Prompts</span>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <div className="flex flex-col gap-2 pt-2">
+                                                            {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null).map((p) => (
+                                                                <div key={p.id} className="group relative flex items-center">
+                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating}>
+                                                                        {p.name}
+                                                                    </Button>
+                                                                    <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditPromptDialog(p)} aria-label="Modifier"><Pencil className="h-3 w-3" /></Button>
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openDeletePromptDialog(p)} aria-label="Supprimer"><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            )}
+                                            {suggestionCategories.map(category => {
+                                                const Icon = getIcon(category.icon);
+                                                return (
+                                                    <AccordionItem value={category.name} key={category.name}>
+                                                        <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                            <Icon className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="font-semibold">{category.name}</span>
+                                                        </AccordionTrigger>
+                                                        <AccordionContent>
+                                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                                {category.prompts.map((p) => (
+                                                                    <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating}>{p.title}</Button>
+                                                                ))}
+                                                            </div>
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                );
+                                            })}
+                                        </Accordion>
+                                    </div>
+                                </>
                             )}
                         </div>
-                        <div className='flex gap-2'>
-                            <Textarea
-                                placeholder="Décrivez l'image que vous souhaitez créer..."
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                rows={3}
-                                disabled={isGenerating}
-                                className="pr-10"
-                            />
-                             <div className="relative">
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
-                                    disabled={!prompt.trim() || isGenerating}
-                                    onClick={openSavePromptDialog}
-                                    aria-label="Sauvegarder le prompt"
-                                >
-                                    <Star className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Format de l'image" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1:1">Carré (1:1)</SelectItem>
-                                    <SelectItem value="4:5">Portrait (4:5)</SelectItem>
-                                    <SelectItem value="16:9">Paysage (16:9)</SelectItem>
-                                    <SelectItem value="9:16">Story (9:16)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
-                            <Accordion type="single" collapsible className="w-full">
-                                {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
-                                    <AccordionItem value="custom-prompts">
-                                        <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                            <Star className="h-4 w-4 text-yellow-500" />
-                                            <span className="font-semibold">Mes Prompts</span>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="flex flex-col gap-2 pt-2">
-                                                {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null).map((p) => (
-                                                    <div key={p.id} className="group relative flex items-center">
-                                                        <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating}>
-                                                            {p.name}
-                                                        </Button>
-                                                        <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditPromptDialog(p)} aria-label="Modifier"><Pencil className="h-3 w-3" /></Button>
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openDeletePromptDialog(p)} aria-label="Supprimer"><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                )}
-                                {suggestionCategories.map(category => {
-                                    const Icon = getIcon(category.icon);
-                                    return (
-                                        <AccordionItem value={category.name} key={category.name}>
-                                            <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                <Icon className="h-4 w-4 text-muted-foreground" />
-                                                <span className="font-semibold">{category.name}</span>
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                                <div className="flex flex-wrap gap-2 pt-2">
-                                                    {category.prompts.map((p) => (
-                                                        <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating}>{p.title}</Button>
-                                                    ))}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    );
-                                })}
-                            </Accordion>
-                        </div>
-                        <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                            Générer l'image (1 Ticket IA)
-                        </Button>
-                        {totalAiTickets <= 0 && !isGenerating && (
-                             <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
-                                <Link href="/shop">
-                                    <ShoppingCart className="mr-2 h-4 w-4"/>
-                                    Plus de tickets ? Rechargez dans la boutique !
-                                </Link>
+                        
+                        <div className="p-4 mt-auto border-t space-y-3">
+                             <Button 
+                                onClick={() => currentHistoryItem ? handleSaveGeneratedImage() : handleGenerateImage(false)} 
+                                disabled={
+                                    isGenerating || 
+                                    isUploading || 
+                                    (!currentHistoryItem && !prompt.trim()) || 
+                                    totalAiTickets <= 0
+                                } 
+                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                             >
+                                {(isGenerating || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {currentHistoryItem ? (isUploading ? 'Sauvegarde...' : 'Sauvegarder') : (isGenerating ? 'Génération...' : 'Générer l\'image (1 Ticket IA)')}
                             </Button>
-                        )}
-                    </>
-                  )}
+                             {currentHistoryItem &&
+                                 <Button onClick={() => resetState()} disabled={isGenerating || isUploading} variant="secondary" className="w-full">
+                                   <RefreshCw className="mr-2 h-4 w-4" />
+                                   Nouvelle Génération
+                                </Button>
+                             }
+
+                             {totalAiTickets <= 0 && !isGenerating && !isUploading && (
+                                 <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
+                                    <Link href="/shop">
+                                        <ShoppingCart className="mr-2 h-4 w-4"/>
+                                        Plus de tickets ? Rechargez !
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
+                    </aside>
+                </div>
               </TabsContent>
           </Tabs>
           
