@@ -955,19 +955,25 @@ export function Uploader() {
                         </div>
                         
                         <div className="p-4 mt-auto border-t space-y-3">
-                             <Button 
-                                onClick={() => currentHistoryItem ? handleSaveGeneratedImage() : handleGenerateImage(false)} 
-                                disabled={
-                                    isGenerating || 
-                                    isUploading || 
-                                    (!currentHistoryItem && !prompt.trim()) || 
-                                    totalAiTickets <= 0
-                                } 
-                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                             >
-                                {(isGenerating || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {currentHistoryItem ? (isUploading ? 'Sauvegarde...' : 'Sauvegarder') : (isGenerating ? 'Génération...' : 'Générer l\'image (1 Ticket IA)')}
-                            </Button>
+                             {currentHistoryItem ? (
+                                 <Button 
+                                     onClick={handleSaveGeneratedImage} 
+                                     disabled={isUploading || isGenerating}
+                                     className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                 >
+                                     {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                     {isUploading ? 'Sauvegarde...' : 'Sauvegarder'}
+                                 </Button>
+                             ) : (
+                                <Button 
+                                    onClick={() => handleGenerateImage(false)} 
+                                    disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0}
+                                    className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                >
+                                    {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isGenerating ? 'Génération...' : 'Générer l\'image (1 Ticket IA)'}
+                                </Button>
+                             )}
                              {currentHistoryItem &&
                                  <Button onClick={() => resetState()} disabled={isGenerating || isUploading} variant="secondary" className="w-full">
                                    <RefreshCw className="mr-2 h-4 w-4" />
