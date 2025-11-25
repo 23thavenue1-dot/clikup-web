@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
@@ -226,6 +227,7 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
                 cancel_url: window.location.href,
                 mode: item.mode,
                 allow_promotion_codes: true,
+                customer_creation: 'always_create', // Force la création du client s'il n'existe pas en mode "Live"
                 metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
             });
 
