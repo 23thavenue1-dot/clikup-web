@@ -41,6 +41,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
