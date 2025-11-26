@@ -134,10 +134,6 @@ export function Uploader() {
   const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   
-  // State pour la description générée
-  const [generatedTitle, setGeneratedTitle] = useState('');
-  const [generatedDescription, setGeneratedDescription] = useState('');
-  const [generatedHashtags, setGeneratedHashtags] = useState('');
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   
   // --- States pour la gestion des prompts favoris ---
@@ -199,16 +195,7 @@ export function Uploader() {
   }, [generatedImageHistory, historyIndex]);
 
   useEffect(() => {
-      if (currentHistoryItem) {
-          setGeneratedTitle(currentHistoryItem.title);
-          setGeneratedDescription(currentHistoryItem.description);
-          setGeneratedHashtags(currentHistoryItem.hashtags);
-          setRefinePrompt(currentHistoryItem.prompt);
-      } else {
-          // Si on revient à zéro, on vide les champs de description
-          setGeneratedTitle('');
-          setGeneratedDescription('');
-          setGeneratedHashtags('');
+      if (!currentHistoryItem) {
           setRefinePrompt('');
       }
   }, [currentHistoryItem]);
@@ -224,9 +211,6 @@ export function Uploader() {
     setRefinePrompt('');
     setGeneratedImageHistory([]);
     setHistoryIndex(-1);
-    setGeneratedTitle('');
-    setGeneratedDescription('');
-    setGeneratedHashtags('');
     setIsUploading(false);
     setIsGenerating(false);
     setIsGeneratingDescription(false);
@@ -394,42 +378,6 @@ export function Uploader() {
     }
   };
 
-  const handleGenerateDescription = async (platform: Platform) => {
-    if (!currentHistoryItem || !user || !userProfile || !firestore) return;
-    if (totalAiTickets <= 0) {
-         toast({
-            variant: 'destructive',
-            title: 'Tickets IA épuisés',
-            description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez dans la boutique ! </Link> )
-        });
-        return;
-    }
-
-    setIsGeneratingDescription(true);
-    try {
-        const result = await generateImageDescription({ imageUrl: currentHistoryItem.imageUrl, platform: platform });
-        
-        const updatedHistoryItem: ImageHistoryItem = {
-            ...currentHistoryItem,
-            title: result.title,
-            description: result.description,
-            hashtags: result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ')
-        };
-
-        setGeneratedImageHistory(prev => {
-            const newHistory = [...prev];
-            newHistory[historyIndex] = updatedHistoryItem;
-            return newHistory;
-        });
-
-        await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
-        toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération de description n'a pas pu répondre." });
-    } finally {
-        setIsGeneratingDescription(false);
-    }
-};
 
  const handleSaveGeneratedImage = async () => {
     if (!currentHistoryItem || !user || !firebaseApp || !userProfile || !firestore) return;
@@ -458,14 +406,13 @@ export function Uploader() {
         
         await saveImageMetadata(firestore, user, { 
             ...metadata,
-            title: generatedTitle || `Généré par IA: ${currentHistoryItem.prompt}`,
-            description: generatedDescription,
-            hashtags: generatedHashtags,
+            title: `Généré par IA: ${currentHistoryItem.prompt}`,
+            description: "", // La description est maintenant gérée ailleurs
+            hashtags: "",
             generatedByAI: true,
         });
 
         toast({ title: 'Succès', description: 'Votre image a été enregistrée dans votre galerie.' });
-        // Ne pas réinitialiser l'état ici pour conserver l'historique
         setStatus({ state: 'success', url: metadata.directUrl });
 
     } catch (error) {
@@ -911,20 +858,20 @@ export function Uploader() {
                              {currentHistoryItem ? (
                                 <div className='space-y-2'>
                                   <Button 
-                                      onClick={() => handleGenerateImage(true)} 
-                                      disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
-                                      className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                  >
-                                      {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                      {isGenerating ? 'Génération...' : 'Regénérer (1 Ticket IA)'}
-                                  </Button>
-                                  <Button 
                                       onClick={resetState} 
                                       className="w-full"
                                       variant="secondary"
                                       disabled={isGenerating || isUploading}
                                   >
                                       Nouvelle Génération
+                                  </Button>
+                                   <Button 
+                                      onClick={() => handleGenerateImage(true)} 
+                                      disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
+                                      className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                  >
+                                      {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                      {isGenerating ? 'Génération...' : 'Regénérer (1 Ticket IA)'}
                                   </Button>
                                   <Button 
                                       onClick={handleSaveGeneratedImage} 
