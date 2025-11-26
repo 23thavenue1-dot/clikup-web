@@ -828,58 +828,6 @@ export function Uploader() {
                                         </Button>
                                       </div>
                                   </div>
-                                  <Separator/>
-                                    <Accordion type="single" collapsible className="w-full" defaultValue="description-ia">
-                                        <AccordionItem value="description-ia" className="border-b-0">
-                                            <AccordionTrigger className="text-xs font-semibold py-1 hover:no-underline flex items-center gap-2">
-                                                <Wand2 className="h-4 w-4 text-amber-500" />
-                                                Générer une description par IA
-                                            </AccordionTrigger>
-                                            <AccordionContent className="space-y-2 pt-2">
-                                                <DropdownMenu>
-                                                  <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                      variant="outline"
-                                                      className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600"
-                                                      disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}
-                                                    >
-                                                      {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
-                                                      Générer pour...
-                                                    </Button>
-                                                  </DropdownMenuTrigger>
-                                                  <DropdownMenuContent className="w-56">
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                                                  </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                        <AccordionItem value="manual-desc" className="border-b-0">
-                                            <AccordionTrigger className="text-xs font-semibold py-1 hover:no-underline flex items-center gap-2">
-                                                <Pencil className="h-4 w-4" />
-                                                Description manuelle
-                                            </AccordionTrigger>
-                                            <AccordionContent className="space-y-2 pt-2">
-                                                <div className="space-y-1">
-                                                  <Label htmlFor="gen-title" className="text-xs">Titre</Label>
-                                                  <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} placeholder="Un titre pour votre image..."/>
-                                                </div>
-                                                <div className="space-y-1">
-                                                  <Label htmlFor="gen-desc" className="text-xs">Description</Label>
-                                                  <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} placeholder="Une description..."/>
-                                                </div>
-                                                 <div className="space-y-1">
-                                                  <Label htmlFor="gen-tags" className="text-xs">Hashtags</Label>
-                                                  <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} placeholder="#style #art #ia"/>
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
                                 </>
                             ): (
                                 <>
