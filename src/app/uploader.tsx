@@ -198,18 +198,24 @@ export function Uploader() {
   const hasUnsavedChanges = useMemo(() => !!currentHistoryItem, [currentHistoryItem]);
 
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        if (hasUnsavedChanges) {
-            e.preventDefault();
-            e.returnValue = ''; // Requis pour certains navigateurs
-        }
-    };
+    if (typeof window !== 'undefined') {
+        (window as any).hasUnsavedChanges = hasUnsavedChanges;
+    }
+}, [hasUnsavedChanges]);
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  useEffect(() => {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+          if (hasUnsavedChanges) {
+              e.preventDefault();
+              e.returnValue = ''; // Requis pour certains navigateurs
+          }
+      };
 
-    return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      return () => {
+          window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
   }, [hasUnsavedChanges]);
 
 
@@ -870,25 +876,28 @@ export function Uploader() {
                         <div className="p-4 mt-auto border-t space-y-2">
                             {currentHistoryItem ? (
                                 <>
-                                  <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
+                                    {refinePrompt.trim() && (
+                                        <Button
+                                            onClick={() => handleGenerateImage(true)}
+                                            disabled={isGenerating || isUploading || totalAiTickets <= 0}
+                                            className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                        >
+                                            <Wand2 className="mr-2 h-4 w-4" />
+                                            Affiner (1 Ticket IA)
+                                        </Button>
+                                    )}
+                                    <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
                                       Nouvelle Génération
-                                  </Button>
-                                  <Button
-                                      onClick={() => handleGenerateImage(true)}
-                                      disabled={isGenerating || isUploading || totalAiTickets <= 0 || !refinePrompt.trim()}
-                                      className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                  >
-                                      <Wand2 className="mr-2 h-4 w-4" />
-                                      Affiner (1 Ticket IA)
-                                  </Button>
-                                   <Button 
-                                      onClick={handleSaveGeneratedImage} 
-                                      disabled={isUploading || isGenerating || status.state === 'success'}
-                                      className="w-full bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                      {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                      {status.state === 'success' ? 'Sauvegardé !' : (isUploading ? 'Sauvegarde...' : 'Sauvegarder')}
-                                  </Button>
+                                    </Button>
+                                    
+                                    <Button 
+                                        onClick={handleSaveGeneratedImage} 
+                                        disabled={isUploading || isGenerating || status.state === 'success'}
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                        {status.state === 'success' ? 'Sauvegardé !' : (isUploading ? 'Sauvegarde...' : 'Sauvegarder')}
+                                    </Button>
                                 </>
                             ) : (
                                 <Button 
