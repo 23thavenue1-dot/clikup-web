@@ -884,15 +884,15 @@ export function Uploader() {
                                     <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
                                       Nouvelle Génération
                                     </Button>
-                                     <AlertDialog open={showRegenerateAlert} onOpenChange={setShowRegenerateAlert}>
+                                    <AlertDialog open={showRegenerateAlert} onOpenChange={setShowRegenerateAlert}>
                                         <AlertDialogTrigger asChild>
                                             <Button
                                                 disabled={isGenerating || isUploading || totalAiTickets <= 0}
-                                                className="w-full"
-                                                variant="outline"
+                                                className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                                                variant="default"
                                             >
                                                 <RefreshCw className="mr-2 h-4 w-4" />
-                                                Regénérer...
+                                                Regénérer (1 Ticket IA)
                                             </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
