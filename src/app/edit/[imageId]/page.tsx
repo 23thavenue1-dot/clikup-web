@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -245,6 +245,11 @@ export default function EditImagePage() {
         } finally {
             setIsGeneratingDescription(false);
         }
+    };
+    
+    const handleConfirmDescription = () => {
+        setIsDescriptionDialogOpen(false);
+        toast({ title: 'Contenu validé', description: "N'oubliez pas d'enregistrer la création finale." });
     };
 
     const handleSaveAiCreation = async () => {
@@ -605,11 +610,11 @@ export default function EditImagePage() {
                                     <Text className="mr-2 h-4 w-4"/> Rédiger
                                 </Button>
                             </DialogTrigger>
-                             <DialogContent>
+                            <DialogContent className="sm:max-w-md">
                                 <DialogHeader>
-                                    <DialogTitle>Générer ou modifier la description</DialogTitle>
+                                    <DialogTitle>Générer une description</DialogTitle>
                                     <DialogDescription>
-                                        Rédigez le contenu vous-même ou laissez l'IA créer un titre, une description et des hashtags. (1 ticket IA)
+                                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux, ou rédigez le vôtre.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
@@ -623,21 +628,21 @@ export default function EditImagePage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="gen-tags">Hashtags</Label>
-                                        <Input id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription}/>
+                                        <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
                                     </div>
                                     <Separator/>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button 
                                                 variant="outline" 
-                                                className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600" 
+                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" 
                                                 disabled={isGeneratingDescription || !hasAiTickets}
                                             >
                                                 {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
                                                 {isGeneratingDescription ? "Génération..." : "Générer pour..."}
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
+                                        <DropdownMenuContent className="w-56">
                                             <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
@@ -649,9 +654,7 @@ export default function EditImagePage() {
                                     </DropdownMenu>
                                 </div>
                                 <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button variant="default">Valider</Button>
-                                    </DialogClose>
+                                    <Button onClick={handleConfirmDescription}>Valider et Fermer</Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
