@@ -47,6 +47,30 @@ import {
 } from "@/components/ui/tooltip"
 
 
+// Wrapper pour les liens de navigation qui vérifie les changements non sauvegardés
+const UnsavedChangesLink = ({ href, children, ...props }: { href: string, children: React.ReactNode } & React.ComponentProps<typeof Link>) => {
+    const router = useRouter();
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        const hasUnsavedChanges = (window as any).hasUnsavedChanges;
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            const confirmLeave = window.confirm("Vous avez une image générée non sauvegardée. Êtes-vous sûr de vouloir quitter cette page ? Vos modifications seront perdues.");
+            if (confirmLeave) {
+                (window as any).hasUnsavedChanges = false; // Reset flag before navigating
+                router.push(href);
+            }
+        }
+    };
+
+    return (
+        <Link href={href} onClick={handleClick} {...props}>
+            {children}
+        </Link>
+    );
+};
+
+
 export function Navbar() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -95,10 +119,10 @@ export function Navbar() {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           {/* Left Section */}
           <div className="flex items-center justify-start flex-1">
-            <Link href="/" className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+            <UnsavedChangesLink href="/" className="flex items-center gap-2 text-3xl font-bold tracking-tight">
               <ImageIcon className="h-7 w-7 text-purple-500" />
               <span className="text-gradient-ia">Clikup</span>
-            </Link>
+            </UnsavedChangesLink>
           </div>
           
           {/* Center Section */}
@@ -107,11 +131,11 @@ export function Navbar() {
               <>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/" passHref>
+                    <UnsavedChangesLink href="/" passHref>
                       <Button variant="ghost" size="icon" aria-label="Accueil">
                         <Home className="h-5 w-5" />
                       </Button>
-                    </Link>
+                    </UnsavedChangesLink>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Accueil</p>
@@ -120,11 +144,11 @@ export function Navbar() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/galleries" passHref>
+                    <UnsavedChangesLink href="/galleries" passHref>
                       <Button variant="ghost" size="icon" aria-label="Mes Galeries">
                         <Library className="h-5 w-5" />
                       </Button>
-                    </Link>
+                    </UnsavedChangesLink>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Mes Galeries</p>
@@ -133,7 +157,7 @@ export function Navbar() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/dashboard" passHref>
+                    <UnsavedChangesLink href="/dashboard" passHref>
                       <Button variant="ghost" size="icon" aria-label="Tableau de bord" className="relative">
                         <LayoutDashboard className="h-5 w-5" />
                         {hasNewAchievements && (
@@ -143,7 +167,7 @@ export function Navbar() {
                           </span>
                         )}
                       </Button>
-                    </Link>
+                    </UnsavedChangesLink>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Tableau de Bord</p>
@@ -152,7 +176,7 @@ export function Navbar() {
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/secret-messages" passHref>
+                    <UnsavedChangesLink href="/secret-messages" passHref>
                       <Button variant="ghost" size="icon" aria-label="Tips de Créateur" className="relative">
                         <Mail className="h-5 w-5" />
                         {hasUnreadMsgs && (
@@ -162,7 +186,7 @@ export function Navbar() {
                           </span>
                         )}
                       </Button>
-                    </Link>
+                    </UnsavedChangesLink>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Tips de Créateur</p>
@@ -171,11 +195,11 @@ export function Navbar() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/shop" passHref>
+                    <UnsavedChangesLink href="/shop" passHref>
                       <Button variant="ghost" size="icon" aria-label="Boutique">
                         <ShoppingCart className="h-5 w-5" />
                       </Button>
-                    </Link>
+                    </UnsavedChangesLink>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Boutique</p>
@@ -244,20 +268,20 @@ export function Navbar() {
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
                         <DropdownMenuItem asChild>
-                          <Link href="/settings">
+                          <UnsavedChangesLink href="/settings">
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Paramètres</span>
-                          </Link>
+                          </UnsavedChangesLink>
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                      <DropdownMenuGroup>
                         <DropdownMenuLabel>Clikup</DropdownMenuLabel>
                          <DropdownMenuItem asChild>
-                            <Link href="/about">
+                            <UnsavedChangesLink href="/about">
                                 <Info className="mr-2 h-4 w-4" />
                                 <span>À propos & Guide</span>
-                            </Link>
+                            </UnsavedChangesLink>
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />

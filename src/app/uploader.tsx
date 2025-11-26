@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -134,8 +133,10 @@ export function Uploader() {
   const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  
+  // State pour l'alerte de changements non sauvegardés
+  const [showUnsavedAlert, setShowUnsavedAlert] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
   // --- States pour la gestion des prompts favoris ---
   const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
   const [promptToSave, setPromptToSave] = useState("");
@@ -194,14 +195,28 @@ export function Uploader() {
       return null;
   }, [generatedImageHistory, historyIndex]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    return generatedImageHistory.length > 0 && status.state !== 'success';
+  }, [generatedImageHistory, status.state]);
+
+
   useEffect(() => {
       if (!currentHistoryItem) {
           setRefinePrompt('');
       }
   }, [currentHistoryItem]);
 
+  // Exposer l'état des changements non sauvegardés à la fenêtre globale
+  useEffect(() => {
+    (window as any).hasUnsavedChanges = hasUnsavedChanges;
+    // Fonction de nettoyage pour s'assurer que l'état est propre au démontage
+    return () => {
+      (window as any).hasUnsavedChanges = false;
+    };
+  }, [hasUnsavedChanges]);
 
-  const resetState = () => {
+
+  const performReset = () => {
     setStatus({ state: 'idle' });
     setSelectedFile(null);
     setCustomName('');
@@ -213,16 +228,41 @@ export function Uploader() {
     setHistoryIndex(-1);
     setIsUploading(false);
     setIsGenerating(false);
-    setIsGeneratingDescription(false);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
-  }
+  };
+  
+  const checkUnsavedChanges = (action: () => void) => {
+    if (hasUnsavedChanges) {
+      setPendingAction(() => action); // Stocke l'action à exécuter
+      setShowUnsavedAlert(true);
+    } else {
+      action(); // Exécute l'action directement
+    }
+  };
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    resetState();
+    checkUnsavedChanges(() => {
+        setActiveTab(value);
+        performReset();
+    });
   };
+
+  const resetState = () => {
+      checkUnsavedChanges(() => {
+          performReset();
+      });
+  };
+
+  const handleConfirmUnsavedAction = () => {
+    if (pendingAction) {
+      pendingAction();
+    }
+    setShowUnsavedAlert(false);
+    setPendingAction(null);
+  };
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -271,7 +311,7 @@ export function Uploader() {
       }
 
       toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
-      resetState();
+      performReset();
     } catch (error) {
       const errorMessage = (error as Error).message;
       setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
@@ -330,10 +370,10 @@ export function Uploader() {
   };
 
   const handleGenerateImage = async (isRefinement = false) => {
-    const currentPrompt = isRefinement ? (refinePrompt || prompt) : prompt;
+    const currentPrompt = isRefinement ? (refinePrompt || currentHistoryItem?.prompt) : prompt;
     const baseImageUrl = isRefinement ? currentHistoryItem?.imageUrl : undefined;
     
-    if (!currentPrompt.trim() || !user || !firestore || !userProfile) return;
+    if (!currentPrompt || !currentPrompt.trim() || !user || !firestore || !userProfile) return;
 
     if (totalAiTickets <= 0) {
         toast({
@@ -407,7 +447,7 @@ export function Uploader() {
         await saveImageMetadata(firestore, user, { 
             ...metadata,
             title: `Généré par IA: ${currentHistoryItem.prompt}`,
-            description: "", // La description est maintenant gérée ailleurs
+            description: "", 
             hashtags: "",
             generatedByAI: true,
         });
@@ -855,9 +895,9 @@ export function Uploader() {
                             )}
                         </div>
                         
-                        <div className="p-4 mt-auto border-t space-y-3">
-                             {currentHistoryItem ? (
-                                <div className='space-y-2'>
+                        <div className="p-4 mt-auto border-t space-y-2">
+                            {currentHistoryItem ? (
+                                <>
                                   <Button 
                                       onClick={resetState} 
                                       className="w-full"
@@ -882,8 +922,8 @@ export function Uploader() {
                                       {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                       {status.state === 'success' ? 'Sauvegardé !' : (isUploading ? 'Sauvegarde...' : 'Sauvegarder')}
                                   </Button>
-                                </div>
-                             ) : (
+                                </>
+                            ) : (
                                 <Button 
                                     onClick={() => handleGenerateImage(false)} 
                                     disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0}
@@ -892,9 +932,9 @@ export function Uploader() {
                                     {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {isGenerating ? 'Génération...' : 'Générer l\'image (1 Ticket IA)'}
                                 </Button>
-                             )}
+                            )}
 
-                             {totalAiTickets <= 0 && !isGenerating && !isUploading && (
+                            {totalAiTickets <= 0 && !isGenerating && !isUploading && (
                                  <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
                                     <Link href="/shop">
                                         <ShoppingCart className="mr-2 h-4 w-4"/>
@@ -972,6 +1012,24 @@ export function Uploader() {
             </DialogContent>
         </Dialog>
       </Card>
+
+      <AlertDialog open={showUnsavedAlert} onOpenChange={setShowUnsavedAlert}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Changements non sauvegardés</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Vous avez une image générée qui n'a pas été sauvegardée. Si vous continuez, elle sera perdue.
+                      Êtes-vous sûr de vouloir continuer ?
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setPendingAction(null)}>Rester</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleConfirmUnsavedAction} variant="destructive">
+                      Continuer
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
