@@ -906,10 +906,20 @@ export function Uploader() {
                                   >
                                       Nouvelle Génération
                                   </Button>
+                                  {refinePrompt.trim() && (
+                                    <Button 
+                                        onClick={() => handleGenerateImage(true)} 
+                                        disabled={isGenerating || isUploading || totalAiTickets <= 0}
+                                        className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                        {isGenerating ? 'Affinage...' : 'Affiner (1 Ticket IA)'}
+                                    </Button>
+                                  )}
                                    <Button 
                                       onClick={() => handleGenerateImage(true)} 
                                       disabled={isGenerating || isUploading || totalAiTickets <= 0}
-                                      className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                      className="w-full"
                                   >
                                       {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                                       {isGenerating ? 'Génération...' : 'Regénérer (1 Ticket IA)'}
