@@ -204,6 +204,12 @@ export function Uploader() {
           setGeneratedDescription(currentHistoryItem.description);
           setGeneratedHashtags(currentHistoryItem.hashtags);
           setRefinePrompt(currentHistoryItem.prompt);
+      } else {
+          // Si on revient à zéro, on vide les champs de description
+          setGeneratedTitle('');
+          setGeneratedDescription('');
+          setGeneratedHashtags('');
+          setRefinePrompt('');
       }
   }, [currentHistoryItem]);
 
@@ -965,23 +971,20 @@ export function Uploader() {
                              {currentHistoryItem ? (
                                 <div className='space-y-2'>
                                   <Button 
-                                      onClick={() => {}}
-                                      className="w-full bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10 text-primary hover:text-primary border-violet-200 hover:border-violet-400 dark:from-fuchsia-600/20 dark:to-violet-600/20 dark:border-violet-800 dark:hover:border-violet-600"
-                                      disabled
+                                      onClick={resetState} 
+                                      className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                      disabled={isGenerating || isUploading}
                                   >
-                                      Générer la description (voir accordéon)
-                                  </Button>
-                                  <Button onClick={resetState} disabled={isGenerating || isUploading} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
                                       <RefreshCw className="mr-2 h-4 w-4" />
                                       Nouvelle Génération
                                   </Button>
                                   <Button 
                                       onClick={handleSaveGeneratedImage} 
-                                      disabled={isUploading || isGenerating}
+                                      disabled={isUploading || isGenerating || status.state === 'success'}
                                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                                   >
                                       {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                      {isUploading ? 'Sauvegarde...' : 'Sauvegarder'}
+                                      {status.state === 'success' ? 'Sauvegardé !' : (isUploading ? 'Sauvegarde...' : 'Sauvegarder')}
                                   </Button>
                                 </div>
                              ) : (
