@@ -199,25 +199,18 @@ export function Uploader() {
   const hasUnsavedChanges = useMemo(() => !!currentHistoryItem, [currentHistoryItem]);
 
   useEffect(() => {
-      if (typeof window !== 'undefined') {
-          (window as any).hasUnsavedChanges = hasUnsavedChanges;
-      }
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = ''; // Requis pour certains navigateurs
+        }
+    };
 
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-          if (hasUnsavedChanges) {
-              e.preventDefault();
-              e.returnValue = ''; // Requis pour certains navigateurs
-          }
-      };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
-      window.addEventListener('beforeunload', handleBeforeUnload);
-
-      return () => {
-          window.removeEventListener('beforeunload', handleBeforeUnload);
-          if (typeof window !== 'undefined') {
-              (window as any).hasUnsavedChanges = false;
-          }
-      };
+    return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [hasUnsavedChanges]);
 
 
@@ -888,6 +881,9 @@ export function Uploader() {
                                             Affiner (1 Ticket IA)
                                         </Button>
                                     )}
+                                    <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
+                                      Nouvelle Génération
+                                    </Button>
                                      <AlertDialog open={showRegenerateAlert} onOpenChange={setShowRegenerateAlert}>
                                         <AlertDialogTrigger asChild>
                                             <Button
@@ -914,9 +910,6 @@ export function Uploader() {
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
-                                    <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
-                                      Nouvelle Génération
-                                    </Button>
                                     
                                     <Button 
                                         onClick={handleSaveGeneratedImage} 
@@ -1038,3 +1031,4 @@ export function Uploader() {
     </>
   );
 }
+
