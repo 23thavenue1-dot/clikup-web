@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { editImage } from '@/ai/flows/edit-image-flow';
-import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, updateImageDescription } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -225,34 +225,19 @@ export default function EditImagePage() {
 
         setIsGeneratingDescription(true);
         try {
-            const result = await generateImageDescription({ imageUrl: imageToDescribe.directUrl, platform: platform });
+            // L'URL de l'image à décrire
+            const imageUrlToProcess = imageToDescribe.imageUrl || (imageToDescribe as ImageMetadata).directUrl;
+
+            const result = await generateImageDescription({ imageUrl: imageUrlToProcess, platform: platform });
             
             const newTitle = result.title;
             const newDesc = result.description;
             const newHashtags = result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
 
-            if (currentHistoryItem) {
-                // On met à jour l'item courant de l'historique
-                const updatedHistoryItem: ImageHistoryItem = {
-                    ...currentHistoryItem,
-                    title: newTitle,
-                    description: newDesc,
-                    hashtags: newHashtags,
-                };
-                
-                setGeneratedImageHistory(prev => {
-                    const newHistory = [...prev];
-                    newHistory[historyIndex] = updatedHistoryItem;
-                    return newHistory;
-                });
-            } else {
-                // Pas d'historique, on met à jour l'état local
-                setGeneratedTitle(newTitle);
-                setGeneratedDescription(newDesc);
-                setGeneratedHashtags(newHashtags);
-            }
+            setGeneratedTitle(newTitle);
+            setGeneratedDescription(newDesc);
+            setGeneratedHashtags(newHashtags);
             
-
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
@@ -291,12 +276,11 @@ export default function EditImagePage() {
 
             } else {
                  // Cas 2 : Mettre à jour la description de l'image ORIGINALE
-                await updateCustomPrompt(firestore, user.uid, {
-                    ...originalImage,
+                await updateImageDescription(firestore, user.uid, originalImage.id, {
                     title: generatedTitle,
                     description: generatedDescription,
                     hashtags: generatedHashtags,
-                } as any); // Type assertion is a bit loose here
+                }, false);
                 toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
             }
             router.push('/'); // Rediriger vers l'accueil après la sauvegarde
@@ -617,7 +601,7 @@ export default function EditImagePage() {
                     <div className="flex gap-2">
                          <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full" disabled={!originalImage || isGenerating || isSaving}>
+                                <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
                                     <Text className="mr-2 h-4 w-4"/> Rédiger
                                 </Button>
                             </DialogTrigger>
