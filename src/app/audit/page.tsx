@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
 import { decrementAiTicketCount } from '@/lib/firestore';
@@ -361,8 +361,7 @@ export default function AuditPage() {
                             hasSavedAudits && "bg-green-600 text-white hover:bg-green-700 hover:text-white"
                         )}
                     >
-                        {/* Ce lien sera fonctionnel dans une prochaine étape */}
-                        <Link href="#">
+                        <Link href="/audit/history">
                             <ClipboardList className="mr-2 h-4 w-4" />
                             Voir mes analyses précédentes
                         </Link>
