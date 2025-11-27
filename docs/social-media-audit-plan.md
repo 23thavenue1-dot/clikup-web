@@ -25,11 +25,17 @@ Cette page est le cœur de l'assistant. Elle sera structurée comme un formulair
 
 *   **Étape 1 : Plateforme & Objectifs**
     *   **Champ :** Un `Select` pour choisir la plateforme (Instagram, TikTok, Facebook, etc.).
-    *   **Champ :** Un `Input` de type texte où l'utilisateur saisit son objectif principal. *Ex: "Je veux augmenter mon engagement et avoir un feed plus harmonieux."*
+    *   **Champ :** Un `Select` où l'utilisateur choisit son objectif principal parmi une liste d'options optimisées :
+        *   "Augmenter mon engagement et créer une communauté."
+        *   "Professionnaliser mon image de marque."
+        *   "Trouver plus de clients ou d'opportunités."
+        *   "Définir une identité visuelle plus cohérente et mémorable."
+        *   "Diversifier mon contenu et trouver de nouvelles idées."
 
 *   **Étape 2 : Identité Visuelle**
-    *   **Titre :** "Importez une sélection de vos meilleures publications."
-    *   **Composant :** Une grille interactive permettant à l'utilisateur de sélectionner entre 6 et 9 images directement depuis sa galerie Clikup. Un clic sur une image la sélectionne/désélectionne.
+    *   **Titre :** "Importez une sélection de vos publications."
+    *   **Conseil :** Ajouter un texte explicatif : "Pour une analyse optimale, sélectionnez entre 6 et 9 publications qui représentent le mieux votre style actuel. **Astuce :** Incluez une capture d'écran de votre grille de profil ('feed') pour que l'IA puisse analyser l'harmonie globale."
+    *   **Composant :** Une grille interactive permettant à l'utilisateur de sélectionner des images directement depuis sa galerie Clikup.
 
 *   **Étape 3 : Identité Rédactionnelle**
     *   **Titre :** "Copiez-collez le texte de 2 ou 3 de vos publications récentes."
@@ -67,7 +73,7 @@ Une fois l'analyse terminée, l'utilisateur est redirigé vers une page dédiée
 
 *   **Input Schema (Zod) :**
     *   `platform`: `string`
-    *   `goal`: `string`
+    *   `goal`: `string` (l'objectif choisi dans la liste)
     *   `image_urls`: `array of strings` (les data URIs des images sélectionnées)
     *   `post_texts`: `array of strings`
 *   **Output Schema (Zod) :**
@@ -75,7 +81,7 @@ Une fois l'analyse terminée, l'utilisateur est redirigé vers une page dédiée
     *   `strategic_analysis`: `object` avec `strengths: array of strings` et `improvements: array of strings`.
     *   `content_strategy`: `array of objects`, chaque objet contenant `idea: string` et `description: string`.
     *   `action_plan`: `array of objects`, chaque objet contenant `day: number` et `action: string`.
-*   **Prompt :** Un prompt maître très détaillé qui instruit l'IA d'agir comme un coach en stratégie de contenu et de structurer sa réponse selon le schéma de sortie défini.
+*   **Prompt :** Un prompt maître très détaillé qui instruit l'IA d'agir comme un coach en stratégie de contenu et de structurer sa réponse selon le schéma de sortie défini, en tenant compte de l'objectif de l'utilisateur.
 
 ### b) Nouvelles Pages React
 
