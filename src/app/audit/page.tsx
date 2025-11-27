@@ -64,6 +64,14 @@ export default function AuditPage() {
         return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
     }, [user, firestore]);
     const { data: images, isLoading: areImagesLoading } = useCollection<ImageMetadata>(imagesQuery);
+    
+    // Nouvelle requête pour récupérer les audits
+    const auditsQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/audits`));
+    }, [user, firestore]);
+    const { data: savedAudits, isLoading: areAuditsLoading } = useCollection(auditsQuery);
+
 
     const totalAiTickets = useMemo(() => {
         if (!userProfile) return 0;
@@ -343,6 +351,8 @@ export default function AuditPage() {
             default: return "";
         }
     };
+    
+    const hasSavedAudits = !areAuditsLoading && savedAudits && savedAudits.length > 0;
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -355,7 +365,13 @@ export default function AuditPage() {
                 </header>
 
                 <div className="text-center">
-                    <Button variant="outline" asChild>
+                    <Button 
+                        variant="outline" 
+                        asChild
+                        className={cn(
+                            hasSavedAudits && "bg-green-600 text-white hover:bg-green-700 hover:text-white"
+                        )}
+                    >
                         {/* Ce lien sera fonctionnel dans une prochaine étape */}
                         <Link href="#">
                             <ClipboardList className="mr-2 h-4 w-4" />
