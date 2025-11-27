@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -175,7 +176,7 @@ export default function AuditPage() {
     
     const canGoToStep2 = platform && goal;
     const canGoToStep3 = selectedImages.size >= 1;
-    const canGoToStep4 = postTexts.some(text => text.trim() !== '');
+    const canGoToStep4 = true; // Étape 3 est maintenant optionnelle
 
 
     const renderStepContent = () => {
@@ -223,7 +224,7 @@ export default function AuditPage() {
                             <h4 className="font-semibold">Conseil d'expert</h4>
                             <p className="text-sm text-muted-foreground">
                                 Pour une analyse optimale, sélectionnez entre 6 et {MAX_IMAGES} publications qui représentent le mieux votre style actuel. <br/>
-                                <strong>Astuces :</strong> Incluez une capture d'écran de votre **grille de profil ('feed')** pour l'harmonie globale, et une autre de votre **description de profil** pour l'analyse textuelle.
+                                <strong>Astuces :</strong> Incluez une capture d'écran de votre <strong>grille de profil ('feed')</strong> pour l'harmonie globale, et une autre de votre <strong>description de profil</strong> pour l'analyse textuelle.
                             </p>
                         </div>
                         {areImagesLoading ? (
@@ -264,7 +265,7 @@ export default function AuditPage() {
                 return (
                      <CardContent className="space-y-4">
                          <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg">
-                            <h4 className="font-semibold">Conseil d'expert</h4>
+                            <h4 className="font-semibold">Conseil d'expert (Optionnel)</h4>
                             <p className="text-sm text-muted-foreground">
                                 Copiez-collez le texte de 2 ou 3 publications récentes et variées (une description courte, une longue, un appel à l'action...).
                             </p>
@@ -327,7 +328,7 @@ export default function AuditPage() {
         switch (step) {
             case 1: return "Le Contexte";
             case 2: return `Identité Visuelle (${selectedImages.size}/${MAX_IMAGES})`;
-            case 3: return "Identité Rédactionnelle";
+            case 3: return "Identité Rédactionnelle (Optionnel)";
             case 4: return "Récapitulatif & Lancement";
             default: return "";
         }
