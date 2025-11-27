@@ -220,7 +220,7 @@ export default function AuditPage() {
                             <h4 className="font-semibold">Conseil d'expert</h4>
                             <p className="text-sm text-muted-foreground">
                                 Pour une analyse optimale, sélectionnez entre 6 et {MAX_IMAGES} publications qui représentent le mieux votre style actuel. <br/>
-                                <strong>Astuce :</strong> Incluez une capture d'écran de votre grille de profil ('feed') pour que l'IA puisse analyser l'harmonie globale.
+                                <strong>Astuces :</strong> Incluez une capture d'écran de votre **grille de profil ('feed')** pour l'harmonie globale, et une autre de votre **description de profil** pour l'analyse textuelle.
                             </p>
                         </div>
                         {areImagesLoading ? (
