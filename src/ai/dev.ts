@@ -3,3 +3,4 @@
 import './flows/generate-description-flow';
 import './flows/edit-image-flow';
 import './flows/generate-image-flow';
+import './flows/social-audit-flow';
