@@ -191,7 +191,7 @@ export default function AuditPage() {
                 platform,
                 goal,
                 image_urls: styleImageUrls,
-                subject_image_urls: subjectImageUrls, // NOUVEAU
+                subject_image_urls: subjectImageUrls,
                 post_texts: postTexts.filter(t => t.trim() !== ''),
                 additionalContext: additionalContext.trim() || undefined,
             });
