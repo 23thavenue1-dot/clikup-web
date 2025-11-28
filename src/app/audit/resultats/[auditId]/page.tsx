@@ -5,12 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { type SocialAuditOutput } from '@/ai/schemas/social-audit-schemas';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
@@ -33,6 +33,11 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     return blob;
 }
 
+interface ImageHistoryItem {
+    imageUrl: string;
+    prompt: string;
+}
+
 
 export default function AuditResultPage() {
     const { user, isUserLoading, firebaseApp } = useFirebase();
@@ -43,9 +48,12 @@ export default function AuditResultPage() {
     const auditId = params.auditId as string;
 
     const [prompt, setPrompt] = useState('');
-    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Nouveaux états pour l'historique
+    const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
 
     const auditDocRef = useMemoFirebase(() => {
         if (!user || !firestore || !auditId) return null;
@@ -65,6 +73,13 @@ export default function AuditResultPage() {
             setPrompt(auditReport.creative_suggestion.suggested_post_prompt);
         }
     }, [auditReport]);
+    
+    const currentHistoryItem = useMemo(() => {
+        if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
+            return generatedImageHistory[historyIndex];
+        }
+        return null;
+    }, [generatedImageHistory, historyIndex]);
 
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) : 0;
 
@@ -81,11 +96,20 @@ export default function AuditResultPage() {
         }
 
         setIsGenerating(true);
-        setGeneratedImageUrl(null);
 
         try {
             const result = await generateImage({ prompt, aspectRatio: '1:1' });
-            setGeneratedImageUrl(result.imageUrl);
+            
+            const newHistoryItem: ImageHistoryItem = {
+                imageUrl: result.imageUrl,
+                prompt: prompt,
+            };
+
+            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
+            newHistory.push(newHistoryItem);
+            setGeneratedImageHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+            
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
@@ -94,13 +118,26 @@ export default function AuditResultPage() {
             setIsGenerating(false);
         }
     };
+    
+    const handleUndoGeneration = () => {
+        if (historyIndex > -1) {
+            setHistoryIndex(prev => prev - 1);
+        }
+    };
+
+    const handleRedoGeneration = () => {
+        if (historyIndex < generatedImageHistory.length - 1) {
+            setHistoryIndex(prev => prev + 1);
+        }
+    };
+
 
     const handleSaveImage = async () => {
-        if (!generatedImageUrl || !prompt || !user || !firebaseApp || !firestore) return;
+        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore) return;
         setIsSaving(true);
         try {
             const storage = getStorage(firebaseApp);
-            const blob = await dataUriToBlob(generatedImageUrl);
+            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
             const newFileName = `ai-audit-generated-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
@@ -115,7 +152,8 @@ export default function AuditResultPage() {
             });
 
             toast({ title: "Image sauvegardée !", description: "Votre nouvelle création a été ajoutée à votre galerie principale." });
-            setGeneratedImageUrl(null); // Reset after saving
+            setGeneratedImageHistory([]);
+            setHistoryIndex(-1);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
         } finally {
@@ -295,17 +333,28 @@ export default function AuditResultPage() {
 
                         <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
                             {isGenerating && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
-                            {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />}
-                             {!isGenerating && !generatedImageUrl && (
+                            {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />}
+                             {!isGenerating && !currentHistoryItem?.imageUrl && (
                                 <div className="text-center text-muted-foreground p-4">
                                     <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
                                     <p className="text-sm">Votre image apparaîtra ici.</p>
                                 </div>
                             )}
+
+                             {!isGenerating && generatedImageHistory.length > 0 && (
+                                <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                        <Undo2 className="h-5 w-5" />
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                        <Redo2 className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                     </CardContent>
-                    {generatedImageUrl && (
+                    {currentHistoryItem && (
                         <CardFooter>
                             <Button 
                                 onClick={handleSaveImage} 
@@ -323,3 +372,5 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+    
