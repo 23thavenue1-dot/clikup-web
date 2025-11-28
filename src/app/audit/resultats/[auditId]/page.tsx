@@ -19,6 +19,8 @@ import type { UserProfile } from '@/lib/firestore';
 import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 type AuditReport = SocialAuditOutput & {
     createdAt: any; // Timestamp
@@ -51,6 +53,7 @@ export default function AuditResultPage() {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [aspectRatio, setAspectRatio] = useState('1:1');
     
     // Nouveaux états pour l'historique
     const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
@@ -108,7 +111,7 @@ export default function AuditResultPage() {
                 result = await editImage({ imageUrl: baseImageUrl, prompt });
             } else {
                 // Sinon, on génère de zéro.
-                result = await generateImage({ prompt, aspectRatio: '1:1' });
+                result = await generateImage({ prompt, aspectRatio: aspectRatio });
             }
             
             const newHistoryItem: ImageHistoryItem = {
@@ -329,14 +332,27 @@ export default function AuditResultPage() {
                                 placeholder="Décrivez l'image à générer..."
                             />
                         </div>
-                        <Button 
-                            onClick={handleGenerateImage}
-                            disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0}
-                            className="w-full"
-                        >
-                            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            Générer l'image (1 Ticket IA)
-                        </Button>
+                        <div className="flex gap-2">
+                           <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Format de l'image" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1:1">Publication (1:1)</SelectItem>
+                                    <SelectItem value="9:16">Story / Réel (9:16)</SelectItem>
+                                    <SelectItem value="4:5">Portrait (4:5)</SelectItem>
+                                    <SelectItem value="16:9">Paysage (16:9)</SelectItem>
+                                </SelectContent>
+                           </Select>
+                            <Button 
+                                onClick={handleGenerateImage}
+                                disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0}
+                                className="w-full"
+                            >
+                                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                Générer (1 Ticket IA)
+                            </Button>
+                        </div>
                          {totalAiTickets <= 0 && !isGenerating && (
                             <p className="text-center text-sm text-destructive">
                                 Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
