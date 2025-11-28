@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -17,7 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Video } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
@@ -46,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
+import { generateVideo } from '@/ai/flows/generate-video-flow';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -127,13 +127,20 @@ export function Uploader() {
 
   const [imageUrl, setImageUrl] = useState('');
   
-  // State pour la génération IA
+  // State pour la génération IA (image)
   const [prompt, setPrompt] = useState('');
   const [refinePrompt, setRefinePrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [aspectRatio, setAspectRatio] = useState('1:1');
 
-  // Historique des images et descriptions générées
+  // State pour la génération IA (vidéo)
+  const [videoPrompt, setVideoPrompt] = useState('');
+  const [videoAspectRatio, setVideoAspectRatio] = useState('9:16');
+  const [videoDuration, setVideoDuration] = useState(5);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+
+  // Historique des images générées
   const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   
@@ -199,7 +206,7 @@ export function Uploader() {
   }, [generatedImageHistory, historyIndex]);
 
   // Logique pour la protection des changements non sauvegardés
-  const hasUnsavedChanges = useMemo(() => !!currentHistoryItem, [currentHistoryItem]);
+  const hasUnsavedChanges = useMemo(() => !!currentHistoryItem || !!generatedVideoUrl, [currentHistoryItem, generatedVideoUrl]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -239,6 +246,9 @@ export function Uploader() {
     setHistoryIndex(-1);
     setIsUploading(false);
     setIsGenerating(false);
+    setVideoPrompt('');
+    setGeneratedVideoUrl(null);
+    setIsGeneratingVideo(false);
     setShowResetAlert(false); // Fermer l'alerte si elle était ouverte
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -302,7 +312,7 @@ export function Uploader() {
           await decrementTicketCount(firestore, user.uid, userProfile);
       }
 
-      toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
+      toast({ title: 'Succès', description: 'Votre média a été enregistré.' });
       performReset(true); // Forcer le reset après une sauvegarde réussie
     } catch (error) {
       const errorMessage = (error as Error).message;
@@ -454,6 +464,45 @@ export function Uploader() {
     await handleUpload(uploadFn, 'none'); // N'utilise pas de ticket d'upload
 };
 
+const handleGenerateVideo = async () => {
+    if (!videoPrompt.trim() || !user || !firestore || !userProfile) return;
+
+    // TODO: Définir un coût en tickets pour la vidéo
+    const VIDEO_COST = 5;
+    if (totalAiTickets < VIDEO_COST) {
+        toast({
+            variant: 'destructive',
+            title: `Tickets IA insuffisants (${VIDEO_COST} requis)`,
+            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
+        });
+        return;
+    }
+    
+    setIsGeneratingVideo(true);
+    setGeneratedVideoUrl(null);
+
+    try {
+        const result = await generateVideo({ 
+            prompt: videoPrompt, 
+            aspectRatio: videoAspectRatio, 
+            durationSeconds: videoDuration 
+        });
+        
+        setGeneratedVideoUrl(result.videoUrl);
+
+        for (let i = 0; i < VIDEO_COST; i++) {
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+        }
+      
+        toast({ title: 'Vidéo générée !', description: `${VIDEO_COST} tickets IA ont été utilisés.` });
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        toast({ variant: 'destructive', title: 'Erreur de génération vidéo', description: errorMessage });
+    } finally {
+        setIsGeneratingVideo(false);
+    }
+};
+
   const handleUndoGeneration = () => {
       if (historyIndex >= 0) {
           setHistoryIndex(prev => prev - 1);
@@ -563,7 +612,7 @@ export function Uploader() {
     </div>
   );
 
-  const isAiTab = activeTab === 'ai';
+  const isAiTab = activeTab === 'ai' || activeTab === 'video';
   const ticketsToShow = isAiTab ? totalAiTickets : totalUploadTickets;
   const ticketTypeLabel = isAiTab ? 'IA' : 'd\'upload';
 
@@ -622,9 +671,9 @@ export function Uploader() {
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
-                  <CardTitle>Ajouter une image</CardTitle>
+                  <CardTitle>Ajouter un média</CardTitle>
                   <CardDescription>
-                    Choisissez une méthode pour ajouter une image à votre galerie.
+                    Choisissez une méthode pour ajouter une image ou une vidéo à votre galerie.
                   </CardDescription>
               </div>
               {userProfile !== undefined ? (
@@ -689,13 +738,11 @@ export function Uploader() {
         </CardHeader>
         <CardContent>
         <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
-                  <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
-                  <TabsTrigger value="ai" className="data-[state=active]:font-bold">
-                    <Wand2 className="mr-2 h-4 w-4 text-amber-500"/>
-                    <span className={activeTab === 'ai' ? '' : 'text-foreground'}>Générer par IA</span>
-                  </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Fichier</TabsTrigger>
+                  <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>URL</TabsTrigger>
+                  <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4"/>Image IA</TabsTrigger>
+                  <TabsTrigger value="video"><Video className="mr-2 h-4 w-4"/>Vidéo IA</TabsTrigger>
               </TabsList>
 
               <TabsContent value="storage" className="space-y-4 pt-6">
@@ -946,6 +993,93 @@ export function Uploader() {
                     </aside>
                 </div>
               </TabsContent>
+
+              <TabsContent value="video" className="space-y-4 pt-6">
+                <div className="space-y-2">
+                    <Label htmlFor="video-prompt">Instruction pour la vidéo</Label>
+                    <Textarea 
+                        id="video-prompt" 
+                        placeholder="Ex: Un majestueux dragon volant au-dessus d'une forêt mystique à l'aube." 
+                        value={videoPrompt}
+                        onChange={(e) => setVideoPrompt(e.target.value)}
+                        rows={3}
+                        disabled={isGeneratingVideo}
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="video-aspect">Format</Label>
+                        <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio} disabled={isGeneratingVideo}>
+                            <SelectTrigger id="video-aspect">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="9:16">Story / Réel (9:16)</SelectItem>
+                                <SelectItem value="1:1">Carré (1:1)</SelectItem>
+                                <SelectItem value="16:9">Paysage (16:9)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="video-duration">Durée (secondes)</Label>
+                        <Select value={String(videoDuration)} onValueChange={(v) => setVideoDuration(Number(v))} disabled={isGeneratingVideo}>
+                            <SelectTrigger id="video-duration">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {[...Array(4)].map((_, i) => (
+                                    <SelectItem key={i+5} value={String(i+5)}>{i+5}s</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                <Button 
+                    onClick={handleGenerateVideo} 
+                    disabled={!videoPrompt.trim() || isGeneratingVideo || totalAiTickets < 5}
+                    className="w-full"
+                    size="lg"
+                >
+                    {isGeneratingVideo && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    {isGeneratingVideo ? 'Génération en cours (peut prendre 2 min)...' : 'Générer la vidéo (5 Tickets IA)'}
+                </Button>
+                {totalAiTickets < 5 && !isGeneratingVideo && (
+                    <p className="text-center text-sm text-destructive">
+                        Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
+                    </p>
+                )}
+
+                <div className="aspect-video w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
+                    {isGeneratingVideo && (
+                        <div className="flex flex-col items-center gap-4 text-primary">
+                            <Loader2 className="h-10 w-10 animate-spin" />
+                            <p className="text-sm font-medium">Création de votre vidéo...</p>
+                            <p className="text-xs text-muted-foreground">Cela peut prendre jusqu'à 2 minutes.</p>
+                        </div>
+                    )}
+                    {!isGeneratingVideo && generatedVideoUrl && (
+                        <video src={generatedVideoUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
+                    )}
+                    {!isGeneratingVideo && !generatedVideoUrl && (
+                        <div className="text-center text-muted-foreground p-4">
+                            <Video className="h-12 w-12 mx-auto mb-2"/>
+                            <p className="text-sm">Votre vidéo apparaîtra ici.</p>
+                        </div>
+                    )}
+                </div>
+                 {generatedVideoUrl && !isGeneratingVideo && (
+                    <Button 
+                        // onClick={handleSaveGeneratedVideo} // TODO: Implement this function
+                        disabled={true}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    >
+                        <Save className="mr-2 h-4 w-4" />
+                        Sauvegarder (Bientôt disponible)
+                    </Button>
+                )}
+
+              </TabsContent>
           </Tabs>
           
           {status.state === 'error' && (
@@ -959,9 +1093,9 @@ export function Uploader() {
         <AlertDialog open={showResetAlert} onOpenChange={setShowResetAlert}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Abandonner l'image non sauvegardée ?</AlertDialogTitle>
+                    <AlertDialogTitle>Abandonner les modifications ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Vous avez une image générée qui n'a pas été sauvegardée. Si vous continuez, elle sera perdue.
+                        Vous avez une image ou une vidéo générée qui n'a pas été sauvegardée. Si vous continuez, elle sera perdue.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -98,7 +98,3 @@ const generateVideoFlow = ai.defineFlow(
     };
   }
 );
-
-// Augmenter le timeout pour les actions de serveur Next.js qui utilisent ce flow.
-// La génération vidéo peut être longue.
-export const maxDuration = 120; // 2 minutes
