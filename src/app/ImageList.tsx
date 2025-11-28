@@ -552,81 +552,97 @@ export function ImageList() {
                                                             </Tooltip>
                                                         )
                                                     )}
-                                                     <Link href={isSelectionMode ? '#' : `/edit/${image.id}`} className="block relative aspect-square w-full">
-                                                        <Image
-                                                            src={image.directUrl}
-                                                            alt={image.originalName || 'Image téléversée'}
-                                                            fill
-                                                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                                            className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
-                                                            unoptimized // Important pour les Data URLs et celles de Storage
-                                                        />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                                    </Link>
-                                                        {!isSelectionMode && (
-                                                            <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                        <Button
-                                                                            variant="secondary"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                            }}
-                                                                        >
-                                                                            <MoreHorizontal size={16} />
+                                                     
+                                                    <Image
+                                                        src={image.directUrl}
+                                                        alt={image.originalName || 'Image téléversée'}
+                                                        fill
+                                                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                                                        className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
+                                                        unoptimized // Important pour les Data URLs et celles de Storage
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                                                    
+                                                    {!isSelectionMode && (
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                                            <div className="flex gap-2">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Link href={`/edit/${image.id}`} passHref>
+                                                                            <Button variant="secondary" size="icon" className="h-10 w-10">
+                                                                                <Sparkles size={20} />
+                                                                            </Button>
+                                                                        </Link>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>Éditer avec l'IA</p></TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                         <Button variant="secondary" size="icon" className="h-10 w-10" onClick={(e) => openEditDialog(e, image)}>
+                                                                            <Wand2 size={20} />
                                                                         </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                                                        <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
-                                                                            <Wand2 className="mr-2 h-4 w-4" />
-                                                                            <span>Générer une description</span>
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuSeparator/>
-                                                                        <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
-                                                                            {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-                                                                            <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
-                                                                            <CopyPlus className="mr-2 h-4 w-4" />
-                                                                            <span>Ajouter à la galerie</span>
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem asChild>
-                                                                            <Link href={`/image/${image.id}`} onClick={(e) => e.stopPropagation()}>
-                                                                                <Share2 className="mr-2 h-4 w-4" />
-                                                                                <span>Détails et Partage</span>
-                                                                            </Link>
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
-                                                                            {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                                            <span>Télécharger</span>
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem onClick={(e) => openDeleteDialog(e, image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
-                                                                            {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                                                            <span>Supprimer</span>
-                                                                        </DropdownMenuItem>
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>Modifier la description</p></TooltipContent>
+                                                                </Tooltip>
                                                             </div>
-                                                        )}
-                                                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                                            <p 
-                                                            className="text-sm font-semibold truncate"
-                                                            title={image.originalName}
-                                                            >
-                                                                {image.originalName || 'Image depuis URL'}
-                                                            </p>
-                                                            {image.uploadTimestamp && (
-                                                                <p className="text-xs opacity-80">
-                                                                    {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
-                                                                </p>
-                                                            )}
                                                         </div>
+                                                    )}
+
+                                                    <div className="absolute top-2 right-2 z-10">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                >
+                                                                    <MoreHorizontal size={16} />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                                                <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
+                                                                    {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                                                    <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
+                                                                    <CopyPlus className="mr-2 h-4 w-4" />
+                                                                    <span>Ajouter à la galerie</span>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem asChild>
+                                                                    <Link href={`/image/${image.id}`} onClick={(e) => e.stopPropagation()}>
+                                                                        <Share2 className="mr-2 h-4 w-4" />
+                                                                        <span>Détails et Partage</span>
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
+                                                                    {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                                    <span>Télécharger</span>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={(e) => openDeleteDialog(e, image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
+                                                                    {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                                                    <span>Supprimer</span>
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+
+                                                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                                        <p 
+                                                        className="text-sm font-semibold truncate"
+                                                        title={image.originalName}
+                                                        >
+                                                            {image.originalName || 'Image depuis URL'}
+                                                        </p>
+                                                        {image.uploadTimestamp && (
+                                                            <p className="text-xs opacity-80">
+                                                                {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                     
                                                 <div className="p-3 bg-card flex-grow flex flex-col gap-1">
