@@ -191,7 +191,7 @@ export default function AuditPage() {
                 platform,
                 goal,
                 image_urls: styleImageUrls,
-                subject_image_urls: subjectImageUrls,
+                subject_image_urls: subjectImageUrls.length > 0 ? subjectImageUrls : undefined,
                 post_texts: postTexts.filter(t => t.trim() !== ''),
                 additionalContext: additionalContext.trim() || undefined,
             });
@@ -201,6 +201,7 @@ export default function AuditPage() {
             }
             
             const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
+            // IMPORTANT: Save subject image URLs with the audit result
             const auditDataToSave = {
                 ...result,
                 userId: user.uid,
@@ -208,6 +209,7 @@ export default function AuditPage() {
                 createdAt: new Date(),
                 platform,
                 goal,
+                subjectImageUrls: subjectImageUrls, // Save for later use
             };
             const docRef = await addDoc(auditsCollectionRef, auditDataToSave);
             

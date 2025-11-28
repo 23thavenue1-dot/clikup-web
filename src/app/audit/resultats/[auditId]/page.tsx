@@ -14,7 +14,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
-import { generateImage } from '@/ai/flows/generate-image-flow';
+import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
 import type { UserProfile } from '@/lib/firestore';
 import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -24,6 +24,7 @@ type AuditReport = SocialAuditOutput & {
     createdAt: any; // Timestamp
     platform: string;
     goal: string;
+    subjectImageUrls?: string[]; // Add subjectImageUrls here
 }
 
 // Helper pour convertir Data URI en Blob
@@ -84,8 +85,8 @@ export default function AuditResultPage() {
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) : 0;
 
     const handleGenerateImage = async () => {
-        if (!prompt || !user || !userProfile || !firestore) return;
-
+        if (!prompt || !user || !userProfile || !firestore || !auditReport) return;
+    
         if (totalAiTickets <= 0) {
             toast({
                 variant: 'destructive',
@@ -94,17 +95,27 @@ export default function AuditResultPage() {
             });
             return;
         }
-
+    
         setIsGenerating(true);
-
+    
         try {
-            const result = await generateImage({ prompt, aspectRatio: '1:1' });
+            let result;
+            // Si des images de référence du sujet existent, on les utilise avec editImage.
+            if (auditReport.subjectImageUrls && auditReport.subjectImageUrls.length > 0) {
+                // Pour l'instant, on prend la première image de référence comme base, mais on pourrait
+                // utiliser une logique plus complexe pour combiner les infos.
+                const baseImageUrl = auditReport.subjectImageUrls[0];
+                result = await editImage({ imageUrl: baseImageUrl, prompt });
+            } else {
+                // Sinon, on génère de zéro.
+                result = await generateImage({ prompt, aspectRatio: '1:1' });
+            }
             
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.imageUrl,
                 prompt: prompt,
             };
-
+    
             const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
             newHistory.push(newHistoryItem);
             setGeneratedImageHistory(newHistory);
@@ -372,5 +383,3 @@ export default function AuditResultPage() {
         </div>
     );
 }
-
-    
