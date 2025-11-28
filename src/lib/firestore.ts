@@ -980,4 +980,49 @@ export async function createBrandProfile(firestore: Firestore, userId: string, n
         throw error;
     }
 }
+
+/**
+ * Met à jour un profil de marque existant.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param profileId L'ID du profil de marque.
+ * @param updates Un objet contenant les champs à mettre à jour (ex: { name: 'Nouveau Nom' }).
+ */
+export async function updateBrandProfile(firestore: Firestore, userId: string, profileId: string, updates: Partial<Pick<BrandProfile, 'name' | 'avatarUrl'>>): Promise<void> {
+    const profileDocRef = doc(firestore, `users/${userId}/brandProfiles/${profileId}`);
+    try {
+        await updateDoc(profileDocRef, updates);
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: profileDocRef.path,
+            operation: 'update',
+            requestResourceData: updates,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
+/**
+ * Supprime un profil de marque.
+ * TODO: Décider de la stratégie pour les audits orphelins.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param profileId L'ID du profil de marque à supprimer.
+ */
+export async function deleteBrandProfile(firestore: Firestore, userId: string, profileId: string): Promise<void> {
+    const profileDocRef = doc(firestore, `users/${userId}/brandProfiles/${profileId}`);
+    try {
+        await deleteDoc(profileDocRef);
+        // Note : pour l'instant, les audits associés deviennent orphelins.
+        // Une version plus avancée pourrait les supprimer en cascade ici.
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: profileDocRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
     

@@ -7,7 +7,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFireb
 import { collection, query, orderBy, addDoc, doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
 import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
-import { decrementAiTicketCount, createBrandProfile } from '@/lib/firestore';
+import { decrementAiTicketCount, createBrandProfile, updateBrandProfile, deleteBrandProfile } from '@/lib/firestore';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +24,9 @@ import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+
 
 const MAX_STYLE_IMAGES = 9;
 const MAX_SUBJECT_IMAGES = 5;
@@ -43,6 +46,14 @@ export default function AuditPage() {
     const [newProfileName, setNewProfileName] = useState('');
     const [newProfileAvatarUrl, setNewProfileAvatarUrl] = useState('');
     const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+    
+    const [editingProfile, setEditingProfile] = useState<BrandProfile | null>(null);
+    const [editedName, setEditedName] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+
+    const [deletingProfile, setDeletingProfile] = useState<BrandProfile | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
 
     // --- Step 2 States ---
     const [platform, setPlatform] = useState('');
@@ -108,6 +119,37 @@ export default function AuditPage() {
             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de créer le profil." });
         } finally {
             setIsCreatingProfile(false);
+        }
+    };
+    
+    const handleUpdateProfile = async () => {
+        if (!editingProfile || !user || !firestore || !editedName.trim()) return;
+        setIsEditing(true);
+        try {
+            await updateBrandProfile(firestore, user.uid, editingProfile.id, { name: editedName });
+            toast({ title: "Profil mis à jour" });
+            setEditingProfile(null);
+        } catch (error) {
+            toast({ variant: 'destructive', title: "Erreur", description: "Impossible de mettre à jour le profil." });
+        } finally {
+            setIsEditing(false);
+        }
+    };
+    
+    const handleDeleteProfile = async () => {
+        if (!deletingProfile || !user || !firestore) return;
+        setIsDeleting(true);
+        try {
+            await deleteBrandProfile(firestore, user.uid, deletingProfile.id);
+            toast({ title: "Profil supprimé" });
+            if (selectedProfileId === deletingProfile.id) {
+                setSelectedProfileId(null);
+            }
+            setDeletingProfile(null);
+        } catch (error) {
+            toast({ variant: 'destructive', title: "Erreur", description: "Impossible de supprimer le profil." });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -298,7 +340,7 @@ export default function AuditPage() {
                                         key={profile.id}
                                         onClick={() => setSelectedProfileId(profile.id)}
                                         className={cn(
-                                            "flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-all",
+                                            "group flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-all",
                                             selectedProfileId === profile.id ? "bg-primary/10 border-primary" : "hover:bg-muted/50"
                                         )}
                                     >
@@ -306,8 +348,28 @@ export default function AuditPage() {
                                             <AvatarImage src={profile.avatarUrl} alt={profile.name} />
                                             <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
                                         </Avatar>
-                                        <span className="font-medium">{profile.name}</span>
-                                        {selectedProfileId === profile.id && <Check className="ml-auto h-5 w-5 text-primary"/>}
+                                        <span className="font-medium flex-1 truncate">{profile.name}</span>
+                                        {selectedProfileId === profile.id && <Check className="ml-auto h-5 w-5 text-primary flex-shrink-0"/>}
+                                        
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                                        <MoreHorizontal className="h-4 w-4"/>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => { setEditingProfile(profile); setEditedName(profile.name); }}>
+                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                        Modifier
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => setDeletingProfile(profile)} className="text-destructive focus:text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Supprimer
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
                                 ))}
                                 </div>
@@ -540,6 +602,7 @@ export default function AuditPage() {
     const hasSavedAudits = !areAuditsLoading && savedAudits && savedAudits.length > 0;
 
     return (
+        <>
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <div className="w-full max-w-2xl mx-auto space-y-6">
                 <header className="text-center">
@@ -598,5 +661,45 @@ export default function AuditPage() {
                 </Card>
             </div>
         </div>
+
+        {/* --- Dialogs for profile management --- */}
+        <Dialog open={!!editingProfile} onOpenChange={(open) => !open && setEditingProfile(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Modifier le profil</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="edit-profile-name">Nom du profil</Label>
+                    <Input id="edit-profile-name" value={editedName} onChange={(e) => setEditedName(e.target.value)} />
+                </div>
+                <DialogFooter>
+                    <Button variant="secondary" onClick={() => setEditingProfile(null)}>Annuler</Button>
+                    <Button onClick={handleUpdateProfile} disabled={isEditing || !editedName.trim()}>
+                        {isEditing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Enregistrer
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <AlertDialog open={!!deletingProfile} onOpenChange={(open) => !open && setDeletingProfile(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer le profil "{deletingProfile?.name}" ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Cette action est irréversible. Les analyses associées à ce profil ne seront pas supprimées.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteProfile} className="bg-destructive hover:bg-destructive/90">
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Supprimer
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        </>
     );
 }
