@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
+import { generateVideo } from '@/ai/flows/generate-video-flow';
 import type { UserProfile } from '@/lib/firestore';
 import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -52,8 +53,10 @@ export default function AuditResultPage() {
 
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [aspectRatio, setAspectRatio] = useState('1:1');
+    const [aspectRatio, setAspectRatio] = useState('9:16');
+    const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
     
     // Nouveaux états pour l'historique
     const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
@@ -100,6 +103,7 @@ export default function AuditResultPage() {
         }
     
         setIsGenerating(true);
+        setGeneratedVideoUrl(null); // Réinitialiser la vidéo si on génère une image
     
         try {
             let result;
@@ -132,6 +136,43 @@ export default function AuditResultPage() {
             setIsGenerating(false);
         }
     };
+
+    const handleGenerateVideo = async () => {
+        if (!prompt || !user || !userProfile || !firestore) return;
+
+        const VIDEO_COST = 5;
+        if (totalAiTickets < VIDEO_COST) {
+            toast({
+                variant: 'destructive',
+                title: `Tickets IA insuffisants (${VIDEO_COST} requis)`,
+                description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
+            });
+            return;
+        }
+
+        setIsGeneratingVideo(true);
+        setGeneratedImageHistory([]); // Reset image history
+        setHistoryIndex(-1);
+
+        try {
+            const result = await generateVideo({
+                prompt: prompt,
+                aspectRatio: aspectRatio,
+                durationSeconds: 5,
+            });
+            setGeneratedVideoUrl(result.videoUrl);
+
+            for (let i = 0; i < VIDEO_COST; i++) {
+                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            }
+            toast({ title: 'Vidéo générée !', description: `${VIDEO_COST} tickets IA ont été utilisés.` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de génération vidéo', description: (error as Error).message });
+        } finally {
+            setIsGeneratingVideo(false);
+        }
+    };
+
     
     const handleUndoGeneration = () => {
         if (historyIndex > 0) {
@@ -332,8 +373,8 @@ export default function AuditResultPage() {
                                 placeholder="Décrivez l'image à générer..."
                             />
                         </div>
-                        <div className="flex gap-2">
-                           <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                           <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating || isGeneratingVideo}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Format de l'image" />
                                 </SelectTrigger>
@@ -346,30 +387,52 @@ export default function AuditResultPage() {
                            </Select>
                             <Button 
                                 onClick={handleGenerateImage}
-                                disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0}
+                                disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
                                 className="w-full"
                             >
-                                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                Générer (1 Ticket IA)
+                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
+                                Générer Image (1 Ticket)
                             </Button>
                         </div>
-                         {totalAiTickets <= 0 && !isGenerating && (
+                         <Button 
+                                onClick={handleGenerateVideo}
+                                disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets < 5}
+                                className="w-full"
+                                variant="outline"
+                            >
+                                {isGeneratingVideo ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
+                                {isGeneratingVideo ? 'Génération Vidéo...' : 'Générer Vidéo (5 Tickets)'}
+                            </Button>
+                         {(totalAiTickets <= 0 && !isGenerating && !isGeneratingVideo) && (
                             <p className="text-center text-sm text-destructive">
                                 Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
                             </p>
                         )}
+                        {totalAiTickets > 0 && totalAiTickets < 5 && (
+                             <p className="text-center text-sm text-amber-600">
+                                Attention, la génération vidéo coûte 5 tickets IA.
+                            </p>
+                        )}
 
-                        <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
-                            {isGenerating && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
-                            {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />}
-                             {!isGenerating && !currentHistoryItem?.imageUrl && (
+
+                        <div className="aspect-video w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
+                            {(isGenerating || isGeneratingVideo) && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
+                            
+                            {!isGenerating && !isGeneratingVideo && currentHistoryItem?.imageUrl && (
+                                <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />
+                            )}
+                             {!isGenerating && !isGeneratingVideo && generatedVideoUrl && (
+                                <video src={generatedVideoUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
+                            )}
+
+                             {!isGenerating && !isGeneratingVideo && !currentHistoryItem?.imageUrl && !generatedVideoUrl && (
                                 <div className="text-center text-muted-foreground p-4">
                                     <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
-                                    <p className="text-sm">Votre image apparaîtra ici.</p>
+                                    <p className="text-sm">Votre création apparaîtra ici.</p>
                                 </div>
                             )}
 
-                             {!isGenerating && generatedImageHistory.length > 0 && (
+                             {!isGenerating && !isGeneratingVideo && generatedImageHistory.length > 0 && (
                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
                                     <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
                                         <Undo2 className="h-5 w-5" />
@@ -390,7 +453,18 @@ export default function AuditResultPage() {
                                 className="w-full bg-green-600 hover:bg-green-700 text-white"
                             >
                                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                Sauvegarder dans ma galerie
+                                Sauvegarder l'image
+                            </Button>
+                        </CardFooter>
+                    )}
+                     {generatedVideoUrl && (
+                        <CardFooter>
+                            <Button 
+                                disabled={true} // La sauvegarde vidéo n'est pas implémentée
+                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                            >
+                                <Save className="mr-2 h-4 w-4" />
+                                Sauvegarder la vidéo (Bientôt)
                             </Button>
                         </CardFooter>
                     )}
