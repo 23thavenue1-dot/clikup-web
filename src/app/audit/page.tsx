@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -312,6 +313,7 @@ export default function AuditPage() {
                                     <SelectItem value="facebook">Facebook</SelectItem>
                                     <SelectItem value="x">X (Twitter)</SelectItem>
                                     <SelectItem value="linkedin">LinkedIn</SelectItem>
+                                    <SelectItem value="ecommerce">Site E-Commerce</SelectItem>
                                     <SelectItem value="other">Autre</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -323,11 +325,11 @@ export default function AuditPage() {
                                     <SelectValue placeholder="Choisissez un objectif..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Augmenter mon engagement et créer une communauté.">Augmenter mon engagement et créer une communauté.</SelectItem>
-                                    <SelectItem value="Professionnaliser mon image de marque.">Professionnaliser mon image de marque.</SelectItem>
-                                    <SelectItem value="Trouver plus de clients ou d'opportunités.">Trouver plus de clients ou d'opportunités.</SelectItem>
+                                    <SelectItem value="Augmenter mon engagement et créer une communauté.">Augmenter l'engagement et créer une communauté.</SelectItem>
+                                    <SelectItem value="Professionnaliser mon image de marque.">Professionnaliser l'image de marque.</SelectItem>
+                                    <SelectItem value="Générer plus de ventes et attirer des prospects qualifiés.">Générer plus de ventes et attirer des prospects.</SelectItem>
                                     <SelectItem value="Définir une identité visuelle plus cohérente.">Définir une identité visuelle plus cohérente.</SelectItem>
-                                    <SelectItem value="Diversifier mon contenu et trouver de nouvelles idées.">Diversifier mon contenu et trouver de nouvelles idées.</SelectItem>
+                                    <SelectItem value="Diversifier mon contenu et trouver de nouvelles idées.">Diversifier le contenu et trouver de nouvelles idées.</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -526,3 +528,5 @@ export default function AuditPage() {
         </div>
     );
 }
+
+    
