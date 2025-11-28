@@ -7,16 +7,20 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, ClipboardList, Target, Building, Instagram, MessageSquare } from 'lucide-react';
+import { Loader2, ArrowLeft, ClipboardList, Target, Building, Instagram, MessageSquare, MoreHorizontal, Trash2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { SocialAuditOutput } from '@/ai/schemas/social-audit-schemas';
 import type { BrandProfile } from '@/lib/firestore';
+import { deleteAudit } from '@/lib/firestore';
 import { useState, useMemo, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 type AuditReport = SocialAuditOutput & {
     id: string;
@@ -40,8 +44,11 @@ export default function AuditHistoryPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const { toast } = useToast();
 
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+    const [auditToDelete, setAuditToDelete] = useState<AuditReport | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const brandProfilesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -77,6 +84,20 @@ export default function AuditHistoryPage() {
             return acc;
         }, {} as Record<string, AuditReport[]>);
     }, [auditsForSelectedProfile]);
+
+    const handleDeleteAudit = async () => {
+        if (!user || !firestore || !auditToDelete) return;
+        setIsDeleting(true);
+        try {
+            await deleteAudit(firestore, user.uid, auditToDelete.id);
+            toast({ title: 'Analyse supprimée', description: 'Le rapport a été supprimé de votre historique.' });
+            setAuditToDelete(null);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer l\'analyse.' });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
 
     if (isUserLoading || areProfilesLoading || areAuditsLoading) {
@@ -160,18 +181,33 @@ export default function AuditHistoryPage() {
                                         </div>
                                         <div className="space-y-4">
                                             {platformAudits.map(audit => (
-                                                 <Card key={audit.id} className="transition-all hover:shadow-md hover:border-primary/50">
-                                                    <Link href={`/audit/resultats/${audit.id}`} className="block">
-                                                        <CardHeader>
+                                                 <Card key={audit.id} className="transition-all hover:shadow-md hover:border-primary/50 group">
+                                                    <div className="flex items-start justify-between p-6">
+                                                        <Link href={`/audit/resultats/${audit.id}`} className="block flex-1">
                                                             <CardTitle className="flex items-center gap-2 text-base">
                                                                 <Target className="h-4 w-4 text-primary"/>
                                                                 Analyse du {format(audit.createdAt.toDate(), "d MMMM yyyy", { locale: fr })}
                                                             </CardTitle>
-                                                            <CardDescription>
+                                                            <CardDescription className="mt-1">
                                                                 Objectif : "{audit.goal}"
                                                             </CardDescription>
-                                                        </CardHeader>
-                                                    </Link>
+                                                        </Link>
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => setAuditToDelete(audit)} className="text-destructive focus:text-destructive">
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Supprimer
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    </div>
                                                 </Card>
                                             ))}
                                         </div>
@@ -191,6 +227,24 @@ export default function AuditHistoryPage() {
                     </main>
                 </div>
             </div>
+
+            <AlertDialog open={!!auditToDelete} onOpenChange={(open) => !open && setAuditToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer cette analyse ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le rapport d'analyse sera définitivement supprimé.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAudit} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Supprimer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -1025,4 +1025,24 @@ export async function deleteBrandProfile(firestore: Firestore, userId: string, p
         throw error;
     }
 }
+
+/**
+ * Supprime un rapport d'audit.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param auditId L'ID de l'audit à supprimer.
+ */
+export async function deleteAudit(firestore: Firestore, userId: string, auditId: string): Promise<void> {
+    const auditDocRef = doc(firestore, `users/${userId}/audits`, auditId);
+    try {
+        await deleteDoc(auditDocRef);
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: auditDocRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
     
