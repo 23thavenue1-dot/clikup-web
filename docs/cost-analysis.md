@@ -23,10 +23,11 @@ Notre projet repose principalement sur Firebase et les services Google AI. La pl
 | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- | -------------------- |
 | **Génération de Texte (Gemini)**    | Génération des titres, descriptions, hashtags.       | Basée sur le nombre de "tokens" (mots/caractères) en entrée et en sortie.   | **Modéré**   |
 | **Édition d'Image (Gemini)** | Retouche d'image via des prompts textuels.           | **Par image générée.** Le coût réel constaté est d'environ **0,0275 € par génération**.      | **Très Élevé**       |
+| **Génération de Vidéo (Veo)** | Création de clips vidéo à partir de texte. | **Par seconde de vidéo générée.** Coût estimé à environ **0,04 € / seconde**. | **Extrêmement Élevé** |
 
 
 **Analyse consolidée :**
-*   L'**édition d'image par IA** et le **stockage** (Storage) sont les deux principaux centres de coûts.
+*   La **génération de vidéo par IA** est, de loin, le centre de coût le plus élevé, suivie de l'**édition d'image** et du **stockage** (Storage).
 *   Votre système actuel de **tickets quotidiens gratuits** est une excellente stratégie pour maîtriser ces coûts pour l'offre gratuite et prévenir les abus. Il constitue la base de notre modèle Freemium.
 
 ---
@@ -172,4 +173,3 @@ Cette architecture garantit que l'utilisateur ne perd jamais ce qu'il a payé to
 2.  **Intégrer une solution de paiement :** Mettre en place un service comme Stripe pour gérer les abonnements récurrents et les paiements uniques.
 3.  **Mettre à jour la logique des tickets :** Modifier le code pour que le système puisse gérer les tickets mensuels (pour les abonnés), les quotas de stockage et l'ajout de tickets achetés via les packs.
 4.  **Modifier le modèle de données utilisateur (`backend.json`)** pour inclure les nouveaux champs de tickets.
-```
