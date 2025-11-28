@@ -2,14 +2,23 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { type SocialAuditOutput } from '@/ai/schemas/social-audit-schemas';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import Image from 'next/image';
+import { generateImage } from '@/ai/flows/generate-image-flow';
+import type { UserProfile } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
+import { getStorage } from 'firebase/storage';
+import { uploadFileAndGetMetadata } from '@/lib/storage';
 
 type AuditReport = SocialAuditOutput & {
     createdAt: any; // Timestamp
@@ -17,12 +26,26 @@ type AuditReport = SocialAuditOutput & {
     goal: string;
 }
 
+// Helper pour convertir Data URI en Blob
+async function dataUriToBlob(dataUri: string): Promise<Blob> {
+    const response = await fetch(dataUri);
+    const blob = await response.blob();
+    return blob;
+}
+
+
 export default function AuditResultPage() {
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading, firebaseApp } = useFirebase();
     const firestore = useFirestore();
     const router = useRouter();
     const params = useParams();
+    const { toast } = useToast();
     const auditId = params.auditId as string;
+
+    const [prompt, setPrompt] = useState('');
+    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     const auditDocRef = useMemoFirebase(() => {
         if (!user || !firestore || !auditId) return null;
@@ -31,6 +54,75 @@ export default function AuditResultPage() {
     
     const { data: auditReport, isLoading: isAuditLoading } = useDoc<AuditReport>(auditDocRef);
     
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+    useEffect(() => {
+        if (auditReport?.creative_suggestion?.suggested_post_prompt) {
+            setPrompt(auditReport.creative_suggestion.suggested_post_prompt);
+        }
+    }, [auditReport]);
+
+    const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) : 0;
+
+    const handleGenerateImage = async () => {
+        if (!prompt || !user || !userProfile || !firestore) return;
+
+        if (totalAiTickets <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
+            });
+            return;
+        }
+
+        setIsGenerating(true);
+        setGeneratedImageUrl(null);
+
+        try {
+            const result = await generateImage({ prompt, aspectRatio: '1:1' });
+            setGeneratedImageUrl(result.imageUrl);
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleSaveImage = async () => {
+        if (!generatedImageUrl || !prompt || !user || !firebaseApp || !firestore) return;
+        setIsSaving(true);
+        try {
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(generatedImageUrl);
+            const newFileName = `ai-audit-generated-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Généré (Audit): ${prompt}`, () => {});
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Généré par l'IA : ${auditReport?.platform}`,
+                description: prompt,
+                hashtags: auditReport?.visual_identity.keywords.map(k => `#${k.replace(/\s+/g, '')}`).join(' ') || '',
+                generatedByAI: true
+            });
+
+            toast({ title: "Image sauvegardée !", description: "Votre nouvelle création a été ajoutée à votre galerie principale." });
+            setGeneratedImageUrl(null); // Reset after saving
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (isUserLoading || isAuditLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -61,9 +153,9 @@ export default function AuditResultPage() {
             <div className="w-full max-w-4xl mx-auto space-y-8">
                  <header className="space-y-2">
                         <Button variant="ghost" asChild className="mb-4 -ml-4">
-                            <Link href="/audit">
+                            <Link href="/audit/history">
                                 <ArrowLeft className="mr-2 h-4 w-4"/>
-                                Retour au Coach Stratégique
+                                Retour à l'historique
                             </Link>
                         </Button>
                         <h1 className="text-3xl font-bold tracking-tight">Rapport d'Analyse IA</h1>
@@ -164,6 +256,67 @@ export default function AuditResultPage() {
                             ))}
                         </ul>
                     </CardContent>
+                </Card>
+
+                {/* --- NOUVEAU MODULE DE GÉNÉRATION --- */}
+                <Card className="bg-primary/5 border-primary/20">
+                     <CardHeader className="flex flex-row items-start gap-4">
+                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><Wand2 className="h-6 w-6"/></div>
+                        <div>
+                            <CardTitle>Passez à l'action</CardTitle>
+                            <CardDescription>Utilisez la suggestion de l'IA pour générer votre prochaine publication.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <label htmlFor="suggested-prompt" className="text-sm font-medium">Suggestion de l'IA pour votre prochaine image :</label>
+                            <Textarea 
+                                id="suggested-prompt"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                rows={3}
+                                className="mt-2 bg-background"
+                                placeholder="Décrivez l'image à générer..."
+                            />
+                        </div>
+                        <Button 
+                            onClick={handleGenerateImage}
+                            disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0}
+                            className="w-full"
+                        >
+                            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Générer l'image (1 Ticket IA)
+                        </Button>
+                         {totalAiTickets <= 0 && !isGenerating && (
+                            <p className="text-center text-sm text-destructive">
+                                Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
+                            </p>
+                        )}
+
+                        <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
+                            {isGenerating && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
+                            {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />}
+                             {!isGenerating && !generatedImageUrl && (
+                                <div className="text-center text-muted-foreground p-4">
+                                    <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
+                                    <p className="text-sm">Votre image apparaîtra ici.</p>
+                                </div>
+                            )}
+                        </div>
+
+                    </CardContent>
+                    {generatedImageUrl && (
+                        <CardFooter>
+                            <Button 
+                                onClick={handleSaveImage} 
+                                disabled={isSaving}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                            >
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                Sauvegarder dans ma galerie
+                            </Button>
+                        </CardFooter>
+                    )}
                 </Card>
 
             </div>
