@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -21,6 +21,7 @@ import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 
 type AuditReport = SocialAuditOutput & {
@@ -354,12 +355,18 @@ export default function AuditResultPage() {
 
                 {/* --- NOUVEAU MODULE DE GÉNÉRATION --- */}
                 <Card className="bg-primary/5 border-primary/20">
-                     <CardHeader className="flex flex-row items-start gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><Wand2 className="h-6 w-6"/></div>
-                        <div>
-                            <CardTitle>Passez à l'action</CardTitle>
-                            <CardDescription>Utilisez la suggestion de l'IA pour générer votre prochaine publication.</CardDescription>
+                     <CardHeader className="flex flex-row items-start justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg text-primary"><Wand2 className="h-6 w-6"/></div>
+                            <div>
+                                <CardTitle>Passez à l'action</CardTitle>
+                                <CardDescription>Utilisez la suggestion de l'IA pour générer votre prochaine publication.</CardDescription>
+                            </div>
                         </div>
+                        <Badge variant="outline" className="flex items-center gap-2 text-sm font-semibold h-fit py-1.5 px-3">
+                            <Ticket className="h-4 w-4 text-primary" />
+                            <span>{totalAiTickets} restants</span>
+                        </Badge>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
