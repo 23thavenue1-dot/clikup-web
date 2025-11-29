@@ -26,10 +26,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { Calendar } from "@/components/ui/calendar"
 
 
 type AuditReport = SocialAuditOutput & {
@@ -75,7 +75,7 @@ export default function AuditResultPage() {
     const [historyIndex, setHistoryIndex] = useState(-1);
 
     const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-    const [suggestionCount, setSuggestionCount] = useState("1");
+    const [suggestionCount, setSuggestionCount] = useState("3");
     const [creativeSuggestions, setCreativeSuggestions] = useState<SocialAuditOutput['creative_suggestions']>([]);
     
     const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -98,11 +98,11 @@ export default function AuditResultPage() {
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
             setCreativeSuggestions(auditReport.creative_suggestions);
-            if (auditReport.creative_suggestions.length > 0) {
+            if (auditReport.creative_suggestions.length > 0 && !prompt) {
                  setPrompt(auditReport.creative_suggestions[0].prompt);
             }
         }
-    }, [auditReport]);
+    }, [auditReport, prompt]);
     
     const currentHistoryItem = useMemo(() => {
         if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
@@ -427,20 +427,28 @@ export default function AuditResultPage() {
                         </Badge>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Tabs defaultValue="single">
+                        <Tabs defaultValue="plan" className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="single">Création Unique</TabsTrigger>
                                 <TabsTrigger value="plan">Plan de Contenu IA</TabsTrigger>
                             </TabsList>
-                            <TabsContent value="single" className="pt-4">
+                            <TabsContent value="single" className="pt-4 space-y-2">
                                 <Textarea 
-                                    id="suggested-prompt"
+                                    id="manual-prompt"
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
                                     rows={3}
-                                    className="mt-2 bg-background"
+                                    className="bg-background"
                                     placeholder="Décrivez l'image à générer..."
                                 />
+                                <Button 
+                                    onClick={handleGenerateImage}
+                                    disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
+                                    className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
+                                >
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
+                                    Générer Image (1 Ticket)
+                                </Button>
                             </TabsContent>
                             <TabsContent value="plan" className="pt-4 space-y-4">
                                 <div className="flex gap-2">
@@ -449,32 +457,52 @@ export default function AuditResultPage() {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="3">Générer 3 idées de posts</SelectItem>
+                                            <SelectItem value="3">Générer 3 idées</SelectItem>
                                             <SelectItem value="7">Générer un plan sur 7 jours</SelectItem>
                                             <SelectItem value="14">Générer un plan sur 14 jours</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <Button onClick={handleGeneratePlan} disabled={isGeneratingPlan || totalAiTickets < parseInt(suggestionCount, 10)}>
                                         {isGeneratingPlan ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                        Générer
+                                        Générer le Plan
                                     </Button>
                                 </div>
-                                 <ScrollArea className="h-60 border bg-background rounded-md p-2">
-                                    <div className="space-y-2 p-2">
-                                        {creativeSuggestions.map((suggestion, index) => (
-                                            <Card key={index} className="bg-muted/50">
-                                                <CardContent className="p-3 flex items-center justify-between gap-2">
-                                                    <p className="text-sm font-medium flex-1 truncate" title={suggestion.prompt}>
-                                                        <span className="font-bold">{suggestion.title}:</span> {suggestion.prompt}
-                                                    </p>
-                                                    <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.prompt); toast({ title: "Prompt chargé !", description: "Instruction prête pour la génération." }); }}>
-                                                        <Copy className="mr-2 h-4 w-4"/> Utiliser
-                                                    </Button>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
+                                 <ScrollArea className="h-40 border bg-background rounded-md p-2">
+                                    {creativeSuggestions.length > 0 ? (
+                                        <div className="space-y-2 p-2">
+                                            {creativeSuggestions.map((suggestion, index) => (
+                                                <Card key={index} className="bg-muted/50">
+                                                    <CardContent className="p-3 flex items-center justify-between gap-2">
+                                                        <p className="text-sm font-medium flex-1 truncate" title={suggestion.prompt}>
+                                                            <span className="font-bold">{suggestion.title}:</span> {suggestion.prompt}
+                                                        </p>
+                                                        <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.prompt); toast({ title: "Prompt chargé !", description: "Vous pouvez le modifier et lancer la génération." }); }}>
+                                                            <Copy className="mr-2 h-4 w-4"/> Charger
+                                                        </Button>
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                                            Cliquez sur "Générer le Plan" pour voir les suggestions ici.
+                                        </div>
+                                    )}
                                 </ScrollArea>
+                                <Separator/>
+                                <div className="space-y-2">
+                                    <Label>Prompt sélectionné</Label>
+                                    <Textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={3} placeholder="Chargez ou écrivez un prompt..."/>
+                                    <Button 
+                                        onClick={handleGenerateImage}
+                                        disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
+                                        className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
+                                        Générer Image (1 Ticket)
+                                    </Button>
+                                </div>
+
                             </TabsContent>
                         </Tabs>
 
@@ -492,32 +520,10 @@ export default function AuditResultPage() {
                                     <SelectItem value="16:9">Paysage (16:9)</SelectItem>
                                 </SelectContent>
                            </Select>
-                            <Button 
-                                onClick={handleGenerateImage}
-                                disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
-                                className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
-                            >
-                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
-                                Générer Image (1 Ticket)
-                            </Button>
                         </div>
-                         <Button 
-                                onClick={handleGenerateVideo}
-                                disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets < 5}
-                                className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
-                                variant="default"
-                            >
-                                {isGeneratingVideo ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
-                                {isGeneratingVideo ? 'Génération Vidéo...' : 'Générer Vidéo (5 Tickets)'}
-                            </Button>
                          {(totalAiTickets <= 0 && !isGenerating && !isGeneratingVideo) && (
                             <p className="text-center text-sm text-destructive">
                                 Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
-                            </p>
-                        )}
-                        {totalAiTickets > 0 && totalAiTickets < 5 && (
-                             <p className="text-center text-sm text-amber-600">
-                                Attention, la génération vidéo coûte 5 tickets IA.
                             </p>
                         )}
 
@@ -606,5 +612,7 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+    
 
     
