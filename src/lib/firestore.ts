@@ -1120,9 +1120,9 @@ export async function savePostForLater(
         // Émettre une erreur générique, car elle peut provenir de Storage ou de Firestore.
         // Une gestion plus fine serait possible si nécessaire.
         const permissionError = new FirestorePermissionError({
-            path: `scheduledPosts/${userId}`,
+            path: `users/${userId}/scheduledPosts`, // Correction: utiliser le chemin de la collection
             operation: 'create',
-            requestResourceData: { title: data.title },
+            requestResourceData: { ...data, imageBlob: '[Blob]' },
         });
         errorEmitter.emit('permission-error', permissionError);
         throw error;
