@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -85,6 +86,13 @@ export default function ImageDetailPage() {
           setTimeout(() => setCopiedField(null), 2000);
         } catch {
           toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
+        }
+    };
+
+    const handleCoachClick = () => {
+        if (typeof window !== 'undefined' && image) {
+            localStorage.setItem('imageForAudit', image.id);
+            router.push('/audit');
         }
     };
     
@@ -292,15 +300,18 @@ export default function ImageDetailPage() {
                                     <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
                                 </div>
                             </DialogTrigger>
-                             <Link href="/audit" passHref>
-                                <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer md:col-span-2">
-                                    <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                        <LineChart className="h-6 w-6" />
-                                    </div>
-                                    <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
-                                    <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</p>
+                             <div 
+                                className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer md:col-span-2"
+                                onClick={handleCoachClick}
+                                role="button"
+                                tabIndex={0}
+                            >
+                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                    <LineChart className="h-6 w-6" />
                                 </div>
-                             </Link>
+                                <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
+                                <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</p>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -388,6 +399,3 @@ export default function ImageDetailPage() {
         </div>
     );
 }
-
-
-    

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, doc } from 'firebase/firestore';
@@ -97,6 +97,18 @@ export default function AuditPage() {
     }, [user, firestore]);
     const { data: savedAudits, isLoading: areAuditsLoading } = useCollection(auditsQuery);
 
+
+    // UseEffect pour charger l'image depuis le localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const imageId = localStorage.getItem('imageForAudit');
+            if (imageId) {
+                setSelectedStyleImages(prev => new Set(prev).add(imageId));
+                // On ne le supprime qu'après l'avoir utilisé pour ne pas re-déclencher
+                localStorage.removeItem('imageForAudit');
+            }
+        }
+    }, []);
 
     const totalAiTickets = useMemo(() => {
         if (!userProfile) return 0;
