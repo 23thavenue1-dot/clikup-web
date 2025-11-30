@@ -71,6 +71,7 @@ export default function AuditResultPage() {
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [aspectRatio, setAspectRatio] = useState('9:16');
+    const [videoAspectRatio, setVideoAspectRatio] = useState('9:16');
     const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
     
     // Nouveaux états pour l'historique
@@ -96,7 +97,7 @@ export default function AuditResultPage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
@@ -143,7 +144,6 @@ export default function AuditResultPage() {
             for (let i = 0; i < cost; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
-            refetchUserProfile();
             toast({ title: 'Plan de contenu généré !', description: `${cost} idées ont été créées. ${cost} ticket(s) IA utilisé(s).` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -188,7 +188,6 @@ export default function AuditResultPage() {
             setHistoryIndex(newHistory.length - 1);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            refetchUserProfile();
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -225,7 +224,6 @@ export default function AuditResultPage() {
             for (let i = 0; i < VIDEO_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
-            refetchUserProfile();
             toast({ title: 'Vidéo générée !', description: `${VIDEO_COST} tickets IA ont été utilisés.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération vidéo', description: (error as Error).message });
@@ -256,6 +254,7 @@ export default function AuditResultPage() {
             savePostForLater(firestore, storage, user.uid, blob, {
                 title: 'Brouillon généré par IA',
                 description: prompt,
+                userId: user.uid,
             })
         );
         
@@ -275,6 +274,7 @@ export default function AuditResultPage() {
                 title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
                 description: prompt,
                 scheduledAt: scheduleDate,
+                userId: user.uid,
             })
         );
 
@@ -656,15 +656,4 @@ export default function AuditResultPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
-
-
-    
-
-
 

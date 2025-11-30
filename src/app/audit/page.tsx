@@ -78,7 +78,7 @@ export default function AuditPage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
     const imagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -255,7 +255,6 @@ export default function AuditPage() {
             for (let i = 0; i < AUDIT_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
-            refetchUserProfile();
             
             const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
             const auditDataToSave = {
