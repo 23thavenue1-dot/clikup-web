@@ -58,7 +58,7 @@ interface ImageHistoryItem {
 
 
 export default function AuditResultPage() {
-    const { user, isUserLoading, firebaseApp } = useFirebase();
+    const { user, isUserLoading, firebaseApp, storage } = useFirebase();
     const firestore = useFirestore();
     const router = useRouter();
     const params = useParams();
@@ -244,11 +244,10 @@ export default function AuditResultPage() {
     };
 
     const handleSaveDraft = async () => {
-        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore) return;
+        if (!currentHistoryItem || !prompt || !user || !storage || !firestore) return;
         setIsSavingDraft(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            const storage = getStorage(firebaseApp); // Obtenir l'instance de Storage
             await savePostForLater(firestore, storage, user.uid, blob, {
                 title: 'Brouillon généré par IA',
                 description: prompt,
@@ -263,11 +262,10 @@ export default function AuditResultPage() {
     };
 
     const handleSchedule = async () => {
-        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore || !scheduleDate) return;
+        if (!currentHistoryItem || !prompt || !user || !storage || !firestore || !scheduleDate) return;
         setIsScheduling(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            const storage = getStorage(firebaseApp); // Obtenir l'instance de Storage
             await savePostForLater(firestore, storage, user.uid, blob, {
                 title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
                 description: prompt,
@@ -663,4 +661,5 @@ export default function AuditResultPage() {
 
 
     
+
 
