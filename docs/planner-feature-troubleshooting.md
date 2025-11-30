@@ -30,5 +30,3 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 - **Diagnostic :** La console Firebase a remonté une erreur `storage/unauthorized`. Cela indique sans le moindre doute que les règles de sécurité de Firebase Storage (`storage.rules`) n'autorisent pas l'écriture à l'emplacement `scheduledPosts/{userId}/{fileName}`.
 - **Action corrective :** Ajouter une nouvelle règle dans `storage.rules` pour permettre à un utilisateur authentifié d'écrire dans son propre dossier de brouillons.
 - **Prochaine étape :** Vérifier si cette correction résout l'erreur et permet enfin la sauvegarde et la programmation des posts.
-
----
