@@ -116,8 +116,8 @@ setCurrentDescription(result.description);
                     Votre dernière création
                 </CardTitle>
                 <CardDescription>
-                    Téléversée {formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}.
-                    Prête à être améliorée.
+                    {lastImage.uploadTimestamp ? `Téléversée ${formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}.` : "Téléversement en cours..."}
+                    {' '}Prête à être améliorée.
                 </CardDescription>
             </CardHeader>
             <CardContent>
