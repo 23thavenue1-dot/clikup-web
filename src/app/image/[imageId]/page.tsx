@@ -8,7 +8,7 @@ import type { ImageMetadata } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Copy, Check, CopyPlus } from 'lucide-react';
+import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText, LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -171,6 +171,43 @@ export default function ImageDetailPage() {
                             </div>
                         </div>
 
+                    </CardContent>
+                </Card>
+
+                {/* --- Section Outils IA --- */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Outils IA</CardTitle>
+                        <CardDescription>Donnez une nouvelle dimension à votre image.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button asChild variant="outline" className="h-auto p-4 flex flex-col items-start gap-2 text-left">
+                            <Link href={`/edit/${imageId}`}>
+                                <div className="flex items-center gap-3">
+                                    <Sparkles className="h-6 w-6 text-primary" />
+                                    <span className="font-semibold">Éditer avec l'IA</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
+                            </Link>
+                        </Button>
+
+                        <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2 text-left" disabled>
+                             <div className="flex items-center gap-3">
+                                <FileText className="h-6 w-6 text-primary" />
+                                <span className="font-semibold">Générer une description</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
+                        </Button>
+
+                        <Button asChild variant="outline" className="h-auto p-4 flex flex-col items-start gap-2 text-left md:col-span-2">
+                             <Link href="/audit">
+                                <div className="flex items-center gap-3">
+                                    <LineChart className="h-6 w-6 text-primary" />
+                                    <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit complet de votre profil pour une stratégie de contenu sur-mesure.</p>
+                            </Link>
+                        </Button>
                     </CardContent>
                 </Card>
             </div>
