@@ -1,3 +1,4 @@
+
 import { FirebaseError } from 'firebase/app';
 import {
   AppError,
@@ -74,7 +75,7 @@ class ErrorHandlerService {
       return new StorageError(error, context?.path);
     } else {
       // Pour Firestore, on distingue permission-denied des autres
-      if (code === 'permission-denied' && context) {
+      if (code === 'permission-denied' && context?.path && context?.operation) {
           return new FirestorePermissionError({
               path: context.path,
               operation: context.operation,
@@ -105,15 +106,16 @@ class ErrorHandlerService {
 
     // Log console en développement
     if (process.env.NODE_ENV === 'development') {
-      console.error('🔴 Error caught:', {
+      const logObject = {
         type: error.name,
         userMessage: error.userMessage,
         technicalMessage: error.technicalMessage,
         context,
         timestamp: error.timestamp,
         isRetryable: error.isRetryable,
-        originalError: error,
-      });
+      };
+      // On logue l'objet et l'erreur séparément pour une meilleure lisibilité
+      console.error('🔴 Error caught:', logObject, error);
     }
   }
 
