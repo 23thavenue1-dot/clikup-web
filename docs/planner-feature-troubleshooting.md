@@ -27,6 +27,6 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 
 #### Hypothèse 3 : Règle de Sécurité Storage incorrecte (LA VRAIE CAUSE RACINE)
 
-- **Diagnostic final :** L'erreur `storage/unauthorized` persiste malgré les tentatives de correction. L'analyse des règles `storage.rules` a révélé une structure de règles incorrecte avec plusieurs blocs `match` au même niveau, créant une ambiguïté.
+- **Diagnostic final :** L'erreur `storage/unauthorized` persistait malgré plusieurs tentatives de correction des règles `storage.rules`. L'analyse de l'ancienne structure de règles, confirmée par une capture d'écran, a révélé qu'elle n'autorisait l'écriture que dans le dossier `/users`.
 - **Action corrective :** Refonte complète de `storage.rules` pour utiliser une seule règle unifiée avec un wildcard `{folder}` qui couvre explicitement les cas `users`, `avatars` et `scheduledPosts`. Cela garantit que toute écriture dans un dossier utilisateur est correctement validée par une seule règle claire et sans conflit.
 - **Prochaine étape :** Vérifier si cette nouvelle structure de règles résout définitivement l'erreur de permission.
