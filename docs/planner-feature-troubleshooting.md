@@ -23,10 +23,16 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 
 - **Diagnostic :** L'instance `storage` était `undefined` lors de l'appel à `savePostForLater`. Le hook `useStorage()` était utilisé dans la page, mais il n'existait pas.
 - **Action corrective :** Remplacement de `useStorage` par le hook principal `useFirebase` qui fournit l'ensemble des services, y compris `storage`.
-- **Résultat :** Le problème a évolué vers une erreur de permission `storage/unauthorized`. C'est un progrès, car cela pointe vers les règles de sécurité.
+- **Résultat :** Le problème a évolué vers une erreur de permission `storage/unauthorized`.
 
-#### Hypothèse 3 : Erreur d'analyse des règles Storage (LA VRAIE CAUSE RACINE)
+#### Hypothèse 3 et 4 : Erreurs successives sur les règles Storage (Piste abandonnée)
 
-- **Diagnostic final :** L'erreur `storage/unauthorized` persiste, ce qui indique que, malgré plusieurs tentatives, la syntaxe ou la structure des règles dans `storage.rules` n'est pas correcte. Les `match` multiples au même niveau de hiérarchie peuvent prêter à confusion.
+- **Diagnostic :** L'erreur persistante `storage/unauthorized` indiquait un problème avec le fichier `storage.rules`. Plusieurs tentatives de restructuration des règles ont été effectuées.
+- **Action corrective :** Simplification et explicitation des règles dans `storage.rules`.
+- **Résultat :** Échec. L'erreur `storage/unauthorized` a disparu, mais a été remplacée par une erreur `firestore.rules` (Missing or insufficient permissions), indiquant que mon diagnostic était erroné et que le problème se situait ailleurs.
 
-- **Action corrective finale :** Refonte complète de `storage.rules` pour utiliser une approche plus simple et plus explicite : un bloc `match` séparé pour chaque dossier (`users`, `avatars`, `scheduledPosts`). Cette structure, bien que plus verbeuse, est infaillible et ne laisse aucune place à l'interprétation par le moteur de règles de Firebase. Cela garantit que le chemin `scheduledPosts/{userId}/{fileName}` correspondra bien à une règle d'autorisation explicite.
+#### Hypothèse 5 : Absence de règles Firestore (LA VRAIE CAUSE RACINE)
+
+- **Diagnostic final :** Le nouveau message d'erreur `Missing or insufficient permissions` pointait sans ambiguïté vers le fichier `firestore.rules`. En analysant la requête (`create` sur `/users/{userId}/scheduledPosts`), il est devenu évident qu'il n'y avait **aucune règle `match`** pour la sous-collection `scheduledPosts`.
+- **Action corrective finale :** Ajouter un bloc `match /scheduledPosts/{postId}` dans `firestore.rules` pour autoriser explicitement les opérations de lecture et d'écriture (`create`, `update`, `delete`) pour les utilisateurs authentifiés sur leurs propres documents.
+- **Résultat :** En attente de validation après application de la correction.
