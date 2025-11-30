@@ -248,7 +248,8 @@ export default function AuditResultPage() {
         setIsSavingDraft(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            await savePostForLater(firestore, user.uid, blob, {
+            const storage = getStorage(firebaseApp); // Obtenir l'instance de Storage
+            await savePostForLater(firestore, storage, user.uid, blob, {
                 title: 'Brouillon généré par IA',
                 description: prompt,
                 userId: user.uid,
@@ -266,7 +267,8 @@ export default function AuditResultPage() {
         setIsScheduling(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            await savePostForLater(firestore, user.uid, blob, {
+            const storage = getStorage(firebaseApp); // Obtenir l'instance de Storage
+            await savePostForLater(firestore, storage, user.uid, blob, {
                 title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
                 description: prompt,
                 scheduledAt: scheduleDate,
@@ -661,3 +663,4 @@ export default function AuditResultPage() {
 
 
     
+

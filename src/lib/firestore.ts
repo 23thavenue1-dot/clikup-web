@@ -1083,6 +1083,7 @@ export async function deleteAudit(firestore: Firestore, userId: string, auditId:
  */
 export async function savePostForLater(
     firestore: Firestore,
+    storage: Storage, // Correction: Accepter l'instance Storage en paramètre
     userId: string,
     imageBlob: Blob,
     data: {
@@ -1092,7 +1093,6 @@ export async function savePostForLater(
         userId: string;
     }
 ): Promise<void> {
-    const storage = getStorage();
     const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
     const storageRef = ref(storage, imageStoragePath);
 
