@@ -1,11 +1,12 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Navbar } from '@/components/Navbar';
 import { ThemeProvider } from '@/components/theme-provider';
 import Link from 'next/link';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorNotificationProvider } from '@/components/ErrorNotificationProvider';
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: 'Clikup',
@@ -44,19 +45,23 @@ export default function RootLayout({
             disableTransitionOnChange
             themes={['light', 'dark', 'mid', 'system']}
           >
-            <div className="relative flex flex-col h-full">
-              <Navbar />
-              <main className="flex-grow pt-16">{children}</main>
-               <footer className="py-4 border-t mt-auto bg-card">
-                <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-2">
-                    <p>&copy; {new Date().getFullYear()} Clikup. Tous droits réservés.</p>
-                    <Link href="/about" className="hover:text-primary hover:underline underline-offset-4 transition-colors">
-                        À propos & Guide d'utilisation
-                    </Link>
+            <ErrorBoundary>
+              <ErrorNotificationProvider>
+                <div className="relative flex flex-col h-full">
+                  <Navbar />
+                  <main className="flex-grow pt-16">{children}</main>
+                   <footer className="py-4 border-t mt-auto bg-card">
+                    <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-2">
+                        <p>&copy; {new Date().getFullYear()} Clikup. Tous droits réservés.</p>
+                        <Link href="/about" className="hover:text-primary hover:underline underline-offset-4 transition-colors">
+                            À propos & Guide d'utilisation
+                        </Link>
+                    </div>
+                  </footer>
                 </div>
-              </footer>
-            </div>
-            <Toaster />
+                <Toaster position="top-right" richColors />
+              </ErrorNotificationProvider>
+            </ErrorBoundary>
           </ThemeProvider>
         </FirebaseClientProvider>
       </body>
