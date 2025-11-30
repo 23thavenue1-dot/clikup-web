@@ -1096,10 +1096,8 @@ export async function savePostForLater(
     // Cette étape est manquante mais essentielle. Pour l'instant, on simule un chemin.
     const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
 
-    // Étape 2 : Créer une référence à la SOUS-COLLECTION
     const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
 
-    // Étape 3 : Préparer les données à sauvegarder dans Firestore
     const dataToSave = {
         userId: userId,
         status: data.scheduledAt ? 'scheduled' : 'draft',
@@ -1107,17 +1105,15 @@ export async function savePostForLater(
         scheduledAt: data.scheduledAt ? Timestamp.fromDate(data.scheduledAt) : null,
         title: data.title,
         description: data.description,
-        imageStoragePath: imageStoragePath, // On stocke le chemin, pas le blob
+        imageStoragePath: imageStoragePath,
     };
 
     try {
-        // Étape 4 : Ajouter le document dans la sous-collection, ce qui crée un ID automatique
         const docRef = await addDoc(postsCollectionRef, dataToSave);
-        // Étape 5 (optionnelle mais bonne pratique) : Mettre à jour le document avec son propre ID
         await updateDoc(docRef, { id: docRef.id });
     } catch (error) {
         const permissionError = new FirestorePermissionError({
-            path: postsCollectionRef.path, // Le chemin de la collection
+            path: postsCollectionRef.path,
             operation: 'create',
             requestResourceData: { ...dataToSave, imageBlob: '[Blob]' }, 
         });
