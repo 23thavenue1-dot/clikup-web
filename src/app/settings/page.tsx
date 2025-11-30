@@ -37,6 +37,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 
 // Type for a payment document from Stripe extension
@@ -125,74 +126,59 @@ function ProfileTab() {
   const handleSaveChanges = async () => {
     if (!user || !firestore || !userDocRef || !auth) return;
     setIsSaving(true);
-
-    try {
-        const authUpdates: { displayName?: string, photoURL?: string } = {};
-        const firestoreUpdates: Partial<UserProfile> & { profilePictureUpdateCount?: any } = {};
-        
-        let finalPhotoURL = user.photoURL;
-
-        if (selectedPredefinedAvatar) {
-            finalPhotoURL = selectedPredefinedAvatar;
-        } else if (profilePictureFile && firebaseApp) {
-            try {
-                const storage = getStorage(firebaseApp);
-                const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
-                const storageRef = ref(storage, filePath);
-                const metadata = { contentType: profilePictureFile.type };
-                await uploadBytes(storageRef, profilePictureFile, metadata);
-                finalPhotoURL = await getDownloadURL(storageRef);
-            } catch (storageError) {
-                 console.error("Erreur de téléversement de l'avatar:", storageError);
-                 toast({
-                    variant: 'destructive',
-                    title: 'Erreur de téléversement',
-                    description: "Impossible de téléverser le nouvel avatar. Veuillez réessayer plus tard."
-                 });
-                 setIsSaving(false);
-                 return;
-            }
-        }
-
-        if (finalPhotoURL !== user.photoURL) {
-            authUpdates.photoURL = finalPhotoURL;
-            firestoreUpdates.profilePictureUpdateCount = increment(1);
-        }
-
-        if (displayName !== (userProfile?.displayName || '')) {
-            authUpdates.displayName = displayName;
-            firestoreUpdates.displayName = displayName;
-        }
-
-        if (bio !== (userProfile?.bio || '')) {
-            firestoreUpdates.bio = bio;
-        }
-
-        if (websiteUrl !== (userProfile?.websiteUrl || '')) {
-            firestoreUpdates.websiteUrl = websiteUrl;
-        }
-
-        if (Object.keys(authUpdates).length > 0 && auth.currentUser) {
-            await updateProfile(auth.currentUser, authUpdates);
-        }
-        if (Object.keys(firestoreUpdates).length > 0) {
-            await updateDoc(userDocRef, firestoreUpdates);
-        }
-
-        toast({ title: 'Succès', description: 'Votre profil a été mis à jour.' });
-        setProfilePictureFile(null);
-        setSelectedPredefinedAvatar(null);
-
-    } catch (error: any) {
-        console.error("Erreur lors de la mise à jour du profil:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Erreur',
-            description: error.message || 'Une erreur est survenue lors de la sauvegarde.'
-        });
-    } finally {
-        setIsSaving(false);
+  
+    const { error } = await withErrorHandling(async () => {
+      const authUpdates: { displayName?: string, photoURL?: string } = {};
+      const firestoreUpdates: Partial<UserProfile> & { profilePictureUpdateCount?: any } = {};
+      
+      let finalPhotoURL = user.photoURL;
+  
+      if (selectedPredefinedAvatar) {
+        finalPhotoURL = selectedPredefinedAvatar;
+      } else if (profilePictureFile && firebaseApp) {
+        const storage = getStorage(firebaseApp);
+        const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
+        const storageRef = ref(storage, filePath);
+        const metadata = { contentType: profilePictureFile.type };
+        await uploadBytes(storageRef, profilePictureFile, metadata);
+        finalPhotoURL = await getDownloadURL(storageRef);
+      }
+  
+      if (finalPhotoURL !== user.photoURL) {
+        authUpdates.photoURL = finalPhotoURL;
+        firestoreUpdates.profilePictureUpdateCount = increment(1);
+      }
+  
+      if (displayName !== (userProfile?.displayName || '')) {
+        authUpdates.displayName = displayName;
+        firestoreUpdates.displayName = displayName;
+      }
+  
+      if (bio !== (userProfile?.bio || '')) {
+        firestoreUpdates.bio = bio;
+      }
+  
+      if (websiteUrl !== (userProfile?.websiteUrl || '')) {
+        firestoreUpdates.websiteUrl = websiteUrl;
+      }
+  
+      if (Object.keys(authUpdates).length > 0 && auth.currentUser) {
+        await updateProfile(auth.currentUser, authUpdates);
+      }
+      if (Object.keys(firestoreUpdates).length > 0) {
+        await updateDoc(userDocRef, firestoreUpdates);
+      }
+  
+    }, { operation: 'updateProfile', userId: user.uid });
+  
+    setIsSaving(false);
+  
+    if (!error) {
+      toast({ title: 'Succès', description: 'Votre profil a été mis à jour.' });
+      setProfilePictureFile(null);
+      setSelectedPredefinedAvatar(null);
     }
+    // Les erreurs sont automatiquement gérées par le wrapper
   };
 
   if (!userProfile || !user) return <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />;
