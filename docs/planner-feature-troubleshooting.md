@@ -29,10 +29,10 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 
 - **Diagnostic :** L'erreur persistante `storage/unauthorized` indiquait un problème avec le fichier `storage.rules`. Plusieurs tentatives de restructuration des règles ont été effectuées.
 - **Action corrective :** Simplification et explicitation des règles dans `storage.rules`.
-- **Résultat :** Échec. L'erreur `storage/unauthorized` a disparu, mais a été remplacée par une erreur `firestore.rules` (Missing or insufficient permissions), indiquant que mon diagnostic était erroné et que le problème se situait ailleurs.
+- **Résultat :** Échec. L'erreur `storage/unauthorized` a disparu, mais a été remplacée par une erreur `firestore.rules` (Missing or insufficient permissions), indiquant que le diagnostic était erroné et que le problème se situait ailleurs.
 
 #### Hypothèse 5 : Absence de règles Firestore (LA VRAIE CAUSE RACINE)
 
 - **Diagnostic final :** Le nouveau message d'erreur `Missing or insufficient permissions` pointait sans ambiguïté vers le fichier `firestore.rules`. En analysant la requête (`create` sur `/users/{userId}/scheduledPosts`), il est devenu évident qu'il n'y avait **aucune règle `match`** pour la sous-collection `scheduledPosts`.
-- **Action corrective finale :** Ajouter un bloc `match /scheduledPosts/{postId}` dans `firestore.rules` pour autoriser explicitement les opérations de lecture et d'écriture (`create`, `update`, `delete`) pour les utilisateurs authentifiés sur leurs propres documents.
-- **Résultat :** En attente de validation après application de la correction.
+- **Action corrective :** Ajouter un bloc `match /scheduledPosts/{postId}` dans `firestore.rules` pour autoriser explicitement les opérations de lecture et d'écriture (`create`, `update`, `delete`) pour les utilisateurs authentifiés sur leurs propres documents.
+- **Résultat :** La correction a été appliquée avec succès, résolvant le problème de permission. La fonctionnalité est maintenant opérationnelle.
