@@ -25,8 +25,8 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 - **Action corrective :** Remplacement de `useStorage` par le hook principal `useFirebase` qui fournit l'ensemble des services, y compris `storage`.
 - **Résultat :** Le problème a évolué vers une erreur de permission `storage/unauthorized`. C'est un progrès, car cela pointe vers les règles de sécurité.
 
-#### Hypothèse 3 : Règle de Sécurité Storage incorrecte (LA VRAIE CAUSE RACINE)
+#### Hypothèse 3 : Erreur d'analyse des règles Storage (LA VRAIE CAUSE RACINE)
 
-- **Diagnostic final :** L'erreur `storage/unauthorized` persistait malgré plusieurs tentatives de correction des règles `storage.rules`. L'analyse de l'ancienne structure de règles, confirmée par une capture d'écran, a révélé qu'elle n'autorisait l'écriture que dans le dossier `/users`.
-- **Action corrective :** Refonte complète de `storage.rules` pour utiliser une seule règle unifiée avec un wildcard `{folder}` qui couvre explicitement les cas `users`, `avatars` et `scheduledPosts`. Cela garantit que toute écriture dans un dossier utilisateur est correctement validée par une seule règle claire et sans conflit.
-- **Prochaine étape :** Vérifier si cette nouvelle structure de règles résout définitivement l'erreur de permission.
+- **Diagnostic final :** L'erreur `storage/unauthorized` persiste, ce qui indique que, malgré plusieurs tentatives, la syntaxe ou la structure des règles dans `storage.rules` n'est pas correcte. Les `match` multiples au même niveau de hiérarchie peuvent prêter à confusion.
+
+- **Action corrective finale :** Refonte complète de `storage.rules` pour utiliser une approche plus simple et plus explicite : un bloc `match` séparé pour chaque dossier (`users`, `avatars`, `scheduledPosts`). Cette structure, bien que plus verbeuse, est infaillible et ne laisse aucune place à l'interprétation par le moteur de règles de Firebase. Cela garantit que le chemin `scheduledPosts/{userId}/{fileName}` correspondra bien à une règle d'autorisation explicite.
