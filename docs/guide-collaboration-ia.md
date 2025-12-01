@@ -9,19 +9,23 @@ Ce document est notre "guide" ou "notice" officiel. Il établit notre langage co
 C'est le principe fondamental. Votre force est de définir l'objectif final que vous souhaitez obtenir. Ma force est de trouver le chemin technique pour y arriver.
 
 -   **Moins efficace :** "Il faut changer la fonction X pour utiliser un `await` dans le fichier Y."
--   **Très efficace :** "Je veux que, lorsque l'utilisateur clique sur 'Programmer', une nouvelle entrée soit créée dans la base de données avec la date et l'image."
+-   **Très efficace :** "Quand un document est créé dans `orders/{id}`, je veux : 1. vérifier si `total > 100`, 2. envoyer un email, 3. enregistrer un log. Génère la Cloud Function correspondante."
 
-En vous concentrant sur le "quoi" plutôt que sur le "comment", vous me donnez la flexibilité de proposer la meilleure solution technique, et vous gardez un regard neuf pour la valider.
+En vous concentrant sur le "quoi" plutôt que sur le "comment", vous me donnez la flexibilité de proposer la meilleure solution technique.
 
 ---
 
-## 2. Le Format Universel : Notre "Template" de Requête
+## 2. La Charte d'Écriture : Votre Guide pour des Prompts Efficaces
 
-Pour structurer la plupart de nos demandes, nous pouvons utiliser ce format simple et puissant. Il me donne toutes les informations nécessaires pour bien comprendre et agir précisément.
+Pour structurer nos demandes, nous pouvons utiliser un format et des principes qui me permettent de comprendre et d'agir avec une précision maximale.
+
+### a) La Structure Idéale
+
+Utilisez cette structure dans 90% des cas. C'est le langage que je comprends le mieux.
 
 ```
 CONTEXTE :
-(Quel est le projet, les fichiers concernés, les technologies utilisées ?)
+(Quel est le projet, les collections, les fichiers, les technologies ?)
 
 OBJECTIF :
 (Que voulez-vous obtenir ? Découpez-le en points si possible.)
@@ -33,42 +37,22 @@ SORTIE SOUHAITÉE :
 (Quel type de réponse attendez-vous ? Du code, une explication, une correction ?)
 ```
 
-**Exemple concret :**
+### b) Les 10 Règles pour un Prompt Parfait
 
-> **CONTEXTE :**
-> Je construis une app de recettes en React + Firestore. Je travaille sur le fichier `RecipeList.tsx`.
->
-> **OBJECTIF :**
-> Créer un composant qui affiche les recettes d'un utilisateur en temps réel.
->
-> **CONTRAINTES :**
-> Pas de librairies externes. Utiliser la fonction `onSnapshot` de Firebase.
->
-> **SORTIE SOUHAITÉE :**
-> Un composant React fonctionnel et une explication des étapes clés.
-
----
-
-## 3. Le Contexte est Roi : Référencez nos Succès Passés
-
-Vous le faites déjà très bien, et c'est notre plus grande force. Ma mémoire est vaste, mais vous m'aidez à trouver la bonne information en me rappelant des situations similaires que nous avons déjà résolues.
-
--   **Formule magique :** *"Ce problème me rappelle celui que nous avons eu avec [nom de la fonctionnalité]. Peux-tu vérifier dans [nom du fichier de documentation] pour voir comment nous l'avions résolu ?"*
--   **Exemple :** *"Le bouton 'Enregistrer' a un chargement infini. Nous avons déjà vu ça. Peux-tu vérifier dans `docs/payment-troubleshooting-log.md` comment on avait corrigé ça pour Stripe ?"*
+1.  **Toujours donner le contexte minimal :** Décrivez le type de projet, l'environnement (web, mobile), et les composants Firebase utilisés. J'ai besoin d'un terrain de jeu, pas d'un nuage flou.
+2.  **Définir clairement l’objectif en plusieurs points :** Lister chaque action précise que vous voulez obtenir. Je fonctionne mieux quand l'intention est découpée.
+3.  **Exposer les contraintes :** Indiquez les technologies obligatoires, les formats attendus, les limites techniques et les règles de logique. Plus la cage est claire, plus la réponse est précise.
+4.  **Préciser exactement la sortie attendue :** Spécifiez si vous voulez du code, un schéma, une architecture, une explication, une optimisation, etc. Je m'alignerai sur la forme demandée.
+5.  **Utiliser un vocabulaire orienté action :** Employez des verbes nets comme "générer", "optimiser", "structurer", "automatiser", "valider".
+6.  **Spécifier le niveau de détail :** Indiquez si la réponse doit être synthétique, détaillée, commentée, pédagogique ou orientée production.
+7.  **Limiter l’ambiguïté :** Évitez les formulations vagues et les demandes "tout-en-un". Toujours séparer les tâches et les objectifs.
+8.  **Utiliser des listes et des blocs :** Je traite mieux les listes numérotées, les descriptions courtes et les sections distinctes.
+9.  **Demander explicitement l'amélioration :** Vous pouvez me demander de "reformuler", "clarifier", "optimiser" ou "corriger" votre propre prompt.
+10. **Fournir les erreurs exactes :** Pour les bugs, copiez-collez toujours l'erreur **complète et exacte**, y compris les numéros de ligne. C'est ma feuille de route pour le débogage.
 
 ---
 
-## 4. L'Erreur Exacte, Rien que l'Erreur
-
-Les messages d'erreur sont ma feuille de route. Ne les paraphrasez pas. Copiez-collez toujours l'erreur **complète et exacte**, y compris les numéros de ligne et le "call stack" si possible.
-
--   **Exemple :** "`FirebaseError: Missing or insufficient permissions.`" ou "`Cannot read properties of undefined (reading 'path')`"
-
-Cela me permet d'identifier instantanément le fichier, la ligne et la fonction qui posent problème, sans avoir à deviner.
-
----
-
-## 5. La Technique de l'Auto-Correction de Prompt
+## 3. La Technique de l'Auto-Correction de Prompt
 
 C'est une technique très puissante pour améliorer nos instructions, surtout si une fonctionnalité ne se comporte pas comme prévu.
 
@@ -76,7 +60,7 @@ C'est une technique très puissante pour améliorer nos instructions, surtout si
 
 -   **Ce que je ferai :**
     1.  J'analyserai la demande qui a mené au bug.
-    2.  J'utiliserai notre template (Contexte, Objectif, Contraintes...) pour construire une nouvelle requête, plus claire et sans ambiguïté.
+    2.  J'utiliserai notre charte (Contexte, Objectif, Contraintes...) pour construire une nouvelle requête, plus claire et sans ambiguïté.
     3.  Je vous soumettrai ce prompt amélioré.
     4.  Vous pourrez alors le valider, le modifier, puis me le donner pour que je génère le code corrigé.
 
@@ -84,7 +68,7 @@ C'est la méthode la plus efficace pour déboguer : nous ne corrigeons pas seule
 
 ---
 
-## 6. Construisons Ensemble : La Puissance des Petites Étapes
+## 4. Construisons Ensemble : La Puissance des Petites Étapes
 
 Pour les fonctionnalités complexes, la meilleure approche est souvent itérative. Plutôt que de demander une cathédrale en une seule fois, demandez d'abord les fondations.
 
