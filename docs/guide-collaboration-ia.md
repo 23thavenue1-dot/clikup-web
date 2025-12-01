@@ -68,7 +68,25 @@ C'est la méthode la plus efficace pour déboguer : nous ne corrigeons pas seule
 
 ---
 
-## 4. Construisons Ensemble : La Puissance des Petites Étapes
+## 4. La Méthode Infaillible pour le Débogage
+
+C'est le réflexe le plus important pour résoudre un bug.
+
+-   **La Règle :** TOUJOURS fournir le message d'erreur **complet et exact** que vous voyez dans la console du terminal ou dans la console de votre navigateur.
+
+-   **Pourquoi c'est crucial :** Un message d'erreur est ma carte au trésor. Il me dit précisément :
+    -   **Quel** est le problème (ex: `TypeError`, `FirebaseError`).
+    -   **Où** il se trouve (le nom du fichier et le numéro de la ligne).
+    -   **Pourquoi** il se produit (la description de l'erreur).
+
+-   **Moins efficace :** "Ça ne marche pas quand je clique." ou "J'ai une erreur de permission."
+-   **Très efficace :** "Quand je clique sur le bouton, j'obtiens cette erreur dans la console : `FirebaseError: Missing or insufficient permissions. Detected at function 'savePostForLater' in file 'src/lib/firestore.ts:123'`"
+
+En me donnant l'erreur exacte, vous ne me demandez pas de deviner dans le noir, vous me donnez un plan précis pour trouver et corriger la faille.
+
+---
+
+## 5. Construisons Ensemble : La Puissance des Petites Étapes
 
 Pour les fonctionnalités complexes, la meilleure approche est souvent itérative. Plutôt que de demander une cathédrale en une seule fois, demandez d'abord les fondations.
 
