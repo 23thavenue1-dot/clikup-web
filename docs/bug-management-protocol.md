@@ -25,9 +25,9 @@ En investissant 10 secondes de plus pour formuler une demande précise, nous sau
 
 ## 2. La Correction : Le Rapport de Bug Parfait
 
-Lorsqu'un bug survient, la rapidité de sa résolution dépend à 90% de la qualité du rapport initial. Nous utiliserons systématiquement la structure suivante, que nous avons définie dans notre guide général.
+Lorsqu'un bug survient, la rapidité de sa résolution dépend à 90% de la qualité du rapport initial. Nous utiliserons systématiquement la structure suivante, qui est la méthode la plus efficace pour me guider.
 
-**Structure du Rapport de Bug :**
+**Structure du Rapport de Bug (notre "rituel") :**
 
 ```
 OBJECTIF :
@@ -43,7 +43,7 @@ FICHIERS PERTINENTS (si vous les connaissez) :
 (Listez les fichiers qui vous semblent liés au problème.)
 ```
 
-**Pourquoi c'est vital :** Le message d'erreur est ma carte. Il me donne le **quoi**, le **où** et souvent le **pourquoi**. Un rapport sans ce message exact, c'est comme demander à un médecin de guérir un patient sans lui décrire les symptômes.
+**Pourquoi c'est vital :** Le message d'erreur est ma carte. Il me donne le **quoi**, le **où** et souvent le **pourquoi**. Un rapport sans ce message exact, c'est comme demander à un médecin de guérir un patient sans lui décrire les symptômes. Il est essentiel d'être factuel et d'éviter les suppositions ("je crois que...", "peut-être que...").
 
 ---
 
