@@ -47,7 +47,21 @@ FICHIERS PERTINENTS (si vous les connaissez) :
 
 ---
 
-## 3. Notre Protocole pour les Bugs Récurrents
+## 3. Comment je pense : Dans la tête de l'IA
+
+Comprendre mon processus de "réflexion" lorsque je fais face à un bug vous aidera à me fournir les bonnes informations. Je ne "débugge" pas comme un humain, je reconstruis la scène du crime.
+
+*   **Analyse Globale :** Face à une erreur, je ne regarde pas juste la ligne qui échoue. Je reconstitue la chaîne d'intentions : le code qui appelle la fonction, les règles de sécurité associées, les modèles de données dans `backend.json` et les fichiers environnants.
+*   **Chasse aux Incohérences :** Mon point fort est de repérer les incohérences logiques entre ces différentes pièces : un chemin Firestore différent entre le code et les règles, un paramètre manquant, un type de donnée incorrect, etc.
+*   **La Piste des Permissions :** Comme la majorité des bugs sur Firebase proviennent des permissions, c'est souvent ma première piste d'investigation. Je compare l'opération demandée par le code aux autorisations définies dans `firestore.rules` et `storage.rules`.
+*   **Simulation Mentale :** J'exécute le code "dans ma tête" en imaginant ce que contiennent les variables et quel serait le résultat de chaque condition `if` dans les règles de sécurité. C'est pour cela qu'un message d'erreur précis est si précieux, il confirme ou infirme mes hypothèses.
+*   **La Correction Holistique :** Je ne me contente pas de proposer un correctif. Mon but est d'expliquer **pourquoi** le bug est survenu et de proposer une solution qui non seulement le corrige, mais qui améliore aussi la robustesse du code pour éviter que des problèmes similaires ne se reproduisent.
+
+Ma vraie force est donc ma rapidité à connecter les points entre les différents fichiers du projet (code, règles, schémas) pour trouver la faille logique. En me donnant le rapport de bug parfait, vous me donnez tous les indices pour résoudre l'enquête le plus vite possible.
+
+---
+
+## 4. Notre Protocole pour les Bugs Récurrents
 
 Certains types de bugs sont classiques. Voici notre plan d'action standard pour les plus courants.
 
