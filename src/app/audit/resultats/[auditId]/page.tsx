@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { editImage } from '@/ai/flows/generate-image-flow';
+import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateVideo } from '@/ai/flows/generate-video-flow';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -96,6 +96,12 @@ export default function AuditResultPage() {
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
     const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
+
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.push('/login');
+        }
+    }, [isUserLoading, user, router]);
 
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
@@ -314,17 +320,12 @@ export default function AuditResultPage() {
         setIsSaving(false);
     };
 
-    if (isUserLoading || isAuditLoading) {
+    if (isUserLoading || isAuditLoading || !user) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
-    }
-    
-    if (!user) {
-        router.push('/login');
-        return null;
     }
     
     if (!auditReport) {
