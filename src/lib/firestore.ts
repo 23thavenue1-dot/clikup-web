@@ -133,6 +133,7 @@ export type ScheduledPost = {
     title: string;
     description: string;
     imageStoragePath: string; // Chemin vers l'image dans Firebase Storage
+    auditId?: string; // ID de l'audit d'origine (facultatif)
 };
 
 
@@ -500,6 +501,7 @@ type SavePostOptions = {
     description: string;
     scheduledAt?: Date;
     imageSource: Blob | ImageMetadata;
+    auditId?: string; // Ajout de l'ID de l'audit
 };
 
 export async function savePostForLater(
@@ -508,7 +510,7 @@ export async function savePostForLater(
     userId: string,
     options: SavePostOptions
 ): Promise<void> {
-    const { imageSource, title, description, scheduledAt } = options;
+    const { imageSource, title, description, scheduledAt, auditId } = options;
 
     const { error } = await withErrorHandling(async () => {
         let imageStoragePath: string;
@@ -529,14 +531,15 @@ export async function savePostForLater(
         }
 
         const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
-        const dataToSave = {
+        const dataToSave: Omit<ScheduledPost, 'id'> = {
             userId,
             status: scheduledAt ? 'scheduled' : 'draft',
-            createdAt: serverTimestamp(),
+            createdAt: serverTimestamp() as Timestamp,
             scheduledAt: scheduledAt ? Timestamp.fromDate(scheduledAt) : null,
             title: title || (scheduledAt ? `Post du ${format(scheduledAt, 'd MMM')}`: 'Brouillon'),
             description: description,
             imageStoragePath,
+            ...(auditId && { auditId }), // Ajoute l'ID de l'audit s'il est fourni
         };
         
         const docRef = await addDoc(postsCollectionRef, dataToSave);
@@ -545,7 +548,7 @@ export async function savePostForLater(
     }, { 
         operation: 'savePostForLater', 
         userId, 
-        requestResourceData: { title, description, scheduledAt, imageSourceType: imageSource instanceof Blob ? 'Blob' : 'Metadata' }
+        requestResourceData: { title, description, scheduledAt, auditId, imageSourceType: imageSource instanceof Blob ? 'Blob' : 'Metadata' }
     });
 
     if (error) {

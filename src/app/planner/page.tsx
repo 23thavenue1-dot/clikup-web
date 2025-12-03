@@ -31,6 +31,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         if (storage && post.imageStoragePath) {
@@ -52,6 +53,12 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
     }, [storage, post.imageStoragePath]);
 
     const isScheduled = post.status === 'scheduled' && post.scheduledAt;
+
+    const handleEdit = () => {
+        if (post.auditId) {
+            router.push(`/audit/resultats/${post.auditId}`);
+        }
+    };
 
     return (
         <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
@@ -80,7 +87,7 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem disabled>
+                             <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
                             </DropdownMenuItem>

@@ -99,7 +99,7 @@ export default function AuditResultPage() {
 
     useEffect(() => {
         if (!isUserLoading && !user) {
-            router.push('/login');
+            router.push('/login?redirect=/audit');
         }
     }, [isUserLoading, user, router]);
 
@@ -259,10 +259,11 @@ export default function AuditResultPage() {
         
         const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
         const { error } = await withErrorHandling(() => 
-            savePostForLater(firestore, storage, user.uid, blob, {
+            savePostForLater(firestore, storage, user.uid, {
                 title: 'Brouillon généré par IA',
                 description: prompt,
-                userId: user.uid,
+                imageSource: blob,
+                auditId: auditId,
             })
         );
         
@@ -279,11 +280,12 @@ export default function AuditResultPage() {
 
         const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
         const { error } = await withErrorHandling(() => 
-            savePostForLater(firestore, storage, user.uid, blob, {
+            savePostForLater(firestore, storage, user.uid, {
                 title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
                 description: prompt,
                 scheduledAt: scheduleDate,
-                userId: user.uid,
+                imageSource: blob,
+                auditId: auditId,
             })
         );
 
@@ -320,7 +322,7 @@ export default function AuditResultPage() {
         setIsSaving(false);
     };
 
-    if (isUserLoading || isAuditLoading || !user) {
+    if (isUserLoading || isAuditLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
