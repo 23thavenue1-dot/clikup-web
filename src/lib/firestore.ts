@@ -516,12 +516,10 @@ export async function savePostForLater(firestore: Firestore, storage: Storage, u
     }, { 
         operation: 'savePostForLater', 
         userId, 
-        context: { ...data, imageBlob: '[Blob]' } 
+        requestResourceData: { ...data, imageBlob: '[Blob]' }
     });
 
     if (error) {
-        // Le wrapper a déjà notifié l'utilisateur, mais nous propageons l'erreur 
-        // pour que le composant appelant puisse gérer son état (ex: arrêter le loader).
         throw error;
     }
 }

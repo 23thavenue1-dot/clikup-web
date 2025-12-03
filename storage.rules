@@ -4,8 +4,8 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // Règle globale et unifiée pour tous les dossiers liés à un utilisateur.
-    // L'utilisateur authentifié peut lire tous les fichiers mais ne peut écrire
-    // que dans un dossier qui porte son propre ID d'utilisateur.
+    // L'utilisateur authentifié peut lire tous les fichiers (les URLs ne sont pas devinables) 
+    // mais ne peut écrire que dans un dossier qui porte son propre ID d'utilisateur.
     // Cela couvre /users/{userId}, /avatars/{userId}, /scheduledPosts/{userId}, etc.
     match /{folder}/{userId}/{allPaths=**} {
       allow read: if true;
