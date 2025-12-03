@@ -561,19 +561,24 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
         // Supprimer le document Firestore
         await deleteDoc(postDocRef);
 
-        // Supprimer l'image de Storage uniquement si aucun autre post ne l'utilise
+        // Vérifier si l'image est utilisée par d'autres posts
         const q = query(
             collection(firestore, 'users', userId, 'scheduledPosts'),
             where('imageStoragePath', '==', post.imageStoragePath)
         );
         const querySnapshot = await getDocs(q);
 
+        // Si aucun autre post n'utilise cette image, la supprimer de Storage
         if (querySnapshot.empty) {
             const imageRef = ref(storage, post.imageStoragePath);
-            await deleteObject(imageRef).catch(err => {
-                // Ne pas bloquer si la suppression de l'image échoue (ex: déjà supprimée)
-                console.warn(`Could not delete storage object ${post.imageStoragePath}:`, err);
-            });
+            try {
+                await deleteObject(imageRef);
+            } catch (err: any) {
+                // Si le fichier n'existe pas déjà, ce n'est pas une erreur bloquante
+                if (err.code !== 'storage/object-not-found') {
+                    console.warn(`Could not delete storage object ${post.imageStoragePath}:`, err);
+                }
+            }
         }
     }, {
         operation: 'deleteScheduledPost',
