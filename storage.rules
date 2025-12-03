@@ -3,21 +3,13 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Règle explicite pour les images des posts planifiés
-    // L'utilisateur connecté peut lire et écrire uniquement ses propres fichiers.
-    match /scheduledPosts/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Règle pour les images des utilisateurs et les avatars
-    match /users/{userId}/{allPaths=**} {
-      allow read: if true;
+    // Règle générique et sécurisée : l'écriture est autorisée dans n'importe quel 
+    // dossier de premier niveau (ex: 'users/', 'avatars/', 'scheduledPosts/') 
+    // à la condition que le chemin contienne l'UID de l'utilisateur authentifié.
+    match /{folder}/{userId}/{allPaths=**} {
+      allow read: if true; // La lecture est publique car les URLs ne sont pas devinables.
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    match /avatars/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
   }
 }
