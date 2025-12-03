@@ -552,3 +552,33 @@ export async function savePostForLater(
         throw error;
     }
 }
+
+
+export async function deleteScheduledPost(firestore: Firestore, storage: Storage, userId: string, post: ScheduledPost): Promise<void> {
+    const { error } = await withErrorHandling(async () => {
+        const postDocRef = doc(firestore, 'users', userId, 'scheduledPosts', post.id);
+        
+        // Supprimer le document Firestore
+        await deleteDoc(postDocRef);
+
+        // Supprimer l'image de Storage uniquement si aucun autre post ne l'utilise
+        const q = query(
+            collection(firestore, 'users', userId, 'scheduledPosts'),
+            where('imageStoragePath', '==', post.imageStoragePath)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            const imageRef = ref(storage, post.imageStoragePath);
+            await deleteObject(imageRef).catch(err => {
+                // Ne pas bloquer si la suppression de l'image échoue (ex: déjà supprimée)
+                console.warn(`Could not delete storage object ${post.imageStoragePath}:`, err);
+            });
+        }
+    }, {
+        operation: 'deleteScheduledPost',
+        userId,
+        path: `users/${userId}/scheduledPosts/${post.id}`
+    });
+    if (error) throw error;
+}

@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useStorage } from '@/firebase'; 
 import { getDownloadURL, ref } from 'firebase/storage';
-import { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +23,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { FirebaseStorage } from 'firebase/storage';
+import { useToast } from '@/hooks/use-toast';
+import { deleteScheduledPost } from '@/lib/firestore';
+import { withErrorHandling } from '@/lib/async-wrapper';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-function PostCard({ post, storage }: { post: ScheduledPost, storage: FirebaseStorage | null }) {
+function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
@@ -82,7 +84,7 @@ function PostCard({ post, storage }: { post: ScheduledPost, storage: FirebaseSto
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
                             </DropdownMenuItem>
-                            <DropdownMenuItem disabled className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Supprimer
                             </DropdownMenuItem>
@@ -115,13 +117,17 @@ export default function PlannerPage() {
     const firestore = useFirestore();
     const storage = useStorage();
     const router = useRouter();
+    const { toast } = useToast();
+
+    const [postToDelete, setPostToDelete] = useState<ScheduledPost | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const postsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/scheduledPosts`), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
 
-    const { data: posts, isLoading } = useCollection<ScheduledPost>(postsQuery);
+    const { data: posts, isLoading, refetch } = useCollection<ScheduledPost>(postsQuery);
 
     const scheduledPosts = posts?.filter(p => p.status === 'scheduled') || [];
     const draftPosts = posts?.filter(p => p.status === 'draft') || [];
@@ -132,6 +138,21 @@ export default function PlannerPage() {
         }
     }, [user, isUserLoading, router]);
 
+    const handleDelete = async () => {
+        if (!user || !storage || !firestore || !postToDelete) return;
+        setIsDeleting(true);
+        const { error } = await withErrorHandling(() => 
+            deleteScheduledPost(firestore, storage, user.uid, postToDelete)
+        );
+        
+        if (!error) {
+            toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
+            refetch(); // Rafraîchir les données
+        }
+        setIsDeleting(false);
+        setPostToDelete(null);
+    };
+
     if (isUserLoading || isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -141,50 +162,70 @@ export default function PlannerPage() {
     }
     
     return (
-        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="w-full max-w-6xl mx-auto space-y-8">
-                <header>
-                    <h1 className="text-3xl font-bold tracking-tight">Planificateur de Contenu</h1>
-                    <p className="text-muted-foreground mt-1">Gérez vos brouillons et vos publications programmées.</p>
-                </header>
+        <>
+            <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div className="w-full max-w-6xl mx-auto space-y-8">
+                    <header>
+                        <h1 className="text-3xl font-bold tracking-tight">Planificateur de Contenu</h1>
+                        <p className="text-muted-foreground mt-1">Gérez vos brouillons et vos publications programmées.</p>
+                    </header>
 
-                {!posts || posts.length === 0 ? (
-                    <div className="text-center py-16 border-2 border-dashed rounded-lg">
-                        <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-4 text-lg font-semibold">Votre planificateur est vide</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Générez des images avec le Coach Stratégique et sauvegardez-les en tant que brouillons ou programmez-les.
-                        </p>
-                        <Button asChild className="mt-4">
-                            <Link href="/audit">Aller au Coach Stratégique</Link>
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="space-y-12">
-                        <section>
-                            <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
-                            {scheduledPosts.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} />)}
-                                </div>
-                            ) : (
-                                <p className="text-muted-foreground">Aucune publication programmée pour le moment.</p>
-                            )}
-                        </section>
+                    {!posts || posts.length === 0 ? (
+                        <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                            <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-4 text-lg font-semibold">Votre planificateur est vide</h3>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                Générez des images avec le Coach Stratégique et sauvegardez-les en tant que brouillons ou programmez-les.
+                            </p>
+                            <Button asChild className="mt-4">
+                                <Link href="/audit">Aller au Coach Stratégique</Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-12">
+                            <section>
+                                <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
+                                {scheduledPosts.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} onDelete={setPostToDelete} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground">Aucune publication programmée pour le moment.</p>
+                                )}
+                            </section>
 
-                        <section>
-                            <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                            {draftPosts.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} />)}
-                                </div>
-                            ) : (
-                                <p className="text-muted-foreground">Aucun brouillon sauvegardé.</p>
-                            )}
-                        </section>
-                    </div>
-                )}
+                            <section>
+                                <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
+                                {draftPosts.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} onDelete={setPostToDelete} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground">Aucun brouillon sauvegardé.</p>
+                                )}
+                            </section>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+
+            <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce post ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le post et son image associée seront définitivement supprimés si l'image n'est pas utilisée ailleurs.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Supprimer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
