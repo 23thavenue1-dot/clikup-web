@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import type { ScheduledPost } from '@/lib/firestore';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { useFirebase, useStorage } from '@/firebase'; 
+import { useStorage } from '@/firebase'; 
 import { getDownloadURL, ref } from 'firebase/storage';
 import { useState } from 'react';
 import {
@@ -24,9 +24,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { FirebaseStorage } from 'firebase/storage';
 
-function PostCard({ post }: { post: ScheduledPost }) {
-    const storage = useStorage();
+function PostCard({ post, storage }: { post: ScheduledPost, storage: FirebaseStorage | null }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
@@ -113,6 +113,7 @@ function PostCard({ post }: { post: ScheduledPost }) {
 export default function PlannerPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const storage = useStorage();
     const router = useRouter();
 
     const postsQuery = useMemoFirebase(() => {
@@ -164,7 +165,7 @@ export default function PlannerPage() {
                             <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
                             {scheduledPosts.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {scheduledPosts.map(post => <PostCard key={post.id} post={post} />)}
+                                    {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} />)}
                                 </div>
                             ) : (
                                 <p className="text-muted-foreground">Aucune publication programmée pour le moment.</p>
@@ -175,7 +176,7 @@ export default function PlannerPage() {
                             <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
                             {draftPosts.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {draftPosts.map(post => <PostCard key={post.id} post={post} />)}
+                                    {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} />)}
                                 </div>
                             ) : (
                                 <p className="text-muted-foreground">Aucun brouillon sauvegardé.</p>
