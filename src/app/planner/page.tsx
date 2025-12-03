@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import type { ScheduledPost } from '@/lib/firestore';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { useFirebase } from '@/firebase'; // Import useFirebase pour le storage
+import { useFirebase, useStorage } from '@/firebase'; 
 import { getDownloadURL, ref } from 'firebase/storage';
 import { useState } from 'react';
 import {
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function PostCard({ post }: { post: ScheduledPost }) {
-    const { storage } = useFirebase();
+    const storage = useStorage();
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
