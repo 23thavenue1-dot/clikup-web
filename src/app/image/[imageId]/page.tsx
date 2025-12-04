@@ -174,6 +174,11 @@ export default function ImageDetailPage() {
     }
 
     const fullTextToCopy = `${image.title || ''}\n\n${image.description || ''}\n\n${image.hashtags || ''}`.trim();
+    
+    // --- Logique pour les liens de partage ---
+    const twitterText = encodeURIComponent(`${image.title || ''}\n${image.description || ''}\n${image.hashtags || ''}`.trim());
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${twitterText}&url=${encodeURIComponent(image.directUrl)}`;
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(image.directUrl)}`;
 
 
     return (
@@ -394,10 +399,39 @@ export default function ImageDetailPage() {
                                 </div>
                             </div>
                         </div>
-
                     </CardContent>
                 </Card>
+
+                 {/* --- NOUVELLE SECTION: PARTAGE RAPIDE --- */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Partage Rapide</CardTitle>
+                        <CardDescription>Partagez votre création en un clic sur vos réseaux sociaux.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button asChild variant="outline" className="h-12 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 hover:text-[#1877F2]">
+                            <a href={facebookUrl} target="_blank" rel="noopener noreferrer">
+                                <Facebook className="mr-2 h-5 w-5 fill-current" />
+                                Partager sur Facebook
+                            </a>
+                        </Button>
+                        <Button asChild variant="outline" className="h-12 border-[#1DA1F2] text-[#1DA1F2] hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2]">
+                            <a href={twitterUrl} target="_blank" rel="noopener noreferrer">
+                                <MessageSquare className="mr-2 h-5 w-5" />
+                                Partager sur X (Twitter)
+                            </a>
+                        </Button>
+                    </CardContent>
+                     <CardFooter>
+                        <p className="text-xs text-muted-foreground">
+                            Note : Pour des raisons techniques, le partage rapide pré-remplit le texte, mais vous devrez téléverser l'image manuellement sur le réseau social.
+                        </p>
+                    </CardFooter>
+                </Card>
+
             </div>
         </div>
     );
 }
+
+    
