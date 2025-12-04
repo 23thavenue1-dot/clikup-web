@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -46,29 +47,29 @@ function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string
                     Choisissez une plateforme pour partager votre post. Le texte et le lien de l'image seront préparés pour vous.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <Button asChild variant="outline" className="h-12 border-pink-500 text-pink-600 hover:bg-pink-500/10 hover:text-pink-600">
                     <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
                         <Instagram className="mr-2 h-5 w-5" />
                         Ouvrir Instagram
                     </a>
                 </Button>
-                <Button asChild variant="outline" className="h-12 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 hover:text-[#1877F2]">
-                    <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer">
-                        <Facebook className="mr-2 h-5 w-5 fill-current" />
-                        Partager sur Facebook
-                    </a>
-                </Button>
                 <Button asChild variant="outline" className="h-12 border-[#1DA1F2] text-[#1DA1F2] hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2]">
                     <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer">
                         <MessageSquare className="mr-2 h-5 w-5" />
-                        Partager sur X (Twitter)
+                        Partager sur X
                     </a>
                 </Button>
                 <Button asChild variant="outline" className="h-12 border-black text-black dark:border-white dark:text-white hover:bg-black/10 dark:hover:bg-white/10">
                     <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer">
                         <VenetianMask className="mr-2 h-5 w-5" />
                         Ouvrir TikTok
+                    </a>
+                </Button>
+                <Button asChild variant="outline" className="h-12 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 hover:text-[#1877F2]">
+                    <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer">
+                        <Facebook className="mr-2 h-5 w-5 fill-current" />
+                        Partager sur Facebook
                     </a>
                 </Button>
             </div>
