@@ -50,6 +50,11 @@ export interface UserProfile {
   emailNotifications?: boolean;
   bio?: string;
   websiteUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
+  linkedinUrl?: string;
+  tiktokUrl?: string;
   level: number;
   xp: number;
   unlockedAchievements: string[];

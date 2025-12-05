@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Receipt, ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, Receipt, ExternalLink, AlertTriangle, RefreshCw, Instagram, MessageSquare, Facebook, Linkedin, VenetianMask } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,7 @@ import { fr } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
 import { withErrorHandling } from '@/lib/async-wrapper';
+import { Separator } from '@/components/ui/separator';
 
 
 // Type for a payment document from Stripe extension
@@ -87,6 +88,11 @@ function ProfileTab() {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [selectedPredefinedAvatar, setSelectedPredefinedAvatar] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -97,6 +103,11 @@ function ProfileTab() {
       setDisplayName(userProfile.displayName || userProfile.email || '');
       setBio(userProfile.bio || '');
       setWebsiteUrl(userProfile.websiteUrl || '');
+      setInstagramUrl(userProfile.instagramUrl || '');
+      setTwitterUrl(userProfile.twitterUrl || '');
+      setFacebookUrl(userProfile.facebookUrl || '');
+      setLinkedinUrl(userProfile.linkedinUrl || '');
+      setTiktokUrl(userProfile.tiktokUrl || '');
     }
   }, [userProfile]);
 
@@ -149,18 +160,15 @@ function ProfileTab() {
         firestoreUpdates.profilePictureUpdateCount = increment(1);
       }
   
-      if (displayName !== (userProfile?.displayName || '')) {
-        authUpdates.displayName = displayName;
-        firestoreUpdates.displayName = displayName;
-      }
-  
-      if (bio !== (userProfile?.bio || '')) {
-        firestoreUpdates.bio = bio;
-      }
-  
-      if (websiteUrl !== (userProfile?.websiteUrl || '')) {
-        firestoreUpdates.websiteUrl = websiteUrl;
-      }
+      if (displayName !== (userProfile?.displayName || '')) authUpdates.displayName = displayName;
+      if (displayName !== (userProfile?.displayName || '')) firestoreUpdates.displayName = displayName;
+      if (bio !== (userProfile?.bio || '')) firestoreUpdates.bio = bio;
+      if (websiteUrl !== (userProfile?.websiteUrl || '')) firestoreUpdates.websiteUrl = websiteUrl;
+      if (instagramUrl !== (userProfile?.instagramUrl || '')) firestoreUpdates.instagramUrl = instagramUrl;
+      if (twitterUrl !== (userProfile?.twitterUrl || '')) firestoreUpdates.twitterUrl = twitterUrl;
+      if (facebookUrl !== (userProfile?.facebookUrl || '')) firestoreUpdates.facebookUrl = facebookUrl;
+      if (linkedinUrl !== (userProfile?.linkedinUrl || '')) firestoreUpdates.linkedinUrl = linkedinUrl;
+      if (tiktokUrl !== (userProfile?.tiktokUrl || '')) firestoreUpdates.tiktokUrl = tiktokUrl;
   
       if (Object.keys(authUpdates).length > 0 && auth.currentUser) {
         await updateProfile(auth.currentUser, authUpdates);
@@ -178,7 +186,6 @@ function ProfileTab() {
       setProfilePictureFile(null);
       setSelectedPredefinedAvatar(null);
     }
-    // Les erreurs sont automatiquement gérées par le wrapper
   };
 
   if (!userProfile || !user) return <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />;
@@ -186,6 +193,11 @@ function ProfileTab() {
   const isChanged = displayName !== (userProfile?.displayName || userProfile.email) ||
                     bio !== (userProfile?.bio || '') ||
                     websiteUrl !== (userProfile?.websiteUrl || '') ||
+                    instagramUrl !== (userProfile?.instagramUrl || '') ||
+                    twitterUrl !== (userProfile?.twitterUrl || '') ||
+                    facebookUrl !== (userProfile?.facebookUrl || '') ||
+                    linkedinUrl !== (userProfile?.linkedinUrl || '') ||
+                    tiktokUrl !== (userProfile?.tiktokUrl || '') ||
                     profilePictureFile !== null ||
                     selectedPredefinedAvatar !== null;
 
@@ -240,6 +252,7 @@ function ProfileTab() {
                 </TooltipProvider>
             </div>
         </div>
+        <Separator />
         <div className="space-y-2">
           <Label htmlFor="displayName">Nom d'affichage</Label>
           <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={isSaving} />
@@ -252,6 +265,37 @@ function ProfileTab() {
           <Label htmlFor="websiteUrl">Site web</Label>
           <Input id="websiteUrl" placeholder="https://votre-site.com" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={isSaving} />
         </div>
+
+        <Separator />
+
+        <div>
+            <h3 className="text-md font-medium mb-4">Réseaux Sociaux</h3>
+            <div className="space-y-4">
+                 <div className="flex items-center gap-3">
+                    <Instagram className="h-5 w-5 text-muted-foreground" />
+                    <Input id="instagramUrl" placeholder="https://instagram.com/votre_profil" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} disabled={isSaving} />
+                 </div>
+                 <div className="flex items-center gap-3">
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    <Input id="twitterUrl" placeholder="https://x.com/votre_profil" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} disabled={isSaving} />
+                 </div>
+                 <div className="flex items-center gap-3">
+                    <Facebook className="h-5 w-5 text-muted-foreground" />
+                    <Input id="facebookUrl" placeholder="https://facebook.com/votre_profil" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} disabled={isSaving} />
+                 </div>
+                 <div className="flex items-center gap-3">
+                    <Linkedin className="h-5 w-5 text-muted-foreground" />
+                    <Input id="linkedinUrl" placeholder="https://linkedin.com/in/votre_profil" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} disabled={isSaving} />
+                 </div>
+                 <div className="flex items-center gap-3">
+                    <VenetianMask className="h-5 w-5 text-muted-foreground" />
+                    <Input id="tiktokUrl" placeholder="https://tiktok.com/@votre_profil" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} disabled={isSaving} />
+                 </div>
+            </div>
+        </div>
+
+        <Separator />
+
          <div className="space-y-2">
           <Label htmlFor="email">Adresse e-mail</Label>
           <Input id="email" type="email" value={userProfile.email} disabled />

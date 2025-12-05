@@ -78,6 +78,12 @@ export default function SignupPage() {
         emailNotifications: true,
         initialPhotoURL: user.photoURL,
         profilePictureUpdateCount: 0,
+        // Champs réseaux sociaux
+        instagramUrl: '',
+        twitterUrl: '',
+        facebookUrl: '',
+        linkedinUrl: '',
+        tiktokUrl: '',
         // Stripe
         stripeCustomerId: null,
         // Suivi IA
