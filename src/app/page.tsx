@@ -12,6 +12,7 @@ import { ImageList } from './ImageList';
 import { type UserProfile, checkAndRefillTickets } from '@/lib/firestore';
 import { LandingPage } from './landing-page';
 import { CreationHub } from '@/components/CreationHub';
+import { NotesSection } from './notes';
 
 
 export default function Home() {
@@ -75,6 +76,8 @@ export default function Home() {
         )}
 
         <ImageList />
+
+        <NotesSection />
       </div>
     </div>
   );
