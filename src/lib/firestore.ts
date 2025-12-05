@@ -86,6 +86,11 @@ export interface BrandProfile {
   name: string;
   avatarUrl?: string;
   createdAt: Timestamp;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  tiktokUrl?: string;
 }
 
 // Ce type représente la structure de données attendue pour un document d'image dans Firestore.
@@ -478,7 +483,7 @@ export async function createBrandProfile(firestore: Firestore, userId: string, n
     return data;
 }
 
-export async function updateBrandProfile(firestore: Firestore, userId: string, profileId: string, updates: Partial<Pick<BrandProfile, 'name' | 'avatarUrl'>>): Promise<void> {
+export async function updateBrandProfile(firestore: Firestore, userId: string, profileId: string, updates: Partial<Pick<BrandProfile, 'name' | 'avatarUrl' | 'instagramUrl' | 'facebookUrl' | 'twitterUrl' | 'linkedinUrl' | 'tiktokUrl'>>): Promise<void> {
     const { error } = await withErrorHandling(async () => {
         await updateDoc(doc(firestore, `users/${userId}/brandProfiles/${profileId}`), updates);
     }, { operation: 'updateBrandProfile', userId, path: `users/${userId}/brandProfiles/${profileId}` });
@@ -499,7 +504,7 @@ export async function deleteBrandProfile(firestore: Firestore, userId: string, p
 
 export async function deleteAudit(firestore: Firestore, userId: string, auditId: string): Promise<void> {
     const { error } = await withErrorHandling(async () => {
-        await deleteDoc(doc(firestore, `users/${userId}/audits`, auditId));
+        await deleteDoc(doc(firestore, `users/${userId}/audits/${auditId}`));
     }, { operation: 'deleteAudit', userId, path: `users/${userId}/audits/${auditId}` });
     if (error) throw error;
 }

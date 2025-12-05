@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2, Instagram, Facebook, MessageSquare, Linkedin, VenetianMask } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,6 +51,12 @@ export default function AuditPage() {
     
     const [editingProfile, setEditingProfile] = useState<BrandProfile | null>(null);
     const [editedName, setEditedName] = useState('');
+    const [editedAvatar, setEditedAvatar] = useState('');
+    const [editedInsta, setEditedInsta] = useState('');
+    const [editedFB, setEditedFB] = useState('');
+    const [editedX, setEditedX] = useState('');
+    const [editedLinkedin, setEditedLinkedin] = useState('');
+    const [editedTiktok, setEditedTiktok] = useState('');
     const [isEditing, setIsEditing] = useState(false);
 
     const [deletingProfile, setDeletingProfile] = useState<BrandProfile | null>(null);
@@ -139,8 +145,17 @@ export default function AuditPage() {
     const handleUpdateProfile = async () => {
         if (!editingProfile || !user || !firestore || !editedName.trim()) return;
         setIsEditing(true);
+        const updates: Partial<BrandProfile> = {
+            name: editedName,
+            avatarUrl: editedAvatar,
+            instagramUrl: editedInsta,
+            facebookUrl: editedFB,
+            twitterUrl: editedX,
+            linkedinUrl: editedLinkedin,
+            tiktokUrl: editedTiktok,
+        };
         const { error } = await withErrorHandling(() => 
-            updateBrandProfile(firestore, user.uid, editingProfile.id, { name: editedName })
+            updateBrandProfile(firestore, user.uid, editingProfile.id, updates)
         );
 
         if (!error) {
@@ -165,6 +180,17 @@ export default function AuditPage() {
             setDeletingProfile(null);
         }
         setIsDeleting(false);
+    };
+
+    const openEditDialog = (profile: BrandProfile) => {
+        setEditingProfile(profile);
+        setEditedName(profile.name);
+        setEditedAvatar(profile.avatarUrl || '');
+        setEditedInsta(profile.instagramUrl || '');
+        setEditedFB(profile.facebookUrl || '');
+        setEditedX(profile.twitterUrl || '');
+        setEditedLinkedin(profile.linkedinUrl || '');
+        setEditedTiktok(profile.tiktokUrl || '');
     };
 
 
@@ -265,6 +291,9 @@ export default function AuditPage() {
                 platform,
                 goal,
                 subjectImageUrls: subjectImageUrls,
+                image_urls: styleImageUrls,
+                post_texts: postTexts.filter(t => t.trim() !== ''),
+                additionalContext: additionalContext.trim() || undefined,
             };
             const docRef = await addDoc(auditsCollectionRef, auditDataToSave);
             
@@ -372,7 +401,7 @@ export default function AuditPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => { setEditingProfile(profile); setEditedName(profile.name); }}>
+                                                    <DropdownMenuItem onClick={() => openEditDialog(profile)}>
                                                         <Pencil className="mr-2 h-4 w-4" />
                                                         Modifier
                                                     </DropdownMenuItem>
@@ -677,13 +706,41 @@ export default function AuditPage() {
 
         {/* --- Dialogs for profile management --- */}
         <Dialog open={!!editingProfile} onOpenChange={(open) => !open && setEditingProfile(null)}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader>
-                    <DialogTitle>Modifier le profil</DialogTitle>
+                    <DialogTitle>Modifier le profil de "{editingProfile?.name}"</DialogTitle>
                 </DialogHeader>
-                <div className="py-4">
-                    <Label htmlFor="edit-profile-name">Nom du profil</Label>
-                    <Input id="edit-profile-name" value={editedName} onChange={(e) => setEditedName(e.target.value)} />
+                <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-profile-name">Nom du profil</Label>
+                        <Input id="edit-profile-name" value={editedName} onChange={(e) => setEditedName(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="edit-profile-avatar">URL de l'avatar</Label>
+                        <Input id="edit-profile-avatar" value={editedAvatar} onChange={(e) => setEditedAvatar(e.target.value)} />
+                    </div>
+                    <Separator/>
+                     <h4 className="font-semibold text-sm text-muted-foreground">Réseaux Sociaux du Client</h4>
+                     <div className="flex items-center gap-3">
+                        <Instagram className="h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="https://instagram.com/..." value={editedInsta} onChange={(e) => setEditedInsta(e.target.value)} />
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <Facebook className="h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="https://facebook.com/..." value={editedFB} onChange={(e) => setEditedFB(e.target.value)} />
+                     </div>
+                      <div className="flex items-center gap-3">
+                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="https://x.com/..." value={editedX} onChange={(e) => setEditedX(e.target.value)} />
+                     </div>
+                      <div className="flex items-center gap-3">
+                        <Linkedin className="h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="https://linkedin.com/in/..." value={editedLinkedin} onChange={(e) => setEditedLinkedin(e.target.value)} />
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <VenetianMask className="h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="https://tiktok.com/@..." value={editedTiktok} onChange={(e) => setEditedTiktok(e.target.value)} />
+                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="secondary" onClick={() => setEditingProfile(null)}>Annuler</Button>

@@ -291,7 +291,12 @@
         "userId": { "type": "string", "description": "ID of the user who manages this profile." },
         "name": { "type": "string", "description": "The name of the brand or client." },
         "avatarUrl": { "type": "string", "description": "URL of the brand's logo or avatar.", "format": "uri" },
-        "createdAt": { "type": "string", "description": "Timestamp of when the profile was created.", "format": "date-time" }
+        "createdAt": { "type": "string", "description": "Timestamp of when the profile was created.", "format": "date-time" },
+        "instagramUrl": { "type": "string", "description": "URL to the client's Instagram profile.", "format": "uri" },
+        "facebookUrl": { "type": "string", "description": "URL to the client's Facebook profile.", "format": "uri" },
+        "twitterUrl": { "type": "string", "description": "URL to the client's Twitter (X) profile.", "format": "uri" },
+        "linkedinUrl": { "type": "string", "description": "URL to the client's LinkedIn profile.", "format": "uri" },
+        "tiktokUrl": { "type": "string", "description": "URL to the client's TikTok profile.", "format": "uri" }
       },
       "required": [
         "id",

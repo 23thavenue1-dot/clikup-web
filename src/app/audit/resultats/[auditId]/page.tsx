@@ -43,6 +43,7 @@ type AuditReport = SocialAuditOutput & {
     image_urls?: string[];
     post_texts?: string[];
     additionalContext?: string;
+    brandProfileId: string; // Ajouté
 }
 
 // Helper pour convertir Data URI en Blob
@@ -304,6 +305,7 @@ export default function AuditResultPage() {
                 scheduledAt: isDraft ? undefined : date,
                 imageSource: newImageMetadata,
                 auditId: auditId,
+                brandProfileId: auditReport.brandProfileId,
             });
 
             if (isDraft) {
