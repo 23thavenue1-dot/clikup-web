@@ -302,6 +302,8 @@
       "properties": {
         "id": { "type": "string", "description": "Unique identifier for the post." },
         "userId": { "type": "string", "description": "ID of the user who created the post." },
+        "brandProfileId": { "type": "string", "description": "ID of the Brand Profile this post belongs to." },
+        "auditId": { "type": ["string", "null"], "description": "ID of the audit this post originated from." },
         "status": { "type": "string", "enum": ["draft", "scheduled"], "description": "The status of the post." },
         "createdAt": { "type": "string", "description": "Timestamp of when the draft was created.", "format": "date-time" },
         "scheduledAt": { "type": ["string", "null"], "description": "The timestamp for when the post should be published. Null if it's a draft.", "format": "date-time" },
@@ -312,6 +314,7 @@
       "required": [
         "id",
         "userId",
+        "brandProfileId",
         "status",
         "createdAt",
         "title"
@@ -483,7 +486,4 @@
   }
 }
     
-
-    
-
     

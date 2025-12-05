@@ -1,18 +1,17 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask } from 'lucide-react';
+import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { ScheduledPost } from '@/lib/firestore';
+import type { ScheduledPost, BrandProfile } from '@/lib/firestore';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useStorage } from '@/firebase'; 
@@ -30,6 +29,8 @@ import { deleteScheduledPost } from '@/lib/firestore';
 import { withErrorHandling } from '@/lib/async-wrapper';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string | null }) {
@@ -109,6 +110,7 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
     const isScheduled = post.status === 'scheduled' && post.scheduledAt;
 
     const handleEdit = () => {
+        // Redirection vers l'audit si l'ID existe, sinon on ne fait rien car c'est la seule façon d'éditer
         if (post.auditId) {
             router.push(`/audit/resultats/${post.auditId}`);
         }
@@ -192,16 +194,30 @@ export default function PlannerPage() {
 
     const [postToDelete, setPostToDelete] = useState<ScheduledPost | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
+
 
     const postsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        return query(collection(firestore, `users/${user.uid}/scheduledPosts`), orderBy('createdAt', 'desc'));
+        return query(collection(firestore, `users/${user.uid}/scheduledPosts`), orderBy('scheduledAt', 'asc'));
     }, [user, firestore]);
+    const { data: posts, isLoading: arePostsLoading } = useCollection<ScheduledPost>(postsQuery);
 
-    const { data: posts, isLoading, refetch } = useCollection<ScheduledPost>(postsQuery);
+    const brandProfilesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/brandProfiles`), orderBy('createdAt', 'desc'));
+    }, [user, firestore]);
+    const { data: brandProfiles, isLoading: areProfilesLoading } = useCollection<BrandProfile>(brandProfilesQuery);
+    
+    const filteredPosts = useMemo(() => {
+        if (!posts) return [];
+        if (selectedProfileId === 'all') return posts;
+        return posts.filter(p => p.brandProfileId === selectedProfileId);
+    }, [posts, selectedProfileId]);
 
-    const scheduledPosts = posts?.filter(p => p.status === 'scheduled') || [];
-    const draftPosts = posts?.filter(p => p.status === 'draft') || [];
+
+    const scheduledPosts = filteredPosts.filter(p => p.status === 'scheduled') || [];
+    const draftPosts = filteredPosts.filter(p => p.status === 'draft') || [];
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -218,13 +234,12 @@ export default function PlannerPage() {
         
         if (!error) {
             toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
-            refetch(); // Rafraîchir les données
         }
         setIsDeleting(false);
         setPostToDelete(null);
     };
 
-    if (isUserLoading || isLoading) {
+    if (isUserLoading || arePostsLoading || areProfilesLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -236,9 +251,39 @@ export default function PlannerPage() {
         <>
             <div className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="w-full max-w-6xl mx-auto space-y-8">
-                    <header>
-                        <h1 className="text-3xl font-bold tracking-tight">Planificateur de Contenu</h1>
-                        <p className="text-muted-foreground mt-1">Gérez vos brouillons et vos publications programmées.</p>
+                    <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">Planificateur de Contenu</h1>
+                            <p className="text-muted-foreground mt-1">Gérez vos brouillons et vos publications programmées par profil.</p>
+                        </div>
+                         {brandProfiles && brandProfiles.length > 0 && (
+                            <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                                <SelectTrigger className="w-full sm:w-[280px]">
+                                    <SelectValue placeholder="Sélectionner un profil..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarFallback><Building className="h-4 w-4"/></AvatarFallback>
+                                            </Avatar>
+                                            Tous les profils
+                                        </div>
+                                    </SelectItem>
+                                    {brandProfiles.map(profile => (
+                                        <SelectItem key={profile.id} value={profile.id}>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-6 w-6">
+                                                    <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                                                    <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                                </Avatar>
+                                                {profile.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         )}
                     </header>
 
                     {!posts || posts.length === 0 ? (
@@ -261,7 +306,7 @@ export default function PlannerPage() {
                                         {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} onDelete={setPostToDelete} />)}
                                     </div>
                                 ) : (
-                                    <p className="text-muted-foreground">Aucune publication programmée pour le moment.</p>
+                                    <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>
                                 )}
                             </section>
 
@@ -272,7 +317,7 @@ export default function PlannerPage() {
                                         {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} onDelete={setPostToDelete} />)}
                                     </div>
                                 ) : (
-                                    <p className="text-muted-foreground">Aucun brouillon sauvegardé.</p>
+                                    <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
                                 )}
                             </section>
                         </div>
@@ -300,3 +345,5 @@ export default function PlannerPage() {
         </>
     );
 }
+
+    
