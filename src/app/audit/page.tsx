@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2, Link as LinkIcon, GripVertical } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2, Link as LinkIcon, GripVertical, Instagram, MessageSquare, Facebook, Linkedin, VenetianMask } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,6 +33,8 @@ import { withErrorHandling } from '@/lib/async-wrapper';
 const MAX_STYLE_IMAGES = 9;
 const MAX_SUBJECT_IMAGES = 5;
 const AUDIT_COST = 5;
+
+const PREDEFINED_SOCIALS = ['Instagram', 'X (Twitter)', 'Facebook', 'LinkedIn', 'TikTok'];
 
 export default function AuditPage() {
     const { user, isUserLoading } = useUser();
@@ -141,10 +143,13 @@ export default function AuditPage() {
     const handleUpdateProfile = async () => {
         if (!editingProfile || !user || !firestore || !editedName.trim()) return;
         setIsEditing(true);
+
+        const finalSocialLinks = editedSocialLinks.filter(link => link.url.trim() !== '');
+
         const updates: Partial<BrandProfile> = {
             name: editedName,
             avatarUrl: editedAvatar,
-            socialLinks: editedSocialLinks,
+            socialLinks: finalSocialLinks,
         };
         const { error } = await withErrorHandling(() => 
             updateBrandProfile(firestore, user.uid, editingProfile.id, updates)
@@ -178,22 +183,50 @@ export default function AuditPage() {
         setEditingProfile(profile);
         setEditedName(profile.name);
         setEditedAvatar(profile.avatarUrl || '');
-        setEditedSocialLinks(profile.socialLinks || []);
+
+        const existingLinks = profile.socialLinks || [];
+        const updatedLinks: SocialLink[] = [];
+        const addedNames = new Set<string>();
+
+        PREDEFINED_SOCIALS.forEach(name => {
+            const existing = existingLinks.find(link => link.name === name);
+            if (existing) {
+                updatedLinks.push(existing);
+            } else {
+                updatedLinks.push({ id: `new_${name}_${Date.now()}`, name, url: '' });
+            }
+            addedNames.add(name);
+        });
+
+        existingLinks.forEach(link => {
+            if (!addedNames.has(link.name)) {
+                updatedLinks.push(link);
+            }
+        });
+        
+        setEditedSocialLinks(updatedLinks);
     };
     
-    const handleSocialLinkChange = (index: number, field: 'name' | 'url', value: string) => {
+    const handleSocialLinkChange = (index: number, value: string) => {
         const newLinks = [...editedSocialLinks];
-        newLinks[index] = { ...newLinks[index], [field]: value };
+        newLinks[index].url = value;
         setEditedSocialLinks(newLinks);
     };
 
     const addSocialLink = () => {
-        setEditedSocialLinks([...editedSocialLinks, { id: `link_${Date.now()}`, name: '', url: '' }]);
+        setEditedSocialLinks([...editedSocialLinks, { id: `new_${Date.now()}`, name: '', url: '' }]);
     };
 
     const removeSocialLink = (index: number) => {
-        const newLinks = editedSocialLinks.filter((_, i) => i !== index);
-        setEditedSocialLinks(newLinks);
+        const linkToRemove = editedSocialLinks[index];
+        if (PREDEFINED_SOCIALS.includes(linkToRemove.name)) {
+            const newLinks = [...editedSocialLinks];
+            newLinks[index].url = '';
+            setEditedSocialLinks(newLinks);
+        } else {
+            const newLinks = editedSocialLinks.filter((_, i) => i !== index);
+            setEditedSocialLinks(newLinks);
+        }
     };
 
 
@@ -328,6 +361,14 @@ export default function AuditPage() {
     const canGoToStep4 = selectedStyleImages.size >= 1;
     const canGoToStep5 = true; // L'étape 4 est optionnelle
     const canGoToStep6 = true;
+
+     const SocialIcons: { [key: string]: React.ElementType } = {
+        'Instagram': Instagram,
+        'X (Twitter)': MessageSquare,
+        'Facebook': Facebook,
+        'LinkedIn': Linkedin,
+        'TikTok': VenetianMask,
+    };
 
 
     const renderStepContent = () => {
@@ -723,29 +764,46 @@ export default function AuditPage() {
                         <Input id="edit-profile-avatar" value={editedAvatar} onChange={(e) => setEditedAvatar(e.target.value)} />
                     </div>
                     <Separator/>
-                     <h4 className="font-semibold text-sm text-muted-foreground">Réseaux Sociaux du Client</h4>
-                     {editedSocialLinks.map((link, index) => (
-                        <div key={link.id} className="flex items-center gap-2">
-                            <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                            <Input 
-                                placeholder="Nom (ex: Vinted)" 
-                                value={link.name}
-                                onChange={(e) => handleSocialLinkChange(index, 'name', e.target.value)}
-                                className="w-1/3"
-                            />
-                            <Input 
-                                placeholder="https://..." 
-                                value={link.url}
-                                onChange={(e) => handleSocialLinkChange(index, 'url', e.target.value)}
-                            />
-                            <Button variant="ghost" size="icon" onClick={() => removeSocialLink(index)} className="text-destructive hover:text-destructive flex-shrink-0">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    ))}
+                    <h4 className="font-semibold text-sm text-muted-foreground">Réseaux Sociaux du Client</h4>
+                    
+                    {editedSocialLinks.map((link, index) => {
+                        const Icon = SocialIcons[link.name] || LinkIcon;
+                        const isPredefined = PREDEFINED_SOCIALS.includes(link.name);
+                        
+                        return (
+                            <div key={link.id} className="flex items-center gap-2">
+                                 {isPredefined ? (
+                                    <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                     <Input 
+                                        placeholder="Nom (ex: Vinted)" 
+                                        value={link.name}
+                                        onChange={(e) => {
+                                            const newLinks = [...editedSocialLinks];
+                                            newLinks[index].name = e.target.value;
+                                            setEditedSocialLinks(newLinks);
+                                        }}
+                                        className="w-1/3"
+                                        disabled={isEditing}
+                                    />
+                                )}
+                                <Input 
+                                    placeholder="https://..." 
+                                    value={link.url}
+                                    onChange={(e) => handleSocialLinkChange(index, e.target.value)}
+                                    disabled={isEditing}
+                                />
+                                {!isPredefined && (
+                                    <Button variant="ghost" size="icon" onClick={() => removeSocialLink(index)} className="text-destructive hover:text-destructive flex-shrink-0" disabled={isEditing}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        )
+                    })}
                     <Button variant="outline" size="sm" onClick={addSocialLink} className="w-full">
                         <LinkIcon className="mr-2 h-4 w-4" />
-                        Ajouter un lien
+                        Ajouter un autre lien
                     </Button>
                 </div>
                 <DialogFooter>
@@ -779,4 +837,3 @@ export default function AuditPage() {
         </>
     );
 }
-

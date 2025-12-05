@@ -8,13 +8,13 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, updateDoc, increment, collection, query, orderBy, getDoc } from 'firebase/firestore';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { type UserProfile, deleteUserAccount } from '@/lib/firestore';
+import { type UserProfile, deleteUserAccount, type SocialLink } from '@/lib/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Receipt, ExternalLink, AlertTriangle, RefreshCw, Instagram, MessageSquare, Facebook, Linkedin, VenetianMask } from 'lucide-react';
+import { Loader2, Receipt, ExternalLink, AlertTriangle, RefreshCw, Instagram, MessageSquare, Facebook, Linkedin, VenetianMask, Link as LinkIcon, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -76,6 +76,9 @@ const deleteAccountFormSchema = z.object({
   password: z.string().min(1, { message: 'Le mot de passe est requis pour la suppression.' }),
 });
 
+const PREDEFINED_SOCIALS = ['Instagram', 'X (Twitter)', 'Facebook', 'LinkedIn', 'TikTok'];
+
+
 // --- Profile Tab Component ---
 function ProfileTab() {
   const { user, firebaseApp, auth } = useFirebase();
@@ -88,11 +91,8 @@ function ProfileTab() {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
-  const [twitterUrl, setTwitterUrl] = useState('');
-  const [facebookUrl, setFacebookUrl] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [tiktokUrl, setTiktokUrl] = useState('');
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [selectedPredefinedAvatar, setSelectedPredefinedAvatar] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -103,11 +103,29 @@ function ProfileTab() {
       setDisplayName(userProfile.displayName || userProfile.email || '');
       setBio(userProfile.bio || '');
       setWebsiteUrl(userProfile.websiteUrl || '');
-      setInstagramUrl(userProfile.instagramUrl || '');
-      setTwitterUrl(userProfile.twitterUrl || '');
-      setFacebookUrl(userProfile.facebookUrl || '');
-      setLinkedinUrl(userProfile.linkedinUrl || '');
-      setTiktokUrl(userProfile.tiktokUrl || '');
+      // Initialise les liens sociaux en s'assurant que les champs prédéfinis existent
+      const existingLinks = userProfile.socialLinks || [];
+      const updatedLinks: SocialLink[] = [];
+      const addedNames = new Set<string>();
+
+      PREDEFINED_SOCIALS.forEach(name => {
+          const existing = existingLinks.find(link => link.name === name);
+          if (existing) {
+              updatedLinks.push(existing);
+          } else {
+              updatedLinks.push({ id: `new_${name}`, name, url: '' });
+          }
+          addedNames.add(name);
+      });
+
+      // Ajoute les autres liens personnalisés
+      existingLinks.forEach(link => {
+          if (!addedNames.has(link.name)) {
+              updatedLinks.push(link);
+          }
+      });
+      
+      setSocialLinks(updatedLinks);
     }
   }, [userProfile]);
 
@@ -133,6 +151,29 @@ function ProfileTab() {
     setProfilePictureFile(null);
     setSelectedPredefinedAvatar(imageUrl);
   };
+
+   const handleSocialLinkChange = (index: number, value: string) => {
+    const newLinks = [...socialLinks];
+    newLinks[index].url = value;
+    setSocialLinks(newLinks);
+  };
+  
+  const addSocialLink = () => {
+    setSocialLinks([...socialLinks, { id: `new_${Date.now()}`, name: '', url: '' }]);
+  };
+
+  const removeSocialLink = (index: number) => {
+      const linkToRemove = socialLinks[index];
+      // Si c'est un champ prédéfini, on le vide juste. Sinon, on le supprime.
+      if (PREDEFINED_SOCIALS.includes(linkToRemove.name)) {
+          const newLinks = [...socialLinks];
+          newLinks[index].url = '';
+          setSocialLinks(newLinks);
+      } else {
+          const newLinks = socialLinks.filter((_, i) => i !== index);
+          setSocialLinks(newLinks);
+      }
+  };
   
   const handleSaveChanges = async () => {
     if (!user || !firestore || !userDocRef || !auth) return;
@@ -140,7 +181,16 @@ function ProfileTab() {
   
     const { error } = await withErrorHandling(async () => {
       const authUpdates: { displayName?: string, photoURL?: string } = {};
-      const firestoreUpdates: Partial<UserProfile> & { profilePictureUpdateCount?: any } = {};
+      
+      // Filtrer les liens sociaux pour ne garder que ceux qui ont une URL
+      const finalSocialLinks = socialLinks.filter(link => link.url.trim() !== '');
+
+      const firestoreUpdates: Partial<UserProfile> & { profilePictureUpdateCount?: any } = {
+          displayName,
+          bio,
+          websiteUrl,
+          socialLinks: finalSocialLinks,
+      };
       
       let finalPhotoURL = user.photoURL;
   
@@ -161,21 +211,12 @@ function ProfileTab() {
       }
   
       if (displayName !== (userProfile?.displayName || '')) authUpdates.displayName = displayName;
-      if (displayName !== (userProfile?.displayName || '')) firestoreUpdates.displayName = displayName;
-      if (bio !== (userProfile?.bio || '')) firestoreUpdates.bio = bio;
-      if (websiteUrl !== (userProfile?.websiteUrl || '')) firestoreUpdates.websiteUrl = websiteUrl;
-      if (instagramUrl !== (userProfile?.instagramUrl || '')) firestoreUpdates.instagramUrl = instagramUrl;
-      if (twitterUrl !== (userProfile?.twitterUrl || '')) firestoreUpdates.twitterUrl = twitterUrl;
-      if (facebookUrl !== (userProfile?.facebookUrl || '')) firestoreUpdates.facebookUrl = facebookUrl;
-      if (linkedinUrl !== (userProfile?.linkedinUrl || '')) firestoreUpdates.linkedinUrl = linkedinUrl;
-      if (tiktokUrl !== (userProfile?.tiktokUrl || '')) firestoreUpdates.tiktokUrl = tiktokUrl;
   
       if (Object.keys(authUpdates).length > 0 && auth.currentUser) {
         await updateProfile(auth.currentUser, authUpdates);
       }
-      if (Object.keys(firestoreUpdates).length > 0) {
-        await updateDoc(userDocRef, firestoreUpdates);
-      }
+
+      await updateDoc(userDocRef, firestoreUpdates);
   
     }, { operation: 'updateProfile', userId: user.uid });
   
@@ -193,11 +234,7 @@ function ProfileTab() {
   const isChanged = displayName !== (userProfile?.displayName || userProfile.email) ||
                     bio !== (userProfile?.bio || '') ||
                     websiteUrl !== (userProfile?.websiteUrl || '') ||
-                    instagramUrl !== (userProfile?.instagramUrl || '') ||
-                    twitterUrl !== (userProfile?.twitterUrl || '') ||
-                    facebookUrl !== (userProfile?.facebookUrl || '') ||
-                    linkedinUrl !== (userProfile?.linkedinUrl || '') ||
-                    tiktokUrl !== (userProfile?.tiktokUrl || '') ||
+                    JSON.stringify(socialLinks) !== JSON.stringify(userProfile?.socialLinks || []) ||
                     profilePictureFile !== null ||
                     selectedPredefinedAvatar !== null;
 
@@ -207,6 +244,15 @@ function ProfileTab() {
   } else if (selectedPredefinedAvatar) {
     avatarPreviewSrc = selectedPredefinedAvatar;
   }
+  
+  const SocialIcons: { [key: string]: React.ElementType } = {
+    'Instagram': Instagram,
+    'X (Twitter)': MessageSquare,
+    'Facebook': Facebook,
+    'LinkedIn': Linkedin,
+    'TikTok': VenetianMask,
+  };
+
 
   return (
     <Card>
@@ -271,26 +317,44 @@ function ProfileTab() {
         <div>
             <h3 className="text-md font-medium mb-4">Réseaux Sociaux</h3>
             <div className="space-y-4">
-                 <div className="flex items-center gap-3">
-                    <Instagram className="h-5 w-5 text-muted-foreground" />
-                    <Input id="instagramUrl" placeholder="https://instagram.com/votre_profil" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} disabled={isSaving} />
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                    <Input id="twitterUrl" placeholder="https://x.com/votre_profil" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} disabled={isSaving} />
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <Facebook className="h-5 w-5 text-muted-foreground" />
-                    <Input id="facebookUrl" placeholder="https://facebook.com/votre_profil" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} disabled={isSaving} />
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <Linkedin className="h-5 w-5 text-muted-foreground" />
-                    <Input id="linkedinUrl" placeholder="https://linkedin.com/in/votre_profil" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} disabled={isSaving} />
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <VenetianMask className="h-5 w-5 text-muted-foreground" />
-                    <Input id="tiktokUrl" placeholder="https://tiktok.com/@votre_profil" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} disabled={isSaving} />
-                 </div>
+                 {socialLinks.map((link, index) => {
+                    const Icon = SocialIcons[link.name] || LinkIcon;
+                    const isPredefined = PREDEFINED_SOCIALS.includes(link.name);
+                    return (
+                        <div key={link.id} className="flex items-center gap-3">
+                            {isPredefined ? (
+                                <Icon className="h-5 w-5 text-muted-foreground" />
+                            ) : (
+                                <Input
+                                    placeholder="Nom (ex: Vinted)"
+                                    value={link.name}
+                                    onChange={(e) => {
+                                        const newLinks = [...socialLinks];
+                                        newLinks[index].name = e.target.value;
+                                        setSocialLinks(newLinks);
+                                    }}
+                                    className="w-1/3"
+                                    disabled={isSaving}
+                                />
+                            )}
+                            <Input
+                                placeholder="https://..."
+                                value={link.url}
+                                onChange={(e) => handleSocialLinkChange(index, e.target.value)}
+                                disabled={isSaving}
+                            />
+                            {!isPredefined && (
+                                <Button variant="ghost" size="icon" onClick={() => removeSocialLink(index)} className="text-destructive hover:text-destructive flex-shrink-0" disabled={isSaving}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    );
+                })}
+                <Button variant="outline" size="sm" onClick={addSocialLink} className="w-full">
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    Ajouter un autre lien
+                </Button>
             </div>
         </div>
 
