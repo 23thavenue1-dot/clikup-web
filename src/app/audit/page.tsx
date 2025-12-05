@@ -5,8 +5,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, doc } from 'firebase/firestore';
-import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
+import { collection, query, orderBy, addDoc, doc, updateDoc } from 'firebase/firestore';
+import type { ImageMetadata, UserProfile, BrandProfile, SocialLink } from '@/lib/firestore';
 import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
 import { decrementAiTicketCount, createBrandProfile, updateBrandProfile, deleteBrandProfile } from '@/lib/firestore';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2, Instagram, Facebook, MessageSquare, Linkedin, VenetianMask } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2, Link as LinkIcon, GripVertical } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -52,11 +52,7 @@ export default function AuditPage() {
     const [editingProfile, setEditingProfile] = useState<BrandProfile | null>(null);
     const [editedName, setEditedName] = useState('');
     const [editedAvatar, setEditedAvatar] = useState('');
-    const [editedInsta, setEditedInsta] = useState('');
-    const [editedFB, setEditedFB] = useState('');
-    const [editedX, setEditedX] = useState('');
-    const [editedLinkedin, setEditedLinkedin] = useState('');
-    const [editedTiktok, setEditedTiktok] = useState('');
+    const [editedSocialLinks, setEditedSocialLinks] = useState<SocialLink[]>([]);
     const [isEditing, setIsEditing] = useState(false);
 
     const [deletingProfile, setDeletingProfile] = useState<BrandProfile | null>(null);
@@ -148,11 +144,7 @@ export default function AuditPage() {
         const updates: Partial<BrandProfile> = {
             name: editedName,
             avatarUrl: editedAvatar,
-            instagramUrl: editedInsta,
-            facebookUrl: editedFB,
-            twitterUrl: editedX,
-            linkedinUrl: editedLinkedin,
-            tiktokUrl: editedTiktok,
+            socialLinks: editedSocialLinks,
         };
         const { error } = await withErrorHandling(() => 
             updateBrandProfile(firestore, user.uid, editingProfile.id, updates)
@@ -186,11 +178,22 @@ export default function AuditPage() {
         setEditingProfile(profile);
         setEditedName(profile.name);
         setEditedAvatar(profile.avatarUrl || '');
-        setEditedInsta(profile.instagramUrl || '');
-        setEditedFB(profile.facebookUrl || '');
-        setEditedX(profile.twitterUrl || '');
-        setEditedLinkedin(profile.linkedinUrl || '');
-        setEditedTiktok(profile.tiktokUrl || '');
+        setEditedSocialLinks(profile.socialLinks || []);
+    };
+    
+    const handleSocialLinkChange = (index: number, field: 'name' | 'url', value: string) => {
+        const newLinks = [...editedSocialLinks];
+        newLinks[index] = { ...newLinks[index], [field]: value };
+        setEditedSocialLinks(newLinks);
+    };
+
+    const addSocialLink = () => {
+        setEditedSocialLinks([...editedSocialLinks, { id: `link_${Date.now()}`, name: '', url: '' }]);
+    };
+
+    const removeSocialLink = (index: number) => {
+        const newLinks = editedSocialLinks.filter((_, i) => i !== index);
+        setEditedSocialLinks(newLinks);
     };
 
 
@@ -721,26 +724,29 @@ export default function AuditPage() {
                     </div>
                     <Separator/>
                      <h4 className="font-semibold text-sm text-muted-foreground">Réseaux Sociaux du Client</h4>
-                     <div className="flex items-center gap-3">
-                        <Instagram className="h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="https://instagram.com/..." value={editedInsta} onChange={(e) => setEditedInsta(e.target.value)} />
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <Facebook className="h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="https://facebook.com/..." value={editedFB} onChange={(e) => setEditedFB(e.target.value)} />
-                     </div>
-                      <div className="flex items-center gap-3">
-                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="https://x.com/..." value={editedX} onChange={(e) => setEditedX(e.target.value)} />
-                     </div>
-                      <div className="flex items-center gap-3">
-                        <Linkedin className="h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="https://linkedin.com/in/..." value={editedLinkedin} onChange={(e) => setEditedLinkedin(e.target.value)} />
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <VenetianMask className="h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="https://tiktok.com/@..." value={editedTiktok} onChange={(e) => setEditedTiktok(e.target.value)} />
-                     </div>
+                     {editedSocialLinks.map((link, index) => (
+                        <div key={link.id} className="flex items-center gap-2">
+                            <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                            <Input 
+                                placeholder="Nom (ex: Vinted)" 
+                                value={link.name}
+                                onChange={(e) => handleSocialLinkChange(index, 'name', e.target.value)}
+                                className="w-1/3"
+                            />
+                            <Input 
+                                placeholder="https://..." 
+                                value={link.url}
+                                onChange={(e) => handleSocialLinkChange(index, 'url', e.target.value)}
+                            />
+                            <Button variant="ghost" size="icon" onClick={() => removeSocialLink(index)} className="text-destructive hover:text-destructive flex-shrink-0">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={addSocialLink} className="w-full">
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Ajouter un lien
+                    </Button>
                 </div>
                 <DialogFooter>
                     <Button variant="secondary" onClick={() => setEditingProfile(null)}>Annuler</Button>

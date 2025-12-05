@@ -32,6 +32,15 @@ export interface CustomPrompt {
   value: string;
 }
 
+// NOUVEAU: Type pour les liens sociaux
+export interface SocialLink {
+  id: string;
+  name: string;
+  url: string;
+  icon?: string; // Optionnel, pour les icônes prédéfinies
+}
+
+
 // Correspond à la structure dans backend.json
 export interface UserProfile {
   id: string;
@@ -50,11 +59,7 @@ export interface UserProfile {
   emailNotifications?: boolean;
   bio?: string;
   websiteUrl?: string;
-  instagramUrl?: string;
-  twitterUrl?: string;
-  facebookUrl?: string;
-  linkedinUrl?: string;
-  tiktokUrl?: string;
+  socialLinks?: SocialLink[]; // MODIFIÉ
   level: number;
   xp: number;
   unlockedAchievements: string[];
@@ -86,11 +91,7 @@ export interface BrandProfile {
   name: string;
   avatarUrl?: string;
   createdAt: Timestamp;
-  instagramUrl?: string;
-  facebookUrl?: string;
-  twitterUrl?: string;
-  linkedinUrl?: string;
-  tiktokUrl?: string;
+  socialLinks?: SocialLink[]; // MODIFIÉ
 }
 
 // Ce type représente la structure de données attendue pour un document d'image dans Firestore.
@@ -474,7 +475,7 @@ export async function updateCustomPrompt(firestore: Firestore, userId: string, u
 export async function createBrandProfile(firestore: Firestore, userId: string, name: string, avatarUrl: string = ''): Promise<DocumentReference> {
     const { data, error } = await withErrorHandling(async () => {
         const brandProfilesCollectionRef = collection(firestore, 'users', userId, 'brandProfiles');
-        const dataToSave = { userId, name, avatarUrl, createdAt: serverTimestamp() };
+        const dataToSave = { userId, name, avatarUrl, createdAt: serverTimestamp(), socialLinks: [] };
         const docRef = await addDoc(brandProfilesCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
         return docRef;
@@ -483,7 +484,7 @@ export async function createBrandProfile(firestore: Firestore, userId: string, n
     return data;
 }
 
-export async function updateBrandProfile(firestore: Firestore, userId: string, profileId: string, updates: Partial<Pick<BrandProfile, 'name' | 'avatarUrl' | 'instagramUrl' | 'facebookUrl' | 'twitterUrl' | 'linkedinUrl' | 'tiktokUrl'>>): Promise<void> {
+export async function updateBrandProfile(firestore: Firestore, userId: string, profileId: string, updates: Partial<Pick<BrandProfile, 'name' | 'avatarUrl' | 'socialLinks'>>): Promise<void> {
     const { error } = await withErrorHandling(async () => {
         await updateDoc(doc(firestore, `users/${userId}/brandProfiles/${profileId}`), updates);
     }, { operation: 'updateBrandProfile', userId, path: `users/${userId}/brandProfiles/${profileId}` });
@@ -605,5 +606,3 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     });
     if (error) throw error;
 }
-
-    
