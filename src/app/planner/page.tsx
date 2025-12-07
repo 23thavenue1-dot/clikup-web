@@ -434,6 +434,7 @@ export default function PlannerPage() {
                                         month={currentMonth}
                                         onMonthChange={setCurrentMonth}
                                         className="w-full"
+                                        locale={fr}
                                         classNames={{
                                             months: 'space-y-4',
                                             month: 'w-full',
