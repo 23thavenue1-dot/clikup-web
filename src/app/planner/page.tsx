@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -110,14 +109,12 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
 
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: isDragging ? 1000 : undefined,
     } : undefined;
 
     return (
-         <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
-            {React.cloneElement(children as React.ReactElement, {
-                ...attributes,
-                ...listeners,
-            })}
+        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50 shadow-2xl', 'w-full')}>
+            {React.cloneElement(children as React.ReactElement, { ...attributes, ...listeners })}
         </div>
     );
 }
@@ -149,21 +146,21 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
             router.push(`/audit/resultats/${post.auditId}`);
         }
     };
-
-    if (variant === 'draft') {
+    
+     if (variant === 'draft') {
         return (
-             <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow">
-                 <div className="p-2 cursor-grab" {...props}>
-                    <GripVertical className="h-5 w-5 text-muted-foreground"/>
-                </div>
-                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{post.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
-                </div>
-                <Dialog>
+             <Dialog>
+                 <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                     <div className="p-2 cursor-grab" {...props}>
+                        <GripVertical className="h-5 w-5 text-muted-foreground"/>
+                    </div>
+                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{post.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                    </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -173,11 +170,12 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
                             <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
-                </Dialog>
-            </div>
+                </div>
+                 <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
+            </Dialog>
         )
     }
+
 
     return (
         <Dialog>
