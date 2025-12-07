@@ -265,8 +265,10 @@ export function ImageList() {
             const link = document.createElement('a');
             link.href = url;
 
+            const safeTitle = image.title ? image.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : '';
+            const safeOriginalName = image.originalName ? image.originalName.split('.')[0].replace(/[^a-z0-9]/gi, '_').toLowerCase() : '';
             const fileExtension = image.mimeType?.split('/')[1] || 'jpg';
-            const fileName = image.title || image.originalName || `clikup-image-${image.id}`;
+            const fileName = safeTitle || safeOriginalName || `clikup-image-${image.id}`;
             link.setAttribute('download', `${fileName}.${fileExtension}`);
     
             document.body.appendChild(link);
@@ -274,7 +276,7 @@ export function ImageList() {
             document.body.removeChild(link);
     
             window.URL.revokeObjectURL(url);
-            toast({ title: 'Téléchargement lancé', description: `Votre image "${fileName}" est en cours de téléchargement.` });
+            toast({ title: 'Téléchargement lancé', description: `Votre image "${fileName}.${fileExtension}" est en cours de téléchargement.` });
         } catch (error) {
             console.error("Download error:", error);
             toast({
@@ -484,6 +486,8 @@ export function ImageList() {
 
     // Component that wraps the clickable area
     const ClickableArea = ({ image }: { image: ImageMetadata }) => {
+        const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
+
         const content = (
             <>
                 {isSelectionMode ? (
@@ -604,9 +608,6 @@ export function ImageList() {
             </Link>
         );
     };
-
-    const isPinned = (imageId: string) => userProfile?.pinnedImageIds?.includes(imageId) ?? false;
-
 
     return (
         <TooltipProvider>

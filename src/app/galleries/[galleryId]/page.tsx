@@ -3,6 +3,7 @@
 
 
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
@@ -280,8 +281,10 @@ export default function GalleryDetailPage() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
+            const safeTitle = image.title ? image.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : '';
+            const safeOriginalName = image.originalName ? image.originalName.split('.')[0].replace(/[^a-z0-9]/gi, '_').toLowerCase() : '';
             const fileExtension = image.mimeType?.split('/')[1] || 'jpg';
-            const fileName = image.title || image.originalName || `clikup-image-${image.id}`;
+            const fileName = safeTitle || safeOriginalName || `clikup-image-${image.id}`;
             link.setAttribute('download', `${fileName}.${fileExtension}`);
             document.body.appendChild(link);
             link.click();
