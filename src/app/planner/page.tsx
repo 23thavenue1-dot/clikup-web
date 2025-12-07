@@ -52,7 +52,6 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
 
     const fullText = `${post.title}\n\n${post.description}`.trim();
     
-    // Utiliser les URLs du profil de marque si elles existent, sinon, utiliser les URLs génériques
     const twitterShareUrl = brandProfile?.socialLinks?.find(l => l.name === 'X (Twitter)')?.url
         ? `${brandProfile.socialLinks.find(l => l.name === 'X (Twitter)')?.url}/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`
         : `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`;
@@ -103,17 +102,7 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-// NOUVEAU: Composant dédié au brouillon déplaçable
-function DraggableDraft({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: post.id,
-        data: post,
-    });
-    
-    const style = transform ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    } : undefined;
-
+function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, dragHandleProps?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const router = useRouter();
@@ -122,62 +111,7 @@ function DraggableDraft({ post, storage, brandProfiles, onDelete }: { post: Sche
 
     useEffect(() => {
         if (storage && post.imageStoragePath) {
-            const imageRef = ref(storage, post.imageStoragePath);
-            getDownloadURL(imageRef)
-                .then(url => setImageUrl(url))
-                .catch(error => console.error("Erreur de chargement de l'image du post:", error))
-                .finally(() => setIsImageLoading(false));
-        } else {
-            setIsImageLoading(false);
-        }
-    }, [storage, post.imageStoragePath]);
-    
-    const handleEdit = () => {
-        if (post.auditId) {
-            router.push(`/audit/resultats/${post.auditId}`);
-        }
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && "z-50 shadow-2xl")}>
-            <Dialog>
-                 <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow">
-                     <div className="p-2 cursor-grab" {...listeners} {...attributes}>
-                        <GripVertical className="h-5 w-5 text-muted-foreground"/>
-                    </div>
-                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{post.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
-                    </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                             <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                 <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
-            </Dialog>
-        </div>
-    )
-}
-
-
-function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
-    const [isImageLoading, setIsImageLoading] = useState(true);
-    const router = useRouter();
-
-    const brandProfile = useMemo(() => brandProfiles?.find(p => p.id === post.brandProfileId), [brandProfiles, post.brandProfileId]);
-
-    useEffect(() => {
-        if (storage && post.imageStoragePath) {
+            setIsImageLoading(true);
             const imageRef = ref(storage, post.imageStoragePath);
             getDownloadURL(imageRef)
                 .then(url => setImageUrl(url))
@@ -195,6 +129,35 @@ function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledP
             router.push(`/audit/resultats/${post.auditId}`);
         }
     };
+    
+    if (variant === 'draft') {
+        return (
+             <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full">
+                <div {...dragHandleProps} className="p-2 cursor-grab touch-none">
+                    <GripVertical className="h-5 w-5 text-muted-foreground"/>
+                </div>
+                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{post.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                </div>
+                <Dialog>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
+                </Dialog>
+            </div>
+        )
+    }
 
     return (
         <Dialog>
@@ -255,8 +218,8 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
             className={cn(
                 "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
                 !isCurrentMonth && "bg-muted/30 text-muted-foreground",
-                isToday && !isOver && "bg-blue-600/10", // Style pour aujourd'hui
-                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10" // Style au survol
+                isToday && !isOver && "bg-blue-600/10",
+                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10"
             )}
         >
             <span className={cn(
@@ -288,9 +251,35 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
     );
 }
 
-function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+function DraggableDraft({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: post.id,
+        data: post,
+    });
+    
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 50,
+    } : undefined;
+
+    return (
+        <div ref={setNodeRef} style={style} className={cn(isDragging && "shadow-2xl")}>
+            <PostCard 
+                post={post}
+                variant="draft"
+                storage={storage}
+                brandProfiles={brandProfiles}
+                onDelete={onDelete}
+                dragHandleProps={{...attributes, ...listeners}}
+            />
+        </div>
+    )
+}
+
+function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
+    const storage = useStorage();
     
     const calendarGrid = useMemo(() => {
         const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -331,6 +320,18 @@ function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPost
             <div className="grid grid-cols-7 border-l">
                 {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
+            <section className="mt-12">
+                <h2 className="text-2xl font-semibold mb-4">Brouillons ({drafts.length})</h2>
+                {drafts.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {drafts.map(post => (
+                           <DraggableDraft key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
+                )}
+            </section>
         </div>
     );
 }
@@ -420,7 +421,7 @@ export default function PlannerPage() {
         setIsScheduling(true);
     
         const newScheduledAt = new Date(targetDate);
-        newScheduledAt.setHours(0, 0, 0, 0); // Programmé à minuit
+        newScheduledAt.setHours(0, 0, 0, 0); 
     
         const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, draggedPost.id);
         const { error } = await withErrorHandling(() => 
@@ -486,25 +487,13 @@ export default function PlannerPage() {
                                     </section>
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                        {draftPosts.length > 0 ? <div className="space-y-2">{draftPosts.map(post => <DraggableDraft key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
+                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{draftPosts.map(post => <DraggableDraft key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
                                     </section>
                                 </div>
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <CalendarView posts={scheduledPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
-                             <section className="mt-12">
-                                <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                {draftPosts.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {draftPosts.map(post => (
-                                            <DraggableDraft key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
-                                )}
-                            </section>
+                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                         </TabsContent>
                     </Tabs>
                 </div>
