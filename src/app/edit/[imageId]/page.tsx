@@ -2,14 +2,14 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -266,7 +266,6 @@ export default function EditImagePage() {
                     hashtags: generatedHashtags,
                 }, false); // false car la description n'est pas forcément générée par IA
                 toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
-                router.push('/');
             }
             return;
         };
@@ -290,7 +289,8 @@ export default function EditImagePage() {
             });
             toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
 
-            router.push('/'); // Rediriger vers l'accueil après la sauvegarde
+            // Ne pas rediriger, rester sur la page
+            // router.push('/'); 
 
         } catch (error) {
             console.error("Erreur lors de la sauvegarde :", error);
@@ -616,7 +616,7 @@ export default function EditImagePage() {
                                 <DialogHeader>
                                     <DialogTitle>Générer une description</DialogTitle>
                                     <DialogDescription>
-                                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux, ou rédigez le vôtre.
+                                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
@@ -644,7 +644,7 @@ export default function EditImagePage() {
                                                 {isGeneratingDescription ? "Génération..." : "Générer pour..."}
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-56">
+                                         <DropdownMenuContent className="w-56">
                                             <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
@@ -721,5 +721,7 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
 
     
