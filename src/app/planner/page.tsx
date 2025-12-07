@@ -113,17 +113,20 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
     } : undefined;
 
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
-            <PostCard
-                post={post}
-                storage={storage}
-                brandProfiles={brandProfiles}
-                onDelete={onDelete}
-                variant="draft"
-                listeners={listeners}
-                attributes={attributes}
-            />
-        </div>
+        <Dialog>
+            <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
+                <PostCard
+                    post={post}
+                    storage={storage}
+                    brandProfiles={brandProfiles}
+                    onDelete={onDelete}
+                    variant="draft"
+                    listeners={listeners}
+                    attributes={attributes}
+                />
+            </div>
+            <ShareDialog post={post} imageUrl={null} brandProfile={brandProfiles?.find(p => p.id === post.brandProfileId) || null} />
+        </Dialog>
     );
 }
 
@@ -131,7 +134,6 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
 function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default', listeners, attributes }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, variant?: 'default' | 'draft', listeners?: any, attributes?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
-    const [isShareOpen, setIsShareOpen] = useState(false);
     const router = useRouter();
 
     const brandProfile = useMemo(() => brandProfiles?.find(p => p.id === post.brandProfileId), [brandProfiles, post.brandProfileId]);
@@ -183,7 +185,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
     }
 
     return (
-        <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <Dialog>
             <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
                 <div className="relative aspect-video bg-muted">
                     {isImageLoading ? <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <div className="flex h-full w-full items-center justify-center text-muted-foreground"><FileText className="h-8 w-8" /></div>}
