@@ -42,9 +42,9 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  useDraggable,
+  useDroppable,
 } from '@dnd-kit/core';
-import { useDraggable } from '@dnd-kit/core';
-import { useDroppable } from '@dnd-kit/core';
 
 
 function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
@@ -116,21 +116,14 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
   } : undefined;
 
   return (
-    <div ref={setNodeRef} style={style}>
-        <PostCard 
-            post={post} 
-            storage={storage} 
-            brandProfiles={brandProfiles} 
-            onDelete={onDelete} 
-            draggableListeners={listeners} 
-            draggableAttributes={attributes} 
-        />
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} isDraggable={true} />
     </div>
   );
 }
 
 
-function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners, draggableAttributes }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, draggableListeners?: any, draggableAttributes?: any }) {
+function PostCard({ post, storage, brandProfiles, onDelete, isDraggable = false }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, isDraggable?: boolean }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -167,7 +160,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners, 
 
     return (
         <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
-            <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
+            <Card className={cn("flex flex-col overflow-hidden transition-all hover:shadow-md", isDraggable && "cursor-grab")}>
                 <div className="relative aspect-video bg-muted">
                     {isImageLoading ? (
                         <div className="flex h-full w-full items-center justify-center">
@@ -198,11 +191,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners, 
                             )}
                         </div>
                          <div className="flex items-center flex-shrink-0">
-                             {draggableListeners && (
-                                <div {...draggableListeners} {...draggableAttributes} className="cursor-grab p-2 -m-2">
-                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                             )}
+                             {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground mr-1" />}
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
