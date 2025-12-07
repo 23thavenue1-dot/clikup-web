@@ -113,12 +113,12 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
     } : undefined;
 
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50')}>
-             <PostCard 
-                post={post} 
-                storage={storage} 
-                brandProfiles={brandProfiles} 
-                onDelete={onDelete} 
+        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
+            <PostCard
+                post={post}
+                storage={storage}
+                brandProfiles={brandProfiles}
+                onDelete={onDelete}
                 variant="draft"
                 listeners={listeners}
                 attributes={attributes}
@@ -158,15 +158,26 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
 
     if (variant === 'draft') {
         return (
-             <div className="flex items-center gap-4 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow cursor-grab" {...listeners} {...attributes}>
-                <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+             <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow" {...attributes}>
+                <div {...listeners} className="cursor-grab p-2">
+                    <GripVertical className="h-5 w-5 text-muted-foreground"/>
+                </div>
+                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{post.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
                 </div>
-                <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                         <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         )
     }
@@ -464,7 +475,7 @@ export default function PlannerPage() {
                              <CalendarView posts={scheduledPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                              <section className="mt-12">
                                 <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>}
+                                {draftPosts.length > 0 ? <div className="space-y-2">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>}
                             </section>
                         </TabsContent>
                     </Tabs>

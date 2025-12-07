@@ -10,9 +10,8 @@ interface TimePickerProps {
 }
 
 export function TimePicker({ date, setDate }: TimePickerProps) {
-  const minuteRef = React.useRef<HTMLInputElement>(null)
-  const hourRef = React.useRef<HTMLInputElement>(null)
-  const secondRef = React.useRef<HTMLInputElement>(null)
+  const minuteRef = React.useRef<HTMLButtonElement>(null)
+  const hourRef = React.useRef<HTMLButtonElement>(null)
 
   return (
     <div className="flex items-end gap-2">
@@ -25,7 +24,6 @@ export function TimePicker({ date, setDate }: TimePickerProps) {
           date={date}
           setDate={setDate}
           ref={hourRef}
-          onRightFocus={() => minuteRef.current?.focus()}
         />
       </div>
       <div className="grid gap-1 text-center">
@@ -37,23 +35,8 @@ export function TimePicker({ date, setDate }: TimePickerProps) {
           date={date}
           setDate={setDate}
           ref={minuteRef}
-          onLeftFocus={() => hourRef.current?.focus()}
-          onRightFocus={() => secondRef.current?.focus()}
         />
       </div>
-      {/* On peut ajouter les secondes si nécessaire */}
-      {/* <div className="grid gap-1 text-center">
-        <Label htmlFor="seconds" className="text-xs">
-          Seconds
-        </Label>
-        <TimePickerInput
-          picker="seconds"
-          date={date}
-          setDate={setDate}
-          ref={secondRef}
-          onLeftFocus={() => minuteRef.current?.focus()}
-        />
-      </div> */}
     </div>
   )
 }
