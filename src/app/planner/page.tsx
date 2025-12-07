@@ -131,10 +131,8 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     
     if (variant === 'draft') {
         return (
-             <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full">
-                <div {...dragHandleProps} className="p-2 cursor-grab touch-none">
-                    <GripVertical className="h-5 w-5 text-muted-foreground"/>
-                </div>
+             <div {...dragHandleProps} className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none">
+                <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0"/>
                 <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
@@ -268,7 +266,7 @@ function DraggableDraft({ post, storage, brandProfiles, onDelete }: { post: Sche
                 storage={storage}
                 brandProfiles={brandProfiles}
                 onDelete={onDelete}
-                dragHandleProps={{...attributes, ...listeners, className: "touch-none"}}
+                dragHandleProps={{...attributes, ...listeners}}
             />
         </div>
     )
