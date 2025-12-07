@@ -272,10 +272,14 @@ function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPost
                             className={cn(
                                 "h-40 p-1.5 border-r border-b relative flex flex-col",
                                 !isSameMonth(day, currentMonth) && "bg-muted/30 text-muted-foreground",
-                                isSameDay(day, new Date()) && "bg-blue-50 dark:bg-blue-900/20"
+                                isSameDay(day, new Date()) && "bg-primary/10"
                             )}
                         >
-                            <span className={cn("text-xs font-semibold mb-1", !isSameMonth(day, currentMonth) && "opacity-50")}>
+                            <span className={cn(
+                                "text-xs font-semibold mb-1", 
+                                !isSameMonth(day, currentMonth) && "opacity-50",
+                                isSameDay(day, new Date()) && "text-primary font-bold"
+                            )}>
                                 {format(day, 'd')}
                             </span>
                             <div className="space-y-1 overflow-y-auto flex-1">
