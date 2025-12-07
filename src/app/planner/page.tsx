@@ -107,22 +107,30 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
 function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: post.id,
-    data: post, // On attache les données du post au draggable
+    data: post,
   });
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 100, // Pour s'assurer que l'élément est au-dessus
   } : undefined;
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-        <PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} draggableListeners={listeners} />
+    <div ref={setNodeRef} style={style}>
+        <PostCard 
+            post={post} 
+            storage={storage} 
+            brandProfiles={brandProfiles} 
+            onDelete={onDelete} 
+            draggableListeners={listeners} 
+            draggableAttributes={attributes} 
+        />
     </div>
   );
 }
 
 
-function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, draggableListeners?: any }) {
+function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners, draggableAttributes }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, draggableListeners?: any, draggableAttributes?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -191,7 +199,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners }
                         </div>
                          <div className="flex items-center flex-shrink-0">
                              {draggableListeners && (
-                                <div {...draggableListeners} className="cursor-grab p-2 -m-2">
+                                <div {...draggableListeners} {...draggableAttributes} className="cursor-grab p-2 -m-2">
                                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                                 </div>
                              )}
