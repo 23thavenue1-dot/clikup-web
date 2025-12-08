@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -106,7 +105,7 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
+function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
@@ -156,7 +155,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
                                 
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div>
+                                        <div className="w-full">
                                             <DropdownMenuItem asChild disabled={!post.imageId}>
                                                 <Link href={post.imageId ? `/image/${post.imageId}` : '#'}>
                                                     <Edit className="mr-2 h-4 w-4" />
@@ -167,7 +166,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
                                     </TooltipTrigger>
                                     {!post.imageId && (
                                         <TooltipContent>
-                                            <p>Les anciens posts ne peuvent pas être modifiés ici.</p>
+                                            <p>Les anciens posts (créés avant la mise à jour) <br/>ne peuvent être modifiés que depuis la galerie principale.</p>
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
@@ -188,7 +187,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
     );
 }
 
-function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
+function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: post.id,
         data: post,
@@ -241,7 +240,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
                                 <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div>
+                                        <div className="w-full">
                                             <DropdownMenuItem asChild disabled={!post.imageId}>
                                                 <Link href={post.imageId ? `/image/${post.imageId}` : '#'}>
                                                     <Edit className="mr-2 h-4 w-4" />
@@ -252,7 +251,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
                                     </TooltipTrigger>
                                     {!post.imageId && (
                                         <TooltipContent>
-                                            <p>Les anciens posts ne peuvent pas être modifiés ici.</p>
+                                            <p>Les anciens posts (créés avant la mise à jour) <br/>ne peuvent être modifiés que depuis la galerie principale.</p>
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
@@ -319,7 +318,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                             <DropdownMenuSeparator/>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <div>
+                                    <div className="w-full">
                                         <DropdownMenuItem asChild disabled={!post.imageId}>
                                             <Link href={post.imageId ? `/image/${post.imageId}` : '#'}>
                                                 <Edit className="mr-2 h-4 w-4" />
@@ -330,7 +329,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                                 </TooltipTrigger>
                                 {!post.imageId && (
                                     <TooltipContent>
-                                        <p>Les anciens posts ne peuvent pas être modifiés.</p>
+                                        <p>Les anciens posts (créés avant la mise à jour) <br/>ne peuvent être modifiés que depuis la galerie principale.</p>
                                     </TooltipContent>
                                 )}
                             </Tooltip>
@@ -356,10 +355,11 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
 }
 
 
-function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule, router }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
+function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
     const storage = useStorage();
+    const router = useRouter();
     
     const calendarGrid = useMemo(() => {
         const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -408,7 +408,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                 {drafts.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {drafts.map(post => (
-                           <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} router={router} />
+                           <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
                         ))}
                     </div>
                 ) : (
@@ -613,7 +613,7 @@ export default function PlannerPage() {
                                 <div className="space-y-12">
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
-                                        {scheduledPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} router={router} />)}</div> : <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>}
+                                        {scheduledPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>}
                                     </section>
                                     <section>
                                         <div className="flex items-baseline gap-4 mb-4">
@@ -623,7 +623,7 @@ export default function PlannerPage() {
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {draftPosts.map(post => (
-                                                   <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} router={router} />
+                                                   <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                                                 ))}
                                             </div>
                                         ) : (
@@ -634,7 +634,7 @@ export default function PlannerPage() {
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} router={router} />
+                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} />
                         </TabsContent>
                     </Tabs>
                 </div>
@@ -707,3 +707,4 @@ export default function PlannerPage() {
 
 
 
+    
