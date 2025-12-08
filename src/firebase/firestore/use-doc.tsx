@@ -1,3 +1,4 @@
+
 'use client';
     
 import { useState, useEffect } from 'react';
@@ -62,7 +63,12 @@ export function useDoc<T = any>(
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (snapshot.exists()) {
+        // Correction: Gérer à la fois .exists() comme fonction et .exists comme propriété
+        const docExists = typeof snapshot.exists === 'function' 
+          ? snapshot.exists() 
+          : snapshot.exists;
+
+        if (docExists) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
           // Document does not exist
