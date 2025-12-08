@@ -585,10 +585,10 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     const { error } = await withErrorHandling(async () => {
         const postDocRef = doc(firestore, 'users', userId, 'scheduledPosts', post.id);
         
+        // Supprime uniquement le document Firestore, pas l'image dans Storage.
+        // L'image est liée à la bibliothèque principale et sa suppression est gérée séparément
+        // pour éviter de supprimer une image utilisée ailleurs.
         await deleteDoc(postDocRef);
-
-        // Ne pas supprimer l'image de storage car elle est peut-être utilisée ailleurs (bibliothèque principale)
-        // La logique de suppression d'image de la bibliothèque gérera la suppression du fichier si nécessaire.
 
     }, {
         operation: 'deleteScheduledPost',
@@ -597,4 +597,3 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     });
     if (error) throw error;
 }
-
