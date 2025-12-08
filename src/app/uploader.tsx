@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -453,8 +454,8 @@ export function Uploader() {
         
         await saveImageMetadata(firestore, user, { 
             ...metadata,
-            title: `Généré par IA: ${currentHistoryItem.prompt}`,
-            description: "", 
+            title: `Création IA du ${format(new Date(), 'd MMM yyyy à HH:mm', { locale: fr })}`,
+            description: `Prompt : ${currentHistoryItem.prompt}`,
             hashtags: "",
             generatedByAI: true,
         });

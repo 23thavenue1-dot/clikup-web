@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -282,8 +283,8 @@ export default function EditImagePage() {
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: generatedTitle,
-                description: generatedDescription,
+                title: `Création IA du ${format(new Date(), 'd MMM yyyy à HH:mm', { locale: fr })}`,
+                description: `Prompt: ${imageToSave.prompt}`,
                 hashtags: generatedHashtags,
                 generatedByAI: true
             });
