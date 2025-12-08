@@ -133,11 +133,14 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-             <div className={cn("flex items-center gap-4 p-3 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
+             <Card 
+                className={cn("flex items-center gap-2 p-2 hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps?.className)} 
+                {...dragHandleProps}
+            >
                 <div className="flex-shrink-0 text-muted-foreground hover:text-foreground">
                     <GripVertical className="h-5 w-5"/>
                 </div>
-                <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -156,7 +159,7 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
                     </DropdownMenu>
                     <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
                 </Dialog>
-            </div>
+            </Card>
         )
     }
 
@@ -275,7 +278,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
             <section className="mt-12">
-                 <div className="flex items-baseline gap-4 mb-4">
+                <div className="flex items-baseline gap-4 mb-4">
                     <h2 className="text-2xl font-semibold">Brouillons ({drafts.length})</h2>
                     <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                 </div>
@@ -283,7 +286,13 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {drafts.map(post => (
                            <DraggablePostCard key={post.id} post={post}>
-                               <PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
+                               <PostCard 
+                                    post={post} 
+                                    variant="draft" 
+                                    storage={storage} 
+                                    brandProfiles={brandProfiles} 
+                                    onDelete={onDelete} 
+                                />
                            </DraggablePostCard>
                         ))}
                     </div>
