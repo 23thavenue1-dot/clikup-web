@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -20,6 +21,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -101,7 +103,7 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, dragHandleProps?: any }) {
+function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const router = useRouter();
@@ -129,20 +131,30 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
         }
     };
     
-    if (variant === 'draft') {
-        return (
-            <Card className="w-full flex-shrink-0" {...dragHandleProps}>
-                <div className="flex items-center gap-3 p-2">
-                     <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{post.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+    return (
+        <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
+            <div className="relative aspect-video bg-muted">
+                {isImageLoading ? <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <div className="flex h-full w-full items-center justify-center text-muted-foreground"><FileText className="h-8 w-8" /></div>}
+            </div>
+            <CardHeader>
+                <div className="flex items-start justify-between">
+                     <div className="flex flex-col gap-2 flex-1 min-w-0">
+                        <Badge variant={isScheduled ? "default" : "secondary"} className={cn("w-fit", isScheduled && "bg-blue-600 text-white")}>
+                            {isScheduled ? 'Programmé' : 'Brouillon'}
+                        </Badge>
+                         {brandProfile && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Avatar className="h-4 w-4">
+                                    <AvatarImage src={brandProfile.avatarUrl} alt={brandProfile.name} />
+                                    <AvatarFallback className="text-[8px]">{brandProfile.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="truncate">{brandProfile.name}</span>
+                            </div>
+                        )}
                     </div>
                      <Dialog>
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
                                 <DropdownMenuSeparator />
@@ -153,52 +165,12 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
                         <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
                     </Dialog>
                 </div>
-            </Card>
-        )
-    }
-
-    return (
-        <Dialog>
-            <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
-                <div className="relative aspect-video bg-muted">
-                    {isImageLoading ? <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <div className="flex h-full w-full items-center justify-center text-muted-foreground"><FileText className="h-8 w-8" /></div>}
-                </div>
-                <CardHeader>
-                    <div className="flex items-start justify-between">
-                         <div className="flex flex-col gap-2 flex-1 min-w-0">
-                            <Badge variant={isScheduled ? "default" : "secondary"} className={cn("w-fit", isScheduled && "bg-blue-600 text-white")}>
-                                {isScheduled ? 'Programmé' : 'Brouillon'}
-                            </Badge>
-                             {brandProfile && (
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <Avatar className="h-4 w-4">
-                                        <AvatarImage src={brandProfile.avatarUrl} alt={brandProfile.name} />
-                                        <AvatarFallback className="text-[8px]">{brandProfile.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="truncate">{brandProfile.name}</span>
-                                </div>
-                            )}
-                        </div>
-                         <div className="flex items-center flex-shrink-0">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                         </div>
-                    </div>
-                    <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
-                    {isScheduled && <CardDescription className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4" />Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}</CardDescription>}
-                </CardHeader>
-                <CardContent className="flex-grow"><p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p></CardContent>
-                <CardFooter className="text-xs text-muted-foreground">Créé il y a {format(post.createdAt.toDate(), "d MMMM yyyy", { locale: fr })}</CardFooter>
-            </Card>
-            <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
-        </Dialog>
+                <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
+                {isScheduled && <CardDescription className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4" />Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}</CardDescription>}
+            </CardHeader>
+            <CardContent className="flex-grow"><p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p></CardContent>
+            <CardFooter className="text-xs text-muted-foreground">Créé il y a {format(post.createdAt.toDate(), "d MMMM yyyy", { locale: fr })}</CardFooter>
+        </Card>
     );
 }
 
@@ -214,21 +186,47 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     } : undefined;
     
-    const dragProps = { ref: setNodeRef, style, ...listeners, ...attributes };
+    const dragHandleProps = { ref: setNodeRef, style, ...listeners, ...attributes };
 
     return (
-        <div {...dragProps} className={cn('cursor-grab', isDragging && 'cursor-grabbing')}>
-            <PostCard 
-                post={post}
-                variant="draft"
-                storage={storage}
-                brandProfiles={brandProfiles}
-                onDelete={onDelete}
-            />
-        </div>
+        <Card {...dragHandleProps} className={cn("flex items-center p-2 cursor-grab transition-shadow", isDragging && "cursor-grabbing shadow-lg")}>
+            <div className="flex-shrink-0 flex items-center justify-center p-2">
+                <GripVertical className="h-5 w-5 text-muted-foreground"/>
+            </div>
+            <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                <ImageLoader post={post} storage={storage} />
+            </div>
+            <div className="flex-1 min-w-0 pl-3">
+                <p className="font-semibold text-sm truncate">{post.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{brandProfiles?.find(p => p.id === post.brandProfileId)?.name || 'Profil par défaut'}</p>
+            </div>
+            <Dialog>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <ShareDialog post={post} imageUrl={null /* L'image sera chargée dans le composant */} brandProfile={brandProfiles?.find(p => p.id === post.brandProfileId) || null} />
+            </Dialog>
+        </Card>
     );
 }
 
+// Helper pour charger l'image dans le DraggablePostCard
+function ImageLoader({ post, storage }: { post: ScheduledPost, storage: FirebaseStorage | null }) {
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    useEffect(() => {
+        if (storage && post.imageStoragePath) {
+            getDownloadURL(ref(storage, post.imageStoragePath)).then(setImageUrl);
+        }
+    }, [storage, post.imageStoragePath]);
+
+    if (!imageUrl) return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" />;
+    return <Image src={imageUrl} alt={post.title} fill className="object-cover" />;
+}
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
@@ -342,7 +340,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                     <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                 </div>
                 {drafts.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-2">
                         {drafts.map(post => (
                            <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
                         ))}
@@ -509,7 +507,7 @@ export default function PlannerPage() {
                                             <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
                                         {draftPosts.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 gap-2">
                                                 {draftPosts.map(post => (
                                                    <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                                                 ))}
