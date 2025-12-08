@@ -45,6 +45,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { TimePicker } from '@/components/ui/time-picker';
+import { Calendar } from '@/components/ui/calendar';
 
 
 function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
@@ -102,7 +103,7 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, dragHandleProps?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const router = useRouter();
@@ -129,6 +130,39 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete 
             router.push(`/audit/resultats/${post.auditId}`);
         }
     };
+    
+    if (variant === 'draft') {
+        return (
+             <Card className={cn("overflow-hidden transition-all hover:shadow-md cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
+                <div className="flex items-center p-2">
+                    <GripVertical className="h-5 w-5 text-muted-foreground mr-2 flex-shrink-0"/>
+                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                    </div>
+                    <div className="flex-1 min-w-0 pl-3">
+                        <p className="font-semibold text-sm truncate">{post.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                    </div>
+                    <Dialog>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
+                                 <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
+                    </Dialog>
+                </div>
+            </Card>
+        );
+    }
     
     return (
         <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
@@ -178,52 +212,21 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
         id: post.id,
         data: post,
     });
-    const router = useRouter();
-
+    
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         zIndex: 50,
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     } : undefined;
-    
-    const dragHandleProps = { ref: setNodeRef, style, ...listeners, ...attributes };
 
-    const handleEdit = () => {
-        if (post.auditId) {
-            router.push(`/audit/resultats/${post.auditId}`);
-        }
+    const allProps = {
+        ref: setNodeRef,
+        style,
+        ...listeners,
+        ...attributes
     };
 
-    return (
-        <Card {...dragHandleProps} className={cn("overflow-hidden transition-all hover:shadow-md", isDragging && "cursor-grabbing shadow-lg")}>
-            <div className="flex items-center p-2">
-                <GripVertical className="h-5 w-5 text-muted-foreground mr-2 flex-shrink-0"/>
-                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                    <ImageLoader post={post} storage={storage} />
-                </div>
-                <div className="flex-1 min-w-0 pl-3">
-                    <p className="font-semibold text-sm truncate">{post.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{brandProfiles?.find(p => p.id === post.brandProfileId)?.name || 'Profil par défaut'}</p>
-                </div>
-                <Dialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
-                             <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <ShareDialog post={post} imageUrl={null} brandProfile={brandProfiles?.find(p => p.id === post.brandProfileId) || null} />
-                </Dialog>
-            </div>
-        </Card>
-    );
+    return <PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} dragHandleProps={allProps} />;
 }
 
 // Helper pour charger l'image dans le DraggablePostCard
@@ -241,7 +244,7 @@ function ImageLoader({ post, storage }: { post: ScheduledPost, storage: Firebase
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
-function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void }) {
+function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
@@ -275,11 +278,11 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft }: 
                         <DropdownMenuContent>
                             <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem disabled>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onReschedule(post)}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 Reprogrammer
                             </DropdownMenuItem>
@@ -301,7 +304,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft }: 
 }
 
 
-function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void }) {
+function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
     const storage = useStorage();
@@ -343,7 +346,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                 {weekDays.map(day => <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 border-l">
-                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} />)}
+                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule}/>)}
             </div>
             <section className="mt-12">
                 <div className="flex items-baseline gap-4 mb-4">
@@ -381,6 +384,11 @@ export default function PlannerPage() {
     const [draggedPost, setDraggedPost] = useState<ScheduledPost | null>(null);
     const [scheduleDateTime, setScheduleDateTime] = useState<Date | undefined>(undefined);
     const [isScheduling, setIsScheduling] = useState(false);
+    
+    // Nouveaux états pour la reprogrammation
+    const [postToReschedule, setPostToReschedule] = useState<ScheduledPost | null>(null);
+    const [newScheduleDate, setNewScheduleDate] = useState<Date | undefined>(undefined);
+    const [isRescheduling, setIsRescheduling] = useState(false);
 
 
     const postsQuery = useMemoFirebase(() => {
@@ -450,6 +458,31 @@ export default function PlannerPage() {
         }
         setIsLoadingAction(null);
     };
+    
+    const openRescheduleDialog = (post: ScheduledPost) => {
+        setPostToReschedule(post);
+        setNewScheduleDate(post.scheduledAt?.toDate());
+    };
+
+    const handleReschedule = async () => {
+        if (!user || !firestore || !postToReschedule || !newScheduleDate) return;
+        setIsRescheduling(true);
+        const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, postToReschedule.id);
+        const { error } = await withErrorHandling(() => 
+            updateDoc(postRef, {
+                scheduledAt: Timestamp.fromDate(newScheduleDate)
+            })
+        );
+        if (!error) {
+            toast({
+                title: "Post reprogrammé !",
+                description: `Nouveau créneau : ${format(newScheduleDate, "d MMMM 'à' HH:mm", { locale: fr })}.`
+            });
+            setPostToReschedule(null);
+        }
+        setIsRescheduling(false);
+    };
+
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { over, active } = event;
@@ -462,7 +495,7 @@ export default function PlannerPage() {
         }
     };
     
-    const handleSchedule = async () => {
+    const handleScheduleFromDrag = async () => {
         if (!user || !firestore || !draggedPost || !scheduleDateTime) return;
         setIsScheduling(true);
     
@@ -535,7 +568,7 @@ export default function PlannerPage() {
                                              <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
                                         {draftPosts.length > 0 ? (
-                                            <div className="grid grid-cols-1 gap-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {draftPosts.map(post => (
                                                    <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                                                 ))}
@@ -548,7 +581,7 @@ export default function PlannerPage() {
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} />
+                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} />
                         </TabsContent>
                     </Tabs>
                 </div>
@@ -574,13 +607,41 @@ export default function PlannerPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => { setDraggedPost(null); setScheduleDateTime(undefined); }}>Annuler</Button>
-                        <Button onClick={handleSchedule} disabled={isScheduling}>
+                        <Button onClick={handleScheduleFromDrag} disabled={isScheduling}>
                             {isScheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Programmer à {scheduleDateTime && format(scheduleDateTime, 'HH:mm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={!!postToReschedule} onOpenChange={(open) => !open && setPostToReschedule(null)}>
+                <DialogContent>
+                     <DialogHeader>
+                        <DialogTitle>Reprogrammer le post</DialogTitle>
+                        <DialogDescription>
+                            Choisissez une nouvelle date et heure pour le post "{postToReschedule?.title}".
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 flex justify-center items-center flex-col gap-4">
+                         <Calendar
+                            mode="single"
+                            selected={newScheduleDate}
+                            onSelect={setNewScheduleDate}
+                            initialFocus
+                         />
+                        <TimePicker date={newScheduleDate} setDate={setNewScheduleDate} />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setPostToReschedule(null)}>Annuler</Button>
+                        <Button onClick={handleReschedule} disabled={isRescheduling || !newScheduleDate}>
+                            {isRescheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Reprogrammer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </DndContext>
     );
 }
