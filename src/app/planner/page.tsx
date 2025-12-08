@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { collection, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings } from 'lucide-react';
 import { format, isSameDay, startOfMonth, addMonths, subMonths, endOfMonth, startOfWeek, endOfWeek, isSameMonth, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -129,12 +128,12 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
             router.push(`/audit/resultats/${post.auditId}`);
         }
     };
-
+    
     if (variant === 'draft') {
         return (
-             <Card className={cn("w-full cursor-grab", dragHandleProps?.className)} {...dragHandleProps}>
+            <Card className="w-full flex-shrink-0" {...dragHandleProps}>
                 <div className="flex items-center gap-3 p-2">
-                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                     <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                         {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -203,7 +202,7 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     );
 }
 
-function DraggablePostCard({ post, variant = 'default', storage, brandProfiles, onDelete }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: post.id,
         data: post,
@@ -215,15 +214,16 @@ function DraggablePostCard({ post, variant = 'default', storage, brandProfiles, 
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     } : undefined;
     
+    const dragProps = { ref: setNodeRef, style, ...listeners, ...attributes };
+
     return (
-        <div ref={setNodeRef} style={style}>
+        <div {...dragProps} className={cn('cursor-grab', isDragging && 'cursor-grabbing')}>
             <PostCard 
                 post={post}
-                variant={variant}
+                variant="draft"
                 storage={storage}
                 brandProfiles={brandProfiles}
                 onDelete={onDelete}
-                dragHandleProps={{...listeners, ...attributes, className: cn(isDragging && 'cursor-grabbing')}}
             />
         </div>
     );
@@ -231,6 +231,66 @@ function DraggablePostCard({ post, variant = 'default', storage, brandProfiles, 
 
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
+
+function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: format(day, 'yyyy-MM-dd'),
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
+                !isCurrentMonth && "bg-muted/30 text-muted-foreground",
+                isToday && !isOver && "bg-blue-600/10",
+                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10"
+            )}
+        >
+            <span className={cn(
+                "text-xs font-semibold mb-1", 
+                !isCurrentMonth && "opacity-50",
+                isToday && "text-blue-600 font-bold"
+            )}>
+                {format(day, 'd')}
+            </span>
+            <div className="space-y-1 overflow-y-auto flex-1">
+                {posts.map(post => (
+                     <DropdownMenu key={post.id}>
+                        <DropdownMenuTrigger asChild>
+                            <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
+                                {post.imageUrl ? <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" /> : <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>}
+                                <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
+                            </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            <DropdownMenuItem>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                Reprogrammer
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator/>
+                            <DropdownMenuItem className="text-amber-600 focus:text-amber-600">
+                                <Settings className="mr-2 h-4 w-4" />
+                                Convertir en brouillon
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 
 function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -277,67 +337,20 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
             <section className="mt-12">
-                 <div className="flex items-baseline gap-4 mb-4">
+                <div className="flex items-baseline gap-4 mb-4">
                     <h2 className="text-2xl font-semibold">Brouillons ({drafts.length})</h2>
                     <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                 </div>
                 {drafts.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {drafts.map(post => (
-                           <DraggablePostCard key={post.id} post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
+                           <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
                         ))}
                     </div>
                 ) : (
                     <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
                 )}
             </section>
-        </div>
-    );
-}
-
-function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
-    const { setNodeRef, isOver } = useDroppable({
-        id: format(day, 'yyyy-MM-dd'),
-    });
-
-    return (
-        <div
-            ref={setNodeRef}
-            className={cn(
-                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
-                !isCurrentMonth && "bg-muted/30 text-muted-foreground",
-                isToday && !isOver && "bg-blue-600/10",
-                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10"
-            )}
-        >
-            <span className={cn(
-                "text-xs font-semibold mb-1", 
-                !isCurrentMonth && "opacity-50",
-                isToday && "text-blue-600 font-bold"
-            )}>
-                {format(day, 'd')}
-            </span>
-            <div className="space-y-1 overflow-y-auto flex-1">
-                {posts.map(post => (
-                    <Popover key={post.id}>
-                        <PopoverTrigger asChild>
-                             <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
-                                {post.imageUrl ? <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" /> : <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>}
-                                <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64" align="start">
-                            <div className="space-y-2">
-                                <h4 className="font-semibold leading-none">{post.title}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Programmé pour {post.scheduledAt && format(post.scheduledAt.toDate(), "HH:mm")}
-                                </p>
-                                <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                ))}
-            </div>
         </div>
     );
 }
@@ -496,9 +509,9 @@ export default function PlannerPage() {
                                             <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
                                         {draftPosts.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {draftPosts.map(post => (
-                                                   <DraggablePostCard key={post.id} post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
+                                                   <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                                                 ))}
                                             </div>
                                         ) : (
