@@ -133,10 +133,7 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-            <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none">
-                <div {...dragHandleProps}>
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                </div>
+             <div className={cn("flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps.className)} {...dragHandleProps}>
                 <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
@@ -216,9 +213,8 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
 
-    // Applique les listeners à la div parente pour que toute la carte soit déplaçable.
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50 shadow-2xl', 'w-full')} {...attributes} {...listeners}>
+        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50 shadow-2xl')} {...attributes} {...listeners}>
             {children}
         </div>
     );
@@ -226,53 +222,6 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
 
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
-
-function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
-    const { setNodeRef, isOver } = useDroppable({
-        id: format(day, 'yyyy-MM-dd'),
-    });
-
-    return (
-        <div
-            ref={setNodeRef}
-            className={cn(
-                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
-                !isCurrentMonth && "bg-muted/30 text-muted-foreground",
-                isToday && !isOver && "bg-blue-600/10",
-                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10"
-            )}
-        >
-            <span className={cn(
-                "text-xs font-semibold mb-1", 
-                !isCurrentMonth && "opacity-50",
-                isToday && "text-blue-600 font-bold"
-            )}>
-                {format(day, 'd')}
-            </span>
-            <div className="space-y-1 overflow-y-auto flex-1">
-                {posts.map(post => (
-                    <Popover key={post.id}>
-                        <PopoverTrigger asChild>
-                             <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
-                                {post.imageUrl ? <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" /> : <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>}
-                                <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64" align="start">
-                            <div className="space-y-2">
-                                <h4 className="font-semibold leading-none">{post.title}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Programmé pour {post.scheduledAt && format(post.scheduledAt.toDate(), "HH:mm")}
-                                </p>
-                                <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -319,11 +268,14 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
             <section className="mt-12">
-                <h2 className="text-2xl font-semibold mb-4">Brouillons ({drafts.length})</h2>
+                <div className="flex items-baseline gap-4 mb-4">
+                    <h2 className="text-2xl font-semibold">Brouillons ({drafts.length})</h2>
+                    <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
+                </div>
                 {drafts.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {drafts.map(post => (
-                            <DraggablePostCard key={post.id} post={post}>
+                           <DraggablePostCard key={post.id} post={post}>
                                <PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
                            </DraggablePostCard>
                         ))}
@@ -332,6 +284,53 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                     <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
                 )}
             </section>
+        </div>
+    );
+}
+
+function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: format(day, 'yyyy-MM-dd'),
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
+                !isCurrentMonth && "bg-muted/30 text-muted-foreground",
+                isToday && !isOver && "bg-blue-600/10",
+                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10"
+            )}
+        >
+            <span className={cn(
+                "text-xs font-semibold mb-1", 
+                !isCurrentMonth && "opacity-50",
+                isToday && "text-blue-600 font-bold"
+            )}>
+                {format(day, 'd')}
+            </span>
+            <div className="space-y-1 overflow-y-auto flex-1">
+                {posts.map(post => (
+                    <Popover key={post.id}>
+                        <PopoverTrigger asChild>
+                             <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
+                                {post.imageUrl ? <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" /> : <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>}
+                                <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64" align="start">
+                            <div className="space-y-2">
+                                <h4 className="font-semibold leading-none">{post.title}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Programmé pour {post.scheduledAt && format(post.scheduledAt.toDate(), "HH:mm")}
+                                </p>
+                                <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                ))}
+            </div>
         </div>
     );
 }
@@ -473,7 +472,7 @@ export default function PlannerPage() {
                          )}
                     </header>
 
-                    <Tabs defaultValue="calendar" className="w-full">
+                    <Tabs defaultValue="list" className="w-full">
                         <div className="flex justify-center mb-6"><TabsList><TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Vue Liste</TabsTrigger><TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" />Vue Calendrier</TabsTrigger></TabsList></div>
                         <TabsContent value="list">
                             {!posts || posts.length === 0 ? (
@@ -485,7 +484,10 @@ export default function PlannerPage() {
                                         {scheduledPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>}
                                     </section>
                                     <section>
-                                        <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
+                                        <div className="flex items-baseline gap-4 mb-4">
+                                            <h2 className="text-2xl font-semibold">Brouillons ({draftPosts.length})</h2>
+                                            <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
+                                        </div>
                                         {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post}><PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} /></DraggablePostCard>)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
                                     </section>
                                 </div>
