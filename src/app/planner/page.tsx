@@ -133,8 +133,11 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-             <div className={cn("flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
-                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+             <div className={cn("flex items-center gap-4 p-3 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
+                <div className="flex-shrink-0 text-muted-foreground hover:text-foreground">
+                    <GripVertical className="h-5 w-5"/>
+                </div>
+                <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -213,16 +216,14 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
 
-    // Le DraggablePostCard reçoit les dragHandleProps et les passe à son enfant.
     const dragHandleProps = {
         ref: setNodeRef,
         style: style,
-        className: cn(isDragging && 'z-50 shadow-2xl'),
         ...attributes,
         ...listeners,
+        className: cn(isDragging && 'z-50 shadow-2xl')
     };
     
-    // Clone l'enfant pour lui passer les props de dnd-kit.
     return React.cloneElement(children as React.ReactElement, { dragHandleProps });
 }
 
@@ -274,7 +275,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
             <section className="mt-12">
-                <div className="flex items-baseline gap-4 mb-4">
+                 <div className="flex items-baseline gap-4 mb-4">
                     <h2 className="text-2xl font-semibold">Brouillons ({drafts.length})</h2>
                     <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                 </div>
@@ -494,7 +495,23 @@ export default function PlannerPage() {
                                             <h2 className="text-2xl font-semibold">Brouillons ({draftPosts.length})</h2>
                                             <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
-                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post}><PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} /></DraggablePostCard>)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
+                                        {draftPosts.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {draftPosts.map(post => (
+                                                   <DraggablePostCard key={post.id} post={post}>
+                                                        <PostCard 
+                                                            post={post} 
+                                                            variant="draft" 
+                                                            storage={storage} 
+                                                            brandProfiles={brandProfiles} 
+                                                            onDelete={setPostToDelete} 
+                                                        />
+                                                    </DraggablePostCard>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
+                                        )}
                                     </section>
                                 </div>
                             )}
