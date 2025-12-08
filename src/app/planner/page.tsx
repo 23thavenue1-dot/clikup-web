@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -179,6 +178,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
         id: post.id,
         data: post,
     });
+    const router = useRouter();
 
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
@@ -188,29 +188,40 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
     
     const dragHandleProps = { ref: setNodeRef, style, ...listeners, ...attributes };
 
+    const handleEdit = () => {
+        if (post.auditId) {
+            router.push(`/audit/resultats/${post.auditId}`);
+        }
+    };
+
     return (
-        <Card {...dragHandleProps} className={cn("flex items-center p-2 cursor-grab transition-shadow", isDragging && "cursor-grabbing shadow-lg")}>
-            <div className="flex-shrink-0 flex items-center justify-center p-2">
-                <GripVertical className="h-5 w-5 text-muted-foreground"/>
+        <Card {...dragHandleProps} className={cn("overflow-hidden transition-all hover:shadow-md", isDragging && "cursor-grabbing shadow-lg")}>
+            <div className="flex items-center p-2">
+                <GripVertical className="h-5 w-5 text-muted-foreground mr-2 flex-shrink-0"/>
+                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                    <ImageLoader post={post} storage={storage} />
+                </div>
+                <div className="flex-1 min-w-0 pl-3">
+                    <p className="font-semibold text-sm truncate">{post.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{brandProfiles?.find(p => p.id === post.brandProfileId)?.name || 'Profil par défaut'}</p>
+                </div>
+                <Dialog>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
+                             <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <ShareDialog post={post} imageUrl={null} brandProfile={brandProfiles?.find(p => p.id === post.brandProfileId) || null} />
+                </Dialog>
             </div>
-            <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                <ImageLoader post={post} storage={storage} />
-            </div>
-            <div className="flex-1 min-w-0 pl-3">
-                <p className="font-semibold text-sm truncate">{post.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{brandProfiles?.find(p => p.id === post.brandProfileId)?.name || 'Profil par défaut'}</p>
-            </div>
-            <Dialog>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <ShareDialog post={post} imageUrl={null /* L'image sera chargée dans le composant */} brandProfile={brandProfiles?.find(p => p.id === post.brandProfileId) || null} />
-            </Dialog>
         </Card>
     );
 }
@@ -230,7 +241,7 @@ function ImageLoader({ post, storage }: { post: ScheduledPost, storage: Firebase
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
-function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
+function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
@@ -273,7 +284,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
                                 Reprogrammer
                             </DropdownMenuItem>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem className="text-amber-600 focus:text-amber-600">
+                            <DropdownMenuItem onClick={() => onConvertToDraft(post)} className="text-amber-600 focus:text-amber-600">
                                 <Settings className="mr-2 h-4 w-4" />
                                 Convertir en brouillon
                             </DropdownMenuItem>
@@ -290,7 +301,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
 }
 
 
-function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
     const storage = useStorage();
@@ -332,7 +343,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {weekDays.map(day => <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 border-l">
-                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
+                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} />)}
             </div>
             <section className="mt-12">
                 <div className="flex items-baseline gap-4 mb-4">
@@ -363,6 +374,7 @@ export default function PlannerPage() {
     const [postToDelete, setPostToDelete] = useState<ScheduledPost | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
+    const [isLoadingAction, setIsLoadingAction] = useState<string | null>(null);
 
     const sensors = useSensors(useSensor(PointerSensor));
 
@@ -421,6 +433,22 @@ export default function PlannerPage() {
         if (!error) toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
         setIsDeleting(false);
         setPostToDelete(null);
+    };
+
+    const handleConvertToDraft = async (post: ScheduledPost) => {
+        if (!user || !firestore) return;
+        setIsLoadingAction(post.id);
+        const postRef = doc(firestore, 'users', user.uid, 'scheduledPosts', post.id);
+        const { error } = await withErrorHandling(() => 
+            updateDoc(postRef, {
+                status: 'draft',
+                scheduledAt: null
+            })
+        );
+        if (!error) {
+            toast({ title: 'Post converti en brouillon' });
+        }
+        setIsLoadingAction(null);
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -504,7 +532,7 @@ export default function PlannerPage() {
                                     <section>
                                         <div className="flex items-baseline gap-4 mb-4">
                                             <h2 className="text-2xl font-semibold">Brouillons ({draftPosts.length})</h2>
-                                            <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
+                                             <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 gap-2">
@@ -520,7 +548,7 @@ export default function PlannerPage() {
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
+                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} />
                         </TabsContent>
                     </Tabs>
                 </div>
