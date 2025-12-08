@@ -133,7 +133,10 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     
     if (variant === 'draft') {
         return (
-             <Card className={cn("overflow-hidden transition-all hover:shadow-md cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
+             <Card 
+                className={cn("overflow-hidden transition-all hover:shadow-md cursor-grab touch-none", dragHandleProps?.className)}
+                {...dragHandleProps}
+             >
                 <div className="flex items-center p-2">
                     <GripVertical className="h-5 w-5 text-muted-foreground mr-2 flex-shrink-0"/>
                     <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
@@ -208,7 +211,7 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 }
 
 function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: post.id,
         data: post,
     });
@@ -221,7 +224,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
 
     const allProps = {
         ref: setNodeRef,
-        style,
+        style: style,
         ...listeners,
         ...attributes
     };
@@ -244,7 +247,7 @@ function ImageLoader({ post, storage }: { post: ScheduledPost, storage: Firebase
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
-function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void }) {
+function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule, onDelete }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, onDelete: (post: ScheduledPost) => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
@@ -278,7 +281,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                         <DropdownMenuContent>
                             <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem disabled>
+                            <DropdownMenuItem onClick={() => router.push(`/audit/resultats/${post.auditId}`)} disabled={!post.auditId}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
                             </DropdownMenuItem>
@@ -291,7 +294,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                                 <Settings className="mr-2 h-4 w-4" />
                                 Convertir en brouillon
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Supprimer
                             </DropdownMenuItem>
@@ -346,7 +349,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                 {weekDays.map(day => <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 border-l">
-                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule}/>)}
+                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule} onDelete={onDelete} />)}
             </div>
             <section className="mt-12">
                 <div className="flex items-baseline gap-4 mb-4">
@@ -354,7 +357,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                     <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                 </div>
                 {drafts.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {drafts.map(post => (
                            <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
                         ))}
