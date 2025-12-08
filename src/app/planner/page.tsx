@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -133,8 +132,9 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-             <Card className={cn("w-full cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
+            <Card className="w-full" {...dragHandleProps}>
                 <div className="flex items-center gap-3 p-3">
+                     <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab flex-shrink-0" />
                     <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                         {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                     </div>
@@ -213,16 +213,17 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
 
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 50, // Pour passer au-dessus des autres éléments pendant le glissement
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', // Ombre portée
+        zIndex: 50,
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     } : undefined;
     
-    return React.cloneElement(children as React.ReactElement, { 
-        ref: setNodeRef, 
-        style: style,
-        ...attributes,
-        ...listeners
-    });
+    // Le cloneElement ne passe pas correctement les listeners, nous enveloppons donc l'enfant
+    // dans une div qui recevra toutes les props de dnd-kit.
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={cn(isDragging && 'cursor-grabbing')}>
+            {children}
+        </div>
+    );
 }
 
 
@@ -273,7 +274,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
             <section className="mt-12">
-                <div className="flex items-baseline gap-4 mb-4">
+                 <div className="flex items-baseline gap-4 mb-4">
                     <h2 className="text-2xl font-semibold">Brouillons ({drafts.length})</h2>
                     <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                 </div>
