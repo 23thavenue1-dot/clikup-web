@@ -133,7 +133,7 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-             <div className={cn("flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps.className)} {...dragHandleProps}>
+             <div className={cn("flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
                 <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
@@ -213,11 +213,17 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
 
-    return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50 shadow-2xl')} {...attributes} {...listeners}>
-            {children}
-        </div>
-    );
+    // Le DraggablePostCard reçoit les dragHandleProps et les passe à son enfant.
+    const dragHandleProps = {
+        ref: setNodeRef,
+        style: style,
+        className: cn(isDragging && 'z-50 shadow-2xl'),
+        ...attributes,
+        ...listeners,
+    };
+    
+    // Clone l'enfant pour lui passer les props de dnd-kit.
+    return React.cloneElement(children as React.ReactElement, { dragHandleProps });
 }
 
 
