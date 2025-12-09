@@ -21,7 +21,7 @@ const SUBSCRIPTION_IDS = {
     master: 'price_1PWTzVCL0iCpjJii5h3rR8gV',
     storage_250: 'price_1PWTzTCL0iCpjJiiq2w4b5vR',
     storage_500: 'price_1PWTzRCL0iCpjJii8a3a0e9G',
-    storage_1000: 'price_1PWTzOCL0iCpjJii5bM4u3eR',
+    storage_1000: 'price_1SXQgsCL0iCpjJiizxBU54QP',
 };
 
 const PACK_IDS = {
