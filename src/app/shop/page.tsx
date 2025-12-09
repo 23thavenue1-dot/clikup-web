@@ -28,7 +28,7 @@ const PACK_IDS = {
     upload_s: 'price_1PWTzLCL0iCpjJiiD0p3F8bX',
     upload_m: 'price_1PWTzJCL0iCpjJiiX2L4X9Zf',
     upload_l: 'price_1PWTzHCL0iCpjJii3h2s3h3E',
-    upload_xl: 'price_1PWTzFCL0iCpjJiif3e3d3eD',
+    upload_xl: 'price_1SXQgpCL0iCpjJiiAVWBKV1u',
     ai_s: 'price_1SXQh0CL0iCpjJiiviou0czZ',
     ai_m: 'price_1SXQhKCL0iCpjJii345BiFGt',
     ai_l: 'price_1SXQhGCL0iCpjJiiiAn9JQbW',
