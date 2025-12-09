@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
@@ -7,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package, HardDrive, AlertTriangle, ShoppingCart } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -26,7 +25,7 @@ const SUBSCRIPTION_IDS = {
 
 const PACK_IDS = {
     upload_s: 'price_1PWTzLCL0iCpjJiiD0p3F8bX',
-    upload_m: 'price_1PWTzJCL0iCpjJiiX2L4X9Zf',
+    upload_m: 'price_1SXQkPCL0iCpjJiippSEbykn',
     upload_l: 'price_1SXQhSCL0iCpjJiiV16zv5oa',
     upload_xl: 'price_1SXQgpCL0iCpjJiiAVWBKV1u',
     ai_s: 'price_1SXQh0CL0iCpjJiiviou0czZ',
