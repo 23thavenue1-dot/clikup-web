@@ -16,7 +16,7 @@ import type { UserProfile } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
 
 const SUBSCRIPTION_IDS = {
-    creator: 'price_1PWTzZCL0iCpjJiiBq1xT3sD',
+    creator: 'price_1SXQhCCL0iCpjJii9y46m6uk',
     pro: 'price_1SXQh9CL0iCpjJiifbU0fjV9',
     master: 'price_1SXQh6CL0iCpjJiiSn7Jur4x',
     storage_250: 'price_1SXQh0CL0iCpjJii8LKkxPgX',
