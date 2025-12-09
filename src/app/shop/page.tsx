@@ -30,8 +30,8 @@ const PACK_IDS = {
     upload_l: 'price_1PWTzHCL0iCpjJii3h2s3h3E',
     upload_xl: 'price_1PWTzFCL0iCpjJiif3e3d3eD',
     ai_s: 'price_1PWTzDCL0iCpjJii3d3e3h2s',
-    ai_m: 'price_1PWTzBCL0iCpjJii345BiFGt',
-    ai_l: 'price_1PWTzACL0iCpjJiiV3h3rR8gV',
+    ai_m: 'price_1SXQhKCL0iCpjJii345BiFGt',
+    ai_l: 'price_1SXQhGCL0iCpjJiiiAn9JQbW',
     ai_xl: 'price_1PWTz8CL0iCpjJiiq2w4b5vR',
     ai_xxl: 'price_1PWTz6CL0iCpjJii8a3a0e9G',
 };
