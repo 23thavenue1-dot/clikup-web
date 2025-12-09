@@ -5,12 +5,12 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package, HardDrive } from 'lucide-react';
+import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package, HardDrive, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
 import { getStripe } from '@/lib/stripe-client'; // Assurez-vous que ce fichier existe
@@ -198,10 +198,30 @@ const aiPacks = [
 
 
 function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled: boolean, isCurrentPlan: boolean }) {
-    const { firestore } = useFirebase();
-    const { user } = useUser();
+    const { firestore, user } = useFirebase();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    
+    // NOUVEL ÉTAT POUR GÉRER L'ERREUR CLIENT
+    const [customerError, setCustomerError] = useState(false);
+
+    const handleResetStripeCustomer = async () => {
+        if (!user || !firestore) return;
+        setIsLoading(true);
+        const userDocRef = doc(firestore, 'users', user.uid);
+        try {
+            await updateDoc(userDocRef, { stripeCustomerId: null });
+            toast({
+                title: "Client Stripe réinitialisé",
+                description: "Vous pouvez maintenant réessayer votre achat.",
+            });
+            setCustomerError(false); // Réinitialiser l'erreur pour cacher le message
+        } catch (error) {
+            toast({ variant: "destructive", title: "Erreur", description: "Impossible de réinitialiser l'ID client." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
     
     if (item.mode === 'free' || isCurrentPlan) {
         return (
@@ -209,6 +229,29 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
                 {isCurrentPlan ? 'Votre plan actuel' : 'Déjà inclus'}
             </Button>
         )
+    }
+
+    if (customerError) {
+        return (
+            <div className="p-4 border rounded-lg bg-destructive/10 text-destructive text-sm space-y-4">
+                 <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <h4 className="font-semibold">Erreur de client de paiement</h4>
+                        <p className="text-xs mt-1">Votre ID client de test n'est pas valide en mode production. Veuillez le réinitialiser pour continuer.</p>
+                    </div>
+                </div>
+                 <Button
+                    onClick={handleResetStripeCustomer}
+                    disabled={isLoading}
+                    className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    size="sm"
+                >
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Réinitialiser mon ID Client
+                </Button>
+            </div>
+        );
     }
 
     const handleCheckout = async () => {
@@ -227,8 +270,6 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
                 cancel_url: window.location.href,
                 mode: item.mode,
                 allow_promotion_codes: true,
-                // On passe l'email de l'utilisateur. Stripe l'utilisera pour
-                // retrouver le client ou en créer un nouveau en mode Live.
                 customer_email: user.email, 
                 metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
             });
@@ -237,6 +278,14 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
                 const { error, url } = snap.data() || {};
                 if (error) {
                     console.error('Erreur de la session de paiement:', JSON.stringify(error, null, 2));
+
+                    // DÉTECTION SPÉCIFIQUE DE L'ERREUR
+                    if (error.message && error.message.includes('No such customer')) {
+                        setCustomerError(true);
+                        setIsLoading(false);
+                        return; // Arrêter le traitement ici
+                    }
+                    
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
