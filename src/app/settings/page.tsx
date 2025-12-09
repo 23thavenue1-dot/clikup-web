@@ -694,9 +694,9 @@ function AccountTab() {
                   <div className="flex items-center justify-between">
                       <div>
                           <p className="font-medium">Réinitialiser le client Stripe</p>
-                          <p className="text-sm text-muted-foreground">À n'utiliser qu'en cas d'erreur persistante `No such customer`.</p>
+                          <p className="text-sm text-muted-foreground">À utiliser en cas d'erreur `No such customer` après être passé en production.</p>
                       </div>
-                      <Button variant="destructive" disabled={isResettingStripe} onClick={handleResetStripeCustomer}>
+                      <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleResetStripeCustomer} disabled={isResettingStripe}>
                           {isResettingStripe ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                           Réinitialiser Stripe
                       </Button>

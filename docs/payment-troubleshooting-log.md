@@ -56,13 +56,10 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ### **Étape 5 : Passage en Production (Mode "Live")**
 
-Ce chapitre explique la marche à suivre pour passer du mode "Test" au mode "Production" pour accepter de vrais paiements.
-
-#### **Phase 1 : Actions de l'Utilisateur sur le Tableau de Bord Stripe**
-1.  **Activer le compte Stripe** et le basculer en mode "Live".
-2.  **Recréer tous les produits et prix** en mode "Live".
-3.  **Récupérer les nouvelles clés d'API "Live"** (clé secrète et secret de webhook).
-
-#### **Phase 2 : Actions Coordonnées (Développeur & Utilisateur)**
-1.  **Mise à jour des ID de Prix (Mon action) :** Remplacement de tous les ID de prix de test par les nouveaux ID "Live" dans `src/app/shop/page.tsx`.
-2.  **Reconfiguration de l'extension Firebase (Votre action) :** Renseigner la nouvelle clé API secrète et le nouveau secret de webhook "Live" dans les paramètres de l'extension Stripe dans la console Firebase.
+*   **Objectif :** Accepter de vrais paiements.
+*   **Problème Rencontré :** Après avoir basculé les clés Stripe en mode "Live", une erreur `No such customer: 'cus_...'` apparaît, car l'ID client de l'utilisateur correspondait à un client du mode "Test" qui n'existe pas en "Live".
+*   **Solution Apportée :**
+    1.  **Ajout d'un Bouton de Réinitialisation :** Un bouton "Réinitialiser Stripe" a été ajouté dans la "Zone de danger" des paramètres du compte.
+    2.  **Logique de Réinitialisation :** Au clic, ce bouton efface le champ `stripeCustomerId` du document de l'utilisateur dans Firestore.
+    3.  **Correction du Flux :** Lors de la prochaine tentative d'achat, comme le `stripeCustomerId` est nul, l'extension Stripe crée automatiquement un nouveau client en mode "Live", résolvant l'erreur.
+*   **Résultat :** Le passage de l'environnement de test à la production est maintenant fluide et gérable par l'utilisateur.
