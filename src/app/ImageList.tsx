@@ -32,13 +32,6 @@ import {
   DialogTitle,
   DialogClose
 } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -66,6 +59,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
+
+const platformOptions = [
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
+    { id: 'facebook', label: 'Facebook', icon: Facebook },
+    { id: 'x', label: 'X (Twitter)', icon: MessageSquare },
+    { id: 'tiktok', label: 'TikTok', icon: VenetianMask },
+    { id: 'ecommerce', label: 'E-commerce', icon: ShoppingCart },
+    { id: 'generic', label: 'Générique', icon: Wand2 },
+];
 
 
 export function ImageList() {
@@ -737,9 +739,9 @@ export function ImageList() {
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                    <DialogTitle>Modifier la description</DialogTitle>
+                    <DialogTitle>Générer une description</DialogTitle>
                     <DialogDescription>
-                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux, ou rédigez le vôtre.
+                        Laissez l'IA rédiger un contenu optimisé pour vos réseaux sociaux, ou rédigez le vôtre.
                     </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -783,7 +785,7 @@ export function ImageList() {
 
                         <div className="space-y-2">
                              <div className="flex items-center justify-between">
-                                <Label>Génération par IA</Label>
+                                <Label>Génération par IA (1 Ticket)</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
                                     <span>{totalAiTickets} restants</span>
@@ -794,63 +796,20 @@ export function ImageList() {
                                     Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
                                 </p>
                             ) : (
-                                <DropdownMenu>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
-                                                <Button 
-                                                    variant="outline" 
-                                                    className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                                    aria-label="Générer avec l'IA"
-                                                >
-                                                    {isGeneratingDescription ? (
-                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                                    ) : (
-                                                        <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>
-                                                    )}
-                                                    {isGeneratingDescription ? 'Génération...' : 'Générer pour...'}
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                        </TooltipTrigger>
-                                        {!hasAiTickets && !monthlyLimitReached && (
-                                             <TooltipContent>
-                                                <Link href="/shop">
-                                                    <p className="cursor-pointer font-semibold text-primary flex items-center gap-2">
-                                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                                        Rechargez dans la boutique !
-                                                    </p>
-                                                </Link>
-                                            </TooltipContent>
-                                        )}
-                                    </Tooltip>
-                                    <DropdownMenuContent className="w-56">
-                                        <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}>
-                                            <ShoppingCart className="mr-2 h-4 w-4" />
-                                            <span>Annonce E-commerce</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
-                                            <Instagram className="mr-2 h-4 w-4" />
-                                            <span>Instagram</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}>
-                                            <Facebook className="mr-2 h-4 w-4" />
-                                            <span>Facebook</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleGenerateDescription('x')}>
-                                            <MessageSquare className="mr-2 h-4 w-4" />
-                                            <span>X (Twitter)</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}>
-                                            <VenetianMask className="mr-2 h-4 w-4" />
-                                            <span>TikTok</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}>
-                                            <Wand2 className="mr-2 h-4 w-4" />
-                                            <span>Générique</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {platformOptions.map(({ id, label, icon: Icon }) => (
+                                        <Button
+                                            key={id}
+                                            variant="outline"
+                                            onClick={() => handleGenerateDescription(id as Platform)}
+                                            disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}
+                                            className="justify-start"
+                                        >
+                                            {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                            {label}
+                                        </Button>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>

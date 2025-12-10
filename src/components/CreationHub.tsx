@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -22,6 +21,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
+
+const platformOptions = [
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
+    { id: 'facebook', label: 'Facebook', icon: Facebook },
+    { id: 'x', label: 'X (Twitter)', icon: MessageSquare },
+    { id: 'tiktok', label: 'TikTok', icon: VenetianMask },
+    { id: 'ecommerce', label: 'E-commerce', icon: ShoppingCart },
+    { id: 'generic', label: 'Générique', icon: Wand2 },
+];
+
 
 interface CreationHubProps {
     lastImage: ImageMetadata;
@@ -178,29 +187,26 @@ setCurrentDescription(result.description);
                                         <Separator />
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
-                                                <Label>Génération par IA</Label>
+                                                <Label>Génération par IA (1 Ticket)</Label>
                                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                                     <Ticket className="h-4 w-4" />
                                                     <span>{totalAiTickets} restants</span>
                                                 </div>
                                             </div>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="outline" className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" disabled={isGeneratingDescription || isSavingDescription || totalAiTickets <= 0}>
-                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4 text-amber-400" />}
-                                                        {isGeneratingDescription ? "Génération..." : "Générer pour... (1 Ticket IA)"}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {platformOptions.map(({ id, label, icon: Icon }) => (
+                                                    <Button
+                                                        key={id}
+                                                        variant="outline"
+                                                        onClick={() => handleGenerateDescription(id as Platform)}
+                                                        disabled={isGeneratingDescription || isSavingDescription || totalAiTickets <= 0}
+                                                        className="justify-start"
+                                                    >
+                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                                        {label}
                                                     </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent className="w-56">
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                     <DialogFooter>
