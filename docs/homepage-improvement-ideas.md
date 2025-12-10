@@ -4,7 +4,7 @@ Ce document rassemble des idées et des propositions pour rendre la page d'accue
 
 ---
 
-### Proposition 1 : Un "Hub de Création" sur la Page d'Accueil (Plus Ambitieux)
+### Proposition 1 : Un "Hub de Création" sur la Page d'Accueil (Déjà implémenté)
 
 **Le problème :** L'application est encore très orientée "stockage". On téléverse, puis on voit une liste.
 
@@ -17,10 +17,7 @@ Imaginez :
     1.  **"🤖 Améliorer cette image avec l'IA"** (qui mène à la page d'édition).
     2.  **"✍️ Rédiger une publication pour les réseaux sociaux"** (qui ouvre la fenêtre de génération de description).
 
-**Avantages :**
-*   **Flux de travail guidé :** L'interface guide naturellement l'utilisateur vers les étapes suivantes après un upload.
-*   **Mise en valeur de l'IA :** Les fonctionnalités IA deviennent le cœur de l'expérience post-upload.
-*   **Expérience moderne :** Cela donne une sensation d'application "intelligente" plutôt que d'un simple dossier de fichiers.
+**Statut :** ✅ **TERMINÉ.** Cette fonctionnalité est déjà en place grâce au composant `CreationHub`.
 
 ---
 
@@ -36,11 +33,10 @@ Imaginez :
 **Avantages :**
 *   **Interaction Maximale :** L'application devient un véritable assistant qui dialogue avec l'utilisateur.
 *   **Très innovant :** C'est une expérience utilisateur de pointe qui nous démarquerait radicalement.
+*   **Flux de travail encore plus rapide :** L'utilisateur n'a qu'à valider une suggestion pertinente au lieu de chercher la fonctionnalité.
 
 ---
 
 ### Recommandation
 
-Il est suggéré de commencer par la **Proposition 1**.
-
-Elle est **excellente** et représente l'étape logique suivante pour rendre l'application vraiment unique.
+La **Proposition 2** représente une excellente évolution future pour rendre l'application encore plus unique et "intelligente", en capitalisant sur les fonctionnalités IA existantes.
