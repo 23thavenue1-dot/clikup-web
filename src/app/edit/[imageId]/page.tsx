@@ -108,7 +108,7 @@ export default function EditImagePage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}/images`, imageId);
     }, [user, firestore, imageId]);
-    const { data: originalImage, isLoading: isImageLoading } = useDoc<ImageMetadata>(imageDocRef);
+    const { data: originalImage, isLoading: isImageLoading, refetch: refetchImage } = useDoc<ImageMetadata>(imageDocRef);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -268,6 +268,7 @@ export default function EditImagePage() {
                     description: generatedDescription,
                     hashtags: generatedHashtags,
                 }, false); // false car la description n'est pas forcément générée par IA
+                refetchImage();
                 toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
             }
             return;
@@ -285,8 +286,8 @@ export default function EditImagePage() {
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Création IA du ${format(new Date(), 'd MMM yyyy à HH:mm', { locale: fr })}`,
-                description: `Prompt: ${imageToSave.prompt}`,
+                title: generatedTitle,
+                description: generatedDescription,
                 hashtags: generatedHashtags,
                 generatedByAI: true
             });
@@ -500,7 +501,27 @@ export default function EditImagePage() {
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
-                                    {/* ... Contenu du dialogue de sauvegarde ... */}
+                                    <DialogHeader>
+                                        <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                                        <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="prompt-name">Nom du prompt</Label>
+                                            <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Instruction</Label>
+                                            <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
+                                        <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                                            {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            Sauvegarder
+                                        </Button>
+                                    </DialogFooter>
                                 </DialogContent>
                             </Dialog>
                          </div>
@@ -595,10 +616,55 @@ export default function EditImagePage() {
                                 </Button>
                             </DialogTrigger>
                              <DialogContent className="sm:max-w-md">
-                                {/* ... Contenu du dialogue de description ... */}
-                             </DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
+                                    <DialogDescription>
+                                        Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gen-title">Titre</Label>
+                                        <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gen-desc">Description</Label>
+                                        <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gen-tags">Hashtags</Label>
+                                        <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
+                                    </div>
+                                    <Separator/>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button 
+                                                variant="outline" 
+                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" 
+                                                disabled={isGeneratingDescription || !hasAiTickets}
+                                            >
+                                                {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
+                                                {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-56">
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                                <DialogFooter>
+                                     <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
+                                    <Button onClick={handleConfirmDescription}>Valider le Contenu</Button>
+                                </DialogFooter>
+                            </DialogContent>
                         </Dialog>
-                         <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating || !currentHistoryItem} className="w-full">
+                         <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full">
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                             Enregistrer
                         </Button>
@@ -655,56 +721,6 @@ export default function EditImagePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-             <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                 <DialogContent className="sm:max-w-md">
-                     <DialogHeader>
-                         <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
-                         <DialogDescription>
-                             Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
-                         </DialogDescription>
-                     </DialogHeader>
-                     <div className="space-y-4 py-4">
-                         <div className="space-y-2">
-                             <Label htmlFor="gen-title">Titre</Label>
-                             <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
-                         </div>
-                         <div className="space-y-2">
-                             <Label htmlFor="gen-desc">Description</Label>
-                             <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
-                         </div>
-                         <div className="space-y-2">
-                             <Label htmlFor="gen-tags">Hashtags</Label>
-                             <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
-                         </div>
-                         <Separator/>
-                         <DropdownMenu>
-                             <DropdownMenuTrigger asChild>
-                                 <Button 
-                                     variant="outline" 
-                                     className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" 
-                                     disabled={isGeneratingDescription || !hasAiTickets}
-                                 >
-                                     {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
-                                     {isGeneratingDescription ? "Génération..." : "Générer pour..."}
-                                 </Button>
-                             </DropdownMenuTrigger>
-                              <DropdownMenuContent className="w-56">
-                                 <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                                 <DropdownMenuSeparator />
-                                 <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                             </DropdownMenuContent>
-                         </DropdownMenu>
-                     </div>
-                     <DialogFooter>
-                         <Button onClick={handleConfirmDescription}>Valider et Fermer</Button>
-                     </DialogFooter>
-                 </DialogContent>
-             </Dialog>
 
         </div>
       </TooltipProvider>
