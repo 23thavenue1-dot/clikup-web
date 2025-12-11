@@ -916,7 +916,7 @@ export default function EditImagePage() {
                                  <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
-                                            <Text className="mr-2 h-4 w-4"/> Générer ou Modifier la description
+                                            <Text className="mr-2 h-4 w-4"/> Modifier ou générer une descrption IA
                                         </Button>
                                     </DialogTrigger>
                                 </Dialog>
