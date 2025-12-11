@@ -777,7 +777,7 @@ export default function EditImagePage() {
                                             </div>
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground"><HelpCircle className="h-4 w-4"/></Button>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-green-500"><HelpCircle className="h-4 w-4"/></Button>
                                                 </DialogTrigger>
                                                 <DialogContent>
                                                     <DialogHeader>
@@ -958,7 +958,7 @@ export default function EditImagePage() {
                                         </Button>
                                     </DialogTrigger>
                                 </Dialog>
-                                <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating || !currentHistoryItem} className="w-full" variant="secondary">
+                                <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full" variant="secondary">
                                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                     Enregistrer la création
                                 </Button>
