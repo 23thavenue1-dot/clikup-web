@@ -63,7 +63,7 @@ const generateCarouselFlow = ai.defineFlow(
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton objectif est de séduire le lecteur.
+            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton objectif est de séduire le lecteur avec un langage naturel et réaliste.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
             
             **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Description 1", "Texte 2:", "**Texte 3:**" etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
@@ -74,7 +74,7 @@ const generateCarouselFlow = ai.defineFlow(
             - Directive de l'utilisateur : "${userDirective || "Mettre l'objet en valeur dans une scène réaliste pour donner envie de l'acheter."}"
             
             **Descriptions à rédiger :**
-            *   **Description 1 (Avant - Le Produit) :** Décris l'objet de manière factuelle mais élégante. Présente-le.
+            *   **Description 1 (Avant - Le Produit) :** Décris l'objet de manière factuelle mais élégante. Présente-le simplement.
             *   **Description 2 (Pendant - La Vision) :** Explique la transformation à venir. Ne te contente pas de dire "on va l'améliorer". Dis plutôt : "Et si cet objet prenait vie dans votre quotidien ?". Crée du désir et du suspense.
             *   **Description 3 (Après - Le Bénéfice) :** Décris la scène "lifestyle". Ne décris pas seulement l'image, mais l'ÉMOTION et le BÉNÉFICE qu'elle procure. Par exemple, au lieu de "la montre est au poignet", dis "L'élégance à votre poignet, à chaque instant de la journée.".
             *   **Description 4 (Question - L'Appel à l'Action) :** Rédige une question ouverte qui incite à se projeter avec l'objet ou à donner son avis. Exemple : "Où emmèneriez-vous ce sac pour votre prochaine aventure ?" ou "Quel est le détail qui vous séduit le plus ?".
