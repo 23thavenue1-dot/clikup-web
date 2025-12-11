@@ -26,7 +26,7 @@ const generateCarouselFlow = ai.defineFlow(
         prompt: [
             { media: { url: baseImageUrl } },
             { text: `
-                **Rôle :** Tu es un directeur artistique expert, un retoucheur photo, et un social media manager.
+                **Rôle :** Tu es un directeur artistique expert, un retoucheur photo, et un social media manager. Ton but est de produire un résultat professionnel et flatteur.
                 
                 **Objectif :** En te basant sur l'image fournie, tu vas créer une histoire de transformation "Avant/Après" en 4 étapes sous forme de carrousel.
 
@@ -36,14 +36,14 @@ const generateCarouselFlow = ai.defineFlow(
                 2.  **Imagine la transformation :** 
                     ${userDirective 
                         ? `L'utilisateur a donné une directive claire : "${userDirective}". Ta transformation DOIT suivre cette instruction.`
-                        : "Quelle est LA modification clé qui sublimerait cette image ? (Ex: améliorer l'éclairage d'un portrait, rendre un ciel plus dramatique, etc.)."
+                        : "Ta mission est d'embellir ce portrait. Apporte plus de lumière, rehausse les couleurs pour un éclat naturel et vibrant, améliore la netteté du regard et lisse subtilement la peau pour un résultat professionnel et esthétique."
                     }
 
-                3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative possible.
+                3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative et flagrante possible. Le résultat doit être visiblement supérieur à l'original.
                 
                 4.  **Rédige 4 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
                     *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
-                    *   **Description 2 (Pendant) :** Explique brièvement l'intention créative, la transformation que tu vas opérer.
+                    *   **Description 2 (Pendant) :** Explique brièvement ton défi créatif, la transformation que tu vas opérer.
                     *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
                     *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires.
             `},
