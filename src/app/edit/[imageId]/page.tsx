@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -915,7 +916,7 @@ export default function EditImagePage() {
                                  <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
-                                            <Text className="mr-2 h-4 w-4"/> Rédiger Titre &amp; Description
+                                            <Text className="mr-2 h-4 w-4"/> Générer ou Modifier la description
                                         </Button>
                                     </DialogTrigger>
                                 </Dialog>
