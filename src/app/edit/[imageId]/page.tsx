@@ -5,11 +5,11 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, addDoc, collection, getDoc, DocumentReference, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
+import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import type { GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
-import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -269,11 +269,59 @@ export default function EditImagePage() {
         }
     };
 
+    const handleCreateGalleryFromCarousel = async () => {
+        if (!carouselResult || !originalImage || !user || !firebaseApp || !firestore) return;
+    
+        const finalImageSlide = carouselResult.slides.find(s => s.imageUrl && s.imageUrl !== originalImage.directUrl);
+        if (!finalImageSlide) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "L'image 'Après' du carrousel est manquante." });
+            return;
+        }
+    
+        setIsSaving(true);
+        try {
+            // 1. Sauvegarder l'image "Après" dans la bibliothèque pour obtenir son ID
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(finalImageSlide.imageUrl);
+            const newFileName = `carousel-after-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Image "Après" du carrousel`, () => {});
+            const newImageDocRef = await saveImageMetadata(firestore, user, { ...metadata, generatedByAI: true });
+    
+            // 2. Créer une nouvelle galerie
+            const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${format(new Date(), 'd MMM')}`}`;
+            const galleryDescription = carouselResult.slides.map((s, i) => `Étape ${i+1}: ${s.description}`).join('\n\n');
+            const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
+    
+            // 3. Ajouter les deux images (Avant et Après) à la nouvelle galerie
+            await addMultipleImagesToGalleries(firestore, user.uid, [originalImage.id, newImageDocRef.id], [newGalleryDocRef.id]);
+    
+            toast({
+                title: "Galerie créée avec succès !",
+                description: (
+                    <p>
+                        La galerie "{galleryName}" a été créée avec les images avant/après.
+                        <Link href={`/galleries/${newGalleryDocRef.id}`} className="font-bold text-primary underline ml-1">
+                            Y aller
+                        </Link>
+                    </p>
+                ),
+            });
+            setIsCarouselDialogOpen(false);
+    
+        } catch (error) {
+            console.error("Erreur lors de la création de la galerie depuis le carrousel :", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: 'Impossible de créer la galerie.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleSaveCarouselToLibrary = async () => {
         if (!carouselResult || !user || !firebaseApp || !firestore) return;
         
-        const finalImageSlide = carouselResult.slides[1]; // Après
-        if (!finalImageSlide || !finalImageSlide.imageUrl) {
+        const finalImageSlide = carouselResult.slides.find(s => s.imageUrl && s.imageUrl !== originalImage?.directUrl);
+        if (!finalImageSlide) {
             toast({ variant: 'destructive', title: 'Erreur', description: "L'image finale du carrousel est manquante." });
             return;
         }
@@ -942,11 +990,11 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                             <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => (
                                     <div key={index} className="flex flex-col gap-2 group">
                                         <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                            {index === 0 || index === 2 ? (
+                                            {(index === 0 || index === 2) && slide.imageUrl ? (
                                                 <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                             ) : (
                                                 <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
@@ -974,11 +1022,18 @@ export default function EditImagePage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={handleSaveCarouselToLibrary}>
+                                <DropdownMenuItem onClick={handleSaveCarouselToLibrary} disabled={isSaving}>
+                                    <Save className="mr-2 h-4 w-4" />
                                     Sauvegarder la création
                                 </DropdownMenuItem>
-                                <DropdownMenuItem disabled>Créer une galerie dédiée</DropdownMenuItem>
-                                <DropdownMenuItem disabled>Télécharger les diapositives</DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleCreateGalleryFromCarousel} disabled={isSaving}>
+                                    <Library className="mr-2 h-4 w-4" />
+                                    Créer une galerie dédiée
+                                </DropdownMenuItem>
+                                <DropdownMenuItem disabled>
+                                    <Film className="mr-2 h-4 w-4" />
+                                    Télécharger les diapositives
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </DialogFooter>
@@ -988,3 +1043,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+
