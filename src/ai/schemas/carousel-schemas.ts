@@ -18,6 +18,8 @@ export type GenerateCarouselInput = z.infer<typeof GenerateCarouselInputSchema>;
 
 // Schéma de sortie du flow
 export const GenerateCarouselOutputSchema = z.object({
-  slides: z.array(CarouselSlideSchema).length(3).describe("Un tableau contenant exactement 3 diapositives (slides) pour le carrousel."),
+  slides: z.array(CarouselSlideSchema).length(3).describe("Un tableau contenant exactement 3 diapositives (slides) pour le carrousel, chacune avec une URL d'image et une description."),
 });
 export type GenerateCarouselOutput = z.infer<typeof GenerateCarouselOutputSchema>;
+
+    
