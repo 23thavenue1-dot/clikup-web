@@ -59,26 +59,31 @@ const generateCarouselFlow = ai.defineFlow(
     }
     const afterImageUrl = afterImageGeneration.media.url;
 
-    // --- APPEL 2: Génération des 4 descriptions textuelles ---
+    // --- APPEL 2: Génération des 4 descriptions textuelles en se basant sur les deux images ---
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
             **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton objectif est de séduire le lecteur avec un langage naturel et réaliste.
-            **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
+            **Objectif :** En analysant la transformation entre l'image "Avant" et l'image "Après", rédige 4 descriptions très courtes et percutantes pour un carrousel. Sépare chaque description par '---'.
             
             **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Description 1", "Texte 2:", "**Texte 3:**" etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
             
-            **Contexte :**
-            - Image Avant : Une photo de base, souvent un objet seul.
-            - Image Après : La même photo, mais l'objet est maintenant dans une mise en scène "lifestyle" professionnelle.
-            - Directive de l'utilisateur : "${userDirective || "Mettre l'objet en valeur dans une scène réaliste pour donner envie de l'acheter."}"
-            
+            **Images de Contexte :**
+            - Image Avant : {{media url=baseImageUrl}}
+            - Image Après : {{media url=afterImageUrl}}
+            ${userDirective ? `- Directive utilisateur : "${userDirective}"` : ''}
+
             **Descriptions à rédiger :**
-            *   **Description 1 (Avant - Le Produit) :** Décris l'objet de manière factuelle mais élégante. Présente-le simplement.
-            *   **Description 2 (Pendant - La Vision) :** Explique la transformation à venir. Ne te contente pas de dire "on va l'améliorer". Dis plutôt : "Et si cet objet prenait vie dans votre quotidien ?". Crée du désir et du suspense.
-            *   **Description 3 (Après - Le Bénéfice) :** Décris la scène "lifestyle". Ne décris pas seulement l'image, mais l'ÉMOTION et le BÉNÉFICE qu'elle procure. Par exemple, au lieu de "la montre est au poignet", dis "L'élégance à votre poignet, à chaque instant de la journée.".
-            *   **Description 4 (Question - L'Appel à l'Action) :** Rédige une question ouverte qui incite à se projeter avec l'objet ou à donner son avis. Exemple : "Où emmèneriez-vous ce sac pour votre prochaine aventure ?" ou "Quel est le détail qui vous séduit le plus ?".
-        `
+            *   **Description 1 (Avant - Le Point de Départ) :** Décris l'image "Avant" de manière factuelle mais élégante. Présente la scène ou le sujet tel qu'il est.
+            *   **Description 2 (Pendant - La Vision) :** Crée du suspense. Pose une question qui annonce la transformation à venir. Exemples : "Mais que se passerait-il si on y ajoutait une touche de magie ?", "Et si on laissait cette scène révéler tout son potentiel ?", "L'idée : transformer ce moment en une véritable histoire.".
+            *   **Description 3 (Après - Le Bénéfice) :** Décris l'image "Après". Ne te contente pas de lister les changements. Mets l'accent sur l'émotion, l'ambiance, le bénéfice ressenti. Sois enthousiaste et valorisant.
+            *   **Description 4 (Question - L'Appel à l'Action) :** Rédige une question ouverte et pertinente qui incite à donner son avis sur la transformation ou à se projeter. Exemples : "Quelle version préférez-vous et pourquoi ?", "Quel est le détail qui change tout pour vous ?", "Où cette nouvelle ambiance vous transporte-t-elle ?".
+        `,
+        // Fournir les images au prompt via la nouvelle variable `media`
+        media: [
+          { url: baseImageUrl },
+          { url: afterImageUrl },
+        ]
     });
 
     if (!textGeneration.text) {
