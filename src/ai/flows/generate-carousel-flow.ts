@@ -49,7 +49,7 @@ const generateCarouselFlow = ai.defineFlow(
       throw new Error("L'IA n'a pas pu générer le carrousel.");
     }
     
-    const descriptions = text().split('---').map(d => d.trim());
+    const descriptions = text.split('---').map(d => d.trim());
     if (descriptions.length < 3) {
       throw new Error("L'IA n'a pas retourné les 3 descriptions attendues.");
     }
