@@ -33,6 +33,8 @@ import { Input } from '@/components/ui/input';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -824,7 +826,7 @@ export default function EditImagePage() {
                 </div>
             </aside>
             
-            <Dialog>
+            <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Sauvegarder le prompt</DialogTitle>
@@ -854,9 +856,9 @@ export default function EditImagePage() {
                 <DialogContent>
                     <AlertDialogHeader>
                         <DialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</DialogTitle>
-                        <DialogDescription>
+                        <AlertDialogDescription>
                             Cette action est irréversible et supprimera définitivement ce prompt de votre liste.
-                        </DialogDescription>
+                        </AlertDialogDescription>
                     </AlertDialogHeader>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setIsDeletePromptDialogOpen(false)}>Annuler</Button>
@@ -935,5 +937,6 @@ export default function EditImagePage() {
         </div>
     );
 }
+
 
 
