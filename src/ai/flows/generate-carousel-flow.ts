@@ -26,15 +26,15 @@ const generateCarouselFlow = ai.defineFlow(
         prompt: [
             { media: { url: baseImageUrl } },
             { text: `
-                **Rôle :** Tu es un directeur artistique de renommée mondiale, spécialiste des portraits pour les magazines de mode.
+                **Rôle :** Tu es un directeur artistique de renommée mondiale.
                 
-                **Objectif :** Transformer ce portrait amateur en une photo de qualité studio professionnelle. La différence doit être spectaculaire.
+                **Objectif :** Transformer ce portrait amateur en une photo spectaculaire et de haute qualité.
                 ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
 
                 **Instruction de transformation :** 
                 ${userDirective 
                     ? `L'utilisateur a donné une directive claire : "${userDirective}". Ta transformation DOIT suivre cette instruction.`
-                    : "Ta mission est de réaliser un 'glow-up' complet de ce portrait. 1. Modifie l'éclairage pour un rendu de studio flatteur et professionnel. 2. Optimise les couleurs pour que la peau soit radieuse (effet 'glowy') et les tons vibrants. 3. Lisse la peau pour unifier le teint tout en conservant une texture naturelle. 4. Accentue la netteté du regard pour le faire ressortir. Le résultat doit être visiblement optimisé."
+                    : "Ta mission est de réaliser une transformation radicale. 1. Augmente la qualité globale de l'image : contraste, luminosité, définition. 2. Crée un éclairage de studio professionnel avec des effets de lumière subtils pour sculpter le visage. 3. Assure-toi que les couleurs sont riches et vibrantes. 4. Le sujet doit rester parfaitement reconnaissable, mais le résultat doit être visiblement optimisé et impressionnant."
                 }
             `},
         ],
@@ -55,7 +55,7 @@ const generateCarouselFlow = ai.defineFlow(
             **Rôle :** Tu es un social media manager expert en storytelling pour ${platform}.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
             
-            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Texte 1", "Description 2", etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
+            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Description 1", "Texte 2:", "**Texte 3:**" etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
             
             **Contexte :**
             - Image Avant : Une photo de base.
