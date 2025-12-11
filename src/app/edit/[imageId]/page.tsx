@@ -1,5 +1,5 @@
 
-
+      
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -407,123 +407,117 @@ export default function EditImagePage() {
     return (
       <TooltipProvider>
         <div className="flex flex-col md:flex-row h-screen bg-background">
-            {/* --- MAIN CONTENT (Editor) --- */}
-            <main className="flex-1 flex flex-col">
+            
+            <main className="flex-1 flex flex-col p-4 lg:p-6 overflow-y-auto">
                 {/* --- Header --- */}
-                <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
-                    <div className="container mx-auto p-3 flex items-center justify-between">
-                        <Button variant="ghost" size="sm" asChild>
-                           <Link href="/">
-                               <ArrowLeft className="mr-2 h-4 w-4"/>
-                               Retour
-                           </Link>
-                       </Button>
-                        <div className="text-center">
-                           <h1 className="text-lg font-semibold tracking-tight">Éditeur d'Image par IA</h1>
-                           <p className="text-xs text-muted-foreground">Transformez vos images en décrivant simplement les changements souhaités.</p>
-                       </div>
-                        <Badge variant="outline" className="h-8 text-sm">
-                           <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                           {totalAiTickets} Tickets IA
-                       </Badge>
-                    </div>
+                <header className="flex items-center justify-between mb-6">
+                    <Button variant="ghost" size="sm" asChild>
+                       <Link href="/">
+                           <ArrowLeft className="mr-2 h-4 w-4"/>
+                           Retour
+                       </Link>
+                   </Button>
+                    <div className="text-center">
+                       <h1 className="text-lg font-semibold tracking-tight">Éditeur d'Image par IA</h1>
+                       <p className="text-xs text-muted-foreground">Transformez vos images en décrivant simplement les changements souhaités.</p>
+                   </div>
+                    <Badge variant="outline" className="h-8 text-sm">
+                       <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                       {totalAiTickets} Tickets IA
+                   </Badge>
                 </header>
 
-                {/* --- Editor View --- */}
-                <div className="flex-1 flex flex-col justify-center items-center p-4 lg:p-6 overflow-y-auto">
-                    <Card className="w-full max-w-7xl">
-                        <CardContent className="p-4 md:p-6">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                <div className="flex flex-col gap-2">
-                                     <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
-                                     <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
-                                        <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center justify-center gap-4 relative h-6">
-                                       <Badge className="w-fit mx-auto">APRÈS</Badge>
-                                       {!isGenerating && generatedImageHistory.length > 0 && (
-                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
-                                                      <Undo2 className="h-4 w-4" />
-                                                  </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Annuler</p></TooltipContent>
-                                              </Tooltip>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
-                                                      <Redo2 className="h-4 w-4" />
-                                                  </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Rétablir</p></TooltipContent>
-                                              </Tooltip>
-                                            </div>
-                                        )}
-                                    </div>
-                                     <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-sm">
-                                        {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                                        {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                                        {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-                                    </div>
+                <Card className="w-full max-w-7xl mx-auto mb-6">
+                    <CardContent className="p-4 md:p-6">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                            <div className="flex flex-col gap-2">
+                                 <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
+                                 <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
+                                    <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                                 </div>
                             </div>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-center gap-4 relative h-6">
+                                   <Badge className="w-fit mx-auto">APRÈS</Badge>
+                                   {!isGenerating && generatedImageHistory.length > 0 && (
+                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                                  <Undo2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Annuler</p></TooltipContent>
+                                          </Tooltip>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                                  <Redo2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Rétablir</p></TooltipContent>
+                                          </Tooltip>
+                                        </div>
+                                    )}
+                                </div>
+                                 <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-sm">
+                                    {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                    {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                    {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                 <div className="w-full max-w-7xl mx-auto">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                                <span>Création de Contenus optimisés</span>
+                            </CardTitle>
+                            <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Tabs defaultValue="instagram">
+                                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                                    <TabsTrigger value="instagram"><Instagram className="mr-2" />Instagram</TabsTrigger>
+                                    <TabsTrigger value="facebook"><Facebook className="mr-2" />Facebook</TabsTrigger>
+                                    <TabsTrigger value="x"><MessageSquare className="mr-2" />X (Twitter)</TabsTrigger>
+                                    <TabsTrigger value="tiktok"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="instagram" className="pt-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
+                                                <h4 className="font-semibold">Carrousel Narratif</h4>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground flex-grow">Crée une séquence de 3 images (intro, action, conclusion) pour un post carrousel.</p>
+                                            <Button size="sm" disabled>Générer le Carrousel (3 Tickets IA)</Button>
+                                        </Card>
+                                         <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
+                                                <h4 className="font-semibold">Motion Design pour Story</h4>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une courte vidéo de 5s avec animations légères.</p>
+                                            <Button size="sm" disabled>Générer la Story (5 Tickets IA)</Button>
+                                        </Card>
+                                         <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div>
+                                                <h4 className="font-semibold">Short / Réel Thématique</h4>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground flex-grow">Crée une vidéo sur un thème (ex: cyberpunk, vintage) inspiré de l'image.</p>
+                                            <Button size="sm" disabled>Générer le Réel (5 Tickets IA)</Button>
+                                        </Card>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
-                    
-                    {/* --- Section Contenus Complexes --- */}
-                     <div className="w-full max-w-7xl mt-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                  <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                                  <span>Création de Contenus Complexes</span>
-                                </CardTitle>
-                                <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Tabs defaultValue="instagram">
-                                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-                                        <TabsTrigger value="instagram"><Instagram className="mr-2" />Instagram</TabsTrigger>
-                                        <TabsTrigger value="facebook"><Facebook className="mr-2" />Facebook</TabsTrigger>
-                                        <TabsTrigger value="x"><MessageSquare className="mr-2" />X (Twitter)</TabsTrigger>
-                                        <TabsTrigger value="tiktok"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="instagram" className="pt-6">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
-                                                    <h4 className="font-semibold">Carrousel Narratif</h4>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground flex-grow">Crée une séquence de 3 images (intro, action, conclusion) pour un post carrousel.</p>
-                                                <Button size="sm" disabled>Générer le Carrousel (3 Tickets IA)</Button>
-                                            </Card>
-                                             <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
-                                                    <h4 className="font-semibold">Motion Design pour Story</h4>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une courte vidéo de 5s avec animations légères.</p>
-                                                <Button size="sm" disabled>Générer la Story (5 Tickets IA)</Button>
-                                            </Card>
-                                             <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div>
-                                                    <h4 className="font-semibold">Short / Réel Thématique</h4>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground flex-grow">Crée une vidéo sur un thème (ex: cyberpunk, vintage) inspiré de l'image.</p>
-                                                <Button size="sm" disabled>Générer le Réel (5 Tickets IA)</Button>
-                                            </Card>
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
-                    </div>
                 </div>
             </main>
 
@@ -772,3 +766,5 @@ export default function EditImagePage() {
       </TooltipProvider>
     );
 }
+
+    
