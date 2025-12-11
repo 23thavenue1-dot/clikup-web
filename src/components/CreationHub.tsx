@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -12,13 +12,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
-import { decrementAiTicketCount, updateImageDescription, type ImageMetadata, type UserProfile } from '@/lib/firestore';
-import { Loader2, Sparkles, FileText, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, ShoppingCart, Ticket } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { decrementAiTicketCount, updateImageDescription, savePostForLater, type ImageMetadata, type UserProfile, type BrandProfile } from '@/lib/firestore';
+import { Loader2, Sparkles, FileText, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, ShoppingCart, Ticket, FilePlus, Calendar as CalendarIcon } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { withErrorHandling } from '@/lib/async-wrapper';
+import { getStorage } from 'firebase/storage';
+
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -38,7 +46,7 @@ interface CreationHubProps {
 
 export function CreationHub({ lastImage }: CreationHubProps) {
     const { toast } = useToast();
-    const { user, firestore } = useFirebase();
+    const { user, firestore, firebaseApp } = useFirebase();
 
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
     const [generatingForPlatform, setGeneratingForPlatform] = useState<Platform | null>(null);
@@ -48,11 +56,24 @@ export function CreationHub({ lastImage }: CreationHubProps) {
     const [hashtagsString, setHashtagsString] = useState('');
     const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
 
+    // --- State pour la planification ---
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+    const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+    const [isSavingPost, setIsSavingPost] = useState(false);
+
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
     const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
+    
+    const brandProfilesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/brandProfiles`), orderBy('createdAt', 'desc'));
+    }, [user, firestore]);
+    const { data: brandProfiles } = useCollection<BrandProfile>(brandProfilesQuery);
+
 
     useEffect(() => {
         if (lastImage && isDescriptionDialogOpen) {
@@ -117,7 +138,36 @@ export function CreationHub({ lastImage }: CreationHubProps) {
         }
     };
 
+    const handleSavePost = async () => {
+        if (!user || !firebaseApp || !lastImage || !selectedProfileId) return;
+
+        setIsSavingPost(true);
+        const storage = getStorage(firebaseApp);
+        
+        const { error } = await withErrorHandling(() => 
+            savePostForLater(firestore, storage, user.uid, {
+                brandProfileId: selectedProfileId,
+                title: lastImage.title,
+                description: lastImage.description || '',
+                scheduledAt: scheduleDate, // Peut être undefined pour un brouillon
+                imageSource: lastImage,
+            })
+        );
+        
+        if (!error) {
+            if (scheduleDate) {
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
+            } else {
+                toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+            }
+            setScheduleDialogOpen(false);
+        }
+        setIsSavingPost(false);
+    };
+
+
     return (
+       <>
         <Card className="bg-gradient-to-br from-primary/5 to-secondary/10 border-primary/20">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -131,16 +181,18 @@ export function CreationHub({ lastImage }: CreationHubProps) {
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                    <div className="relative aspect-square rounded-lg overflow-hidden border shadow-md">
-                        <Image
-                            src={lastImage.directUrl}
-                            alt={lastImage.title || lastImage.originalName || 'Dernière image'}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                            className="object-cover"
-                            unoptimized
-                        />
-                    </div>
+                    <Link href={`/image/${lastImage.id}`} passHref>
+                        <div className="relative aspect-square rounded-lg overflow-hidden border shadow-md cursor-pointer group">
+                            <Image
+                                src={lastImage.directUrl}
+                                alt={lastImage.title || lastImage.originalName || 'Dernière image'}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 50vw"
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                unoptimized
+                            />
+                        </div>
+                    </Link>
                     <div className="space-y-4">
                         <p className="text-sm text-muted-foreground">Que voulez-vous faire avec cette image ?</p>
                         <div className="grid grid-cols-1 gap-4">
@@ -153,75 +205,159 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                                     <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
                                 </div>
                             </Link>
-
-                            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer">
-                                        <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                            <FileText className="h-6 w-6" />
-                                        </div>
-                                        <span className="font-semibold">Générer une description</span>
-                                        <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
-                                    </div>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Générer une description</DialogTitle>
-                                        <DialogDescription>
-                                            Laissez l'IA rédiger un contenu optimisé pour votre dernière image.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="title">Titre</Label>
-                                            <Input id="title" placeholder="Titre généré..." value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)} disabled={!!generatingForPlatform || isSavingDescription} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="description">Description</Label>
-                                            <Textarea id="description" placeholder="Description générée..." value={currentDescription} onChange={(e) => setCurrentDescription(e.target.value)} rows={4} disabled={!!generatingForPlatform || isSavingDescription} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="hashtags">Hashtags</Label>
-                                            <Textarea id="hashtags" placeholder="#hashtags #générés..." value={hashtagsString} onChange={(e) => setHashtagsString(e.target.value)} rows={2} disabled={!!generatingForPlatform || isSavingDescription} />
-                                        </div>
-                                        <Separator />
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <Label>Optimisation IA pour... (1 Ticket)</Label>
-                                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                                    <Ticket className="h-4 w-4" />
-                                                    <span>{totalAiTickets} restants</span>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {platformOptions.map(({ id, label, icon: Icon }) => (
-                                                    <Button
-                                                        key={id}
-                                                        variant="outline"
-                                                        onClick={() => handleGenerateDescription(id as Platform)}
-                                                        disabled={generatingForPlatform === id || isSavingDescription || totalAiTickets <= 0}
-                                                        className="justify-start"
-                                                    >
-                                                        {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
-                                                        {label}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button variant="secondary" onClick={() => setIsDescriptionDialogOpen(false)} disabled={isSavingDescription}>Annuler</Button>
-                                        <Button onClick={handleSaveDescription} disabled={isSavingDescription || !!generatingForPlatform}>
-                                            {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Enregistrer
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                            
+                             <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setIsDescriptionDialogOpen(true)}>
+                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                    <FileText className="h-6 w-6" />
+                                </div>
+                                <span className="font-semibold">Générer une description</span>
+                                <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
+                            </div>
+                            
+                            <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setScheduleDialogOpen(true)}>
+                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                    <FilePlus className="h-6 w-6" />
+                                </div>
+                                <span className="font-semibold">Planifier / Brouillon</span>
+                                <p className="text-xs text-muted-foreground">Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </CardContent>
         </Card>
+        
+        <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Générer une description</DialogTitle>
+                    <DialogDescription>
+                        Laissez l'IA rédiger un contenu optimisé pour votre dernière image.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="title">Titre</Label>
+                        <Input id="title" placeholder="Titre généré..." value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)} disabled={!!generatingForPlatform || isSavingDescription} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea id="description" placeholder="Description générée..." value={currentDescription} onChange={(e) => setCurrentDescription(e.target.value)} rows={4} disabled={!!generatingForPlatform || isSavingDescription} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="hashtags">Hashtags</Label>
+                        <Textarea id="hashtags" placeholder="#hashtags #générés..." value={hashtagsString} onChange={(e) => setHashtagsString(e.target.value)} rows={2} disabled={!!generatingForPlatform || isSavingDescription} />
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label>Optimisation IA pour... (1 Ticket)</Label>
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                <Ticket className="h-4 w-4" />
+                                <span>{totalAiTickets} restants</span>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {platformOptions.map(({ id, label, icon: Icon }) => (
+                                <Button
+                                    key={id}
+                                    variant="outline"
+                                    onClick={() => handleGenerateDescription(id as Platform)}
+                                    disabled={generatingForPlatform === id || isSavingDescription || totalAiTickets <= 0}
+                                    className="justify-start"
+                                >
+                                    {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                    {label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="secondary" onClick={() => setIsDescriptionDialogOpen(false)} disabled={isSavingDescription}>Annuler</Button>
+                    <Button onClick={handleSaveDescription} disabled={isSavingDescription || !!generatingForPlatform}>
+                        {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Enregistrer
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Planifier une publication</DialogTitle>
+                    <DialogDescription>
+                        Associez ce post à un profil et choisissez une date de publication, ou sauvegardez-le en tant que brouillon.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="brand-profile">Profil de Marque</Label>
+                        <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                            <SelectTrigger id="brand-profile">
+                                <SelectValue placeholder="Sélectionnez un profil..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(brandProfiles || []).map(profile => (
+                                    <SelectItem key={profile.id} value={profile.id}>
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-5 w-5">
+                                                <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                                                <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <span>{profile.name}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                         {(brandProfiles || []).length === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                                Vous devez d'abord créer un profil de marque dans le <Link href="/audit" className="underline text-primary">Coach Stratégique</Link>.
+                            </p>
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Date de publication (optionnel)</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !scheduleDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Choisissez une date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={scheduleDate}
+                                    onSelect={setScheduleDate}
+                                    disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                         <p className="text-xs text-muted-foreground">Si aucune date n'est choisie, le post sera sauvegardé comme brouillon.</p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="secondary" disabled={isSavingPost}>Annuler</Button>
+                    </DialogClose>
+                    <Button onClick={handleSavePost} disabled={isSavingPost || !selectedProfileId}>
+                        {isSavingPost && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        {scheduleDate ? 'Programmer' : 'Enregistrer en brouillon'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+       </>
     );
 }
+
