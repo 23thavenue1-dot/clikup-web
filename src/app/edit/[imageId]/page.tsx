@@ -406,9 +406,9 @@ export default function EditImagePage() {
 
     return (
       <TooltipProvider>
-        <div className="flex flex-col md:flex-row h-screen bg-muted/20">
+        <div className="flex flex-col md:flex-row-reverse h-screen bg-muted/20">
             {/* --- RIGHT SIDEBAR (Controls) --- */}
-            <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-background border-r flex flex-col h-full">
+            <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-background border-l flex flex-col h-full">
                  <div className="flex-1 overflow-y-auto p-1">
                   <div className="p-3 space-y-4">
                     <Card>
