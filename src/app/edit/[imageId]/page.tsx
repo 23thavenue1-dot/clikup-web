@@ -1006,19 +1006,23 @@ ${carouselResult.slides[3].description}`;
                             </div>
                         ) : carouselResult ? (
                              <div className="grid grid-cols-4 gap-4">
-                                {carouselResult.slides.map((slide, index) => (
-                                    <div key={index} className="flex flex-col gap-2 group">
-                                        <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                            {index === 0 || (index === 2 && slide.imageUrl) ? (
-                                                <Image src={slide.imageUrl!} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
-                                            ) : (
-                                                <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
-                                                    <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
-                                                </div>
-                                            )}
+                                {carouselResult.slides.map((slide, index) => {
+                                   const isTextOnlySlide = index === 1;
+                                   const isFinalSlideText = index === 3;
+                                   return (
+                                        <div key={index} className="flex flex-col gap-2 group">
+                                             <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
+                                                {isTextOnlySlide || isFinalSlideText ? (
+                                                    <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
+                                                        <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
+                                                    </div>
+                                                ) : (
+                                                    <Image src={slide.imageUrl!} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                   )
+                               })}
                             </div>
                         ) : (
                              <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
@@ -1058,5 +1062,3 @@ ${carouselResult.slides[3].description}`;
         </div>
     );
 }
-
-
