@@ -478,7 +478,10 @@ export default function EditImagePage() {
                      <div className="w-full max-w-7xl mt-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Création de Contenus Complexes</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                  <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                                  <span>Création de Contenus Complexes</span>
+                                </CardTitle>
                                 <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -769,4 +772,3 @@ export default function EditImagePage() {
       </TooltipProvider>
     );
 }
-
