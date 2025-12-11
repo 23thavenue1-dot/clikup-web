@@ -272,7 +272,7 @@ export default function EditImagePage() {
     const handleSaveCarouselToLibrary = async () => {
         if (!carouselResult || !user || !firebaseApp || !firestore) return;
         
-        const finalImageSlide = carouselResult.slides[2];
+        const finalImageSlide = carouselResult.slides[1]; // Après
         if (!finalImageSlide || !finalImageSlide.imageUrl) {
             toast({ variant: 'destructive', title: 'Erreur', description: "L'image finale du carrousel est manquante." });
             return;
@@ -942,11 +942,11 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                             <div className="grid grid-cols-4 gap-4">
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => (
                                     <div key={index} className="flex flex-col gap-2 group">
                                         <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                            {(slide.imageUrl && index === 0) || (slide.imageUrl && index === 2) ? (
+                                            {index === 0 || index === 2 ? (
                                                 <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                             ) : (
                                                 <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
@@ -988,6 +988,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-
-
