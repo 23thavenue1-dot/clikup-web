@@ -90,7 +90,7 @@ async function createTextToImage(text: string, width: number, height: number): P
     ctx.textBaseline = 'middle';
     
     // Logique pour ajuster la taille de la police
-    let fontSize = width / 10; // Taille de base augmentée
+    let fontSize = width / 12; // Taille de base réduite
     ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
 
     // Fonction pour découper le texte en lignes
@@ -117,8 +117,8 @@ async function createTextToImage(text: string, width: number, height: number): P
     let textHeight = lines.length * (fontSize * 1.2);
 
     // Réduire la taille de la police si le texte est trop haut pour le canvas
-    while (textHeight > height * 0.8 && fontSize > 12) {
-        fontSize -= 4; // Réduction plus agressive
+    while (textHeight > height * 0.8 && fontSize > 10) {
+        fontSize -= 2;
         ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
         lines = getLines(text, width * 0.8);
         textHeight = lines.length * (fontSize * 1.2);
@@ -322,7 +322,21 @@ export default function EditImagePage() {
                 platform: platform,
             });
 
-            setCarouselResult(result);
+            // Générer les images de texte côté client pour l'aperçu
+            const textImage2 = await createTextToImage(result.slides[1].description, 800, 1000);
+            const textImage4 = await createTextToImage(result.slides[3].description, 800, 1000);
+
+            const resultWithRenderedText: GenerateCarouselOutput = {
+                slides: [
+                    result.slides[0],
+                    { imageUrl: textImage2, description: result.slides[1].description },
+                    result.slides[2],
+                    { imageUrl: textImage4, description: result.slides[3].description },
+                ]
+            };
+
+            setCarouselResult(resultWithRenderedText);
+
 
             for (let i = 0; i < CAROUSEL_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
@@ -342,15 +356,7 @@ export default function EditImagePage() {
     
         setIsSaving(true);
         try {
-            // Utilise la nouvelle fonction améliorée pour créer les images de texte
-            const textImage2 = await createTextToImage(carouselResult.slides[1].description, 800, 1000);
-            const textImage4 = await createTextToImage(carouselResult.slides[3].description, 800, 1000);
-
-            const imageUrlsToSave: (string | null)[] = [
-                textImage2,
-                carouselResult.slides[2]?.imageUrl || null, // Après
-                textImage4
-            ];
+            const imageUrlsToSave: (string | null)[] = carouselResult.slides.map(slide => slide.imageUrl).slice(1); // On ne sauvegarde que les nouvelles images
 
             const savedImageIds = await Promise.all(
                 imageUrlsToSave.map(async (imageUrl, index) => {
@@ -1068,16 +1074,15 @@ export default function EditImagePage() {
                         ) : carouselResult ? (
                              <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => {
-                                   const isTextOnlySlide = index === 1 || index === 3;
                                    return (
                                         <div key={index} className="flex flex-col gap-2 group">
                                              <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                                {isTextOnlySlide ? (
+                                                {slide.imageUrl ? (
+                                                     <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
+                                                ) : (
                                                     <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
                                                         <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
                                                     </div>
-                                                ) : (
-                                                    <Image src={slide.imageUrl!} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                                 )}
                                             </div>
                                         </div>
@@ -1122,4 +1127,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
 
