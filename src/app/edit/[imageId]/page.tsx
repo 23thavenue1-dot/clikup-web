@@ -323,20 +323,17 @@ export default function EditImagePage() {
                 platform: platform,
             });
 
-            // Générer les images de texte côté client pour l'aperçu
-            const textImage2 = await createTextToImage(result.slides[1].description, 800, 1000);
-            const textImage4 = await createTextToImage(result.slides[3].description, 800, 1000);
-
-            const resultWithRenderedText: GenerateCarouselOutput = {
+            // On ne génère plus les images textuelles ici, on les laisse en null
+            const resultForPreview: GenerateCarouselOutput = {
                 slides: [
                     result.slides[0],
-                    { imageUrl: textImage2, description: result.slides[1].description },
+                    { imageUrl: null, description: result.slides[1].description },
                     result.slides[2],
-                    { imageUrl: textImage4, description: result.slides[3].description },
+                    { imageUrl: null, description: result.slides[3].description },
                 ]
             };
 
-            setCarouselResult(resultWithRenderedText);
+            setCarouselResult(resultForPreview);
             setEditableDescriptions(result.slides.map(s => s.description));
 
 
@@ -358,10 +355,14 @@ export default function EditImagePage() {
     
         setIsSaving(true);
         try {
-            const imageUrlsToSave: (string | null)[] = carouselResult.slides.map(slide => slide.imageUrl).slice(1); // On ne sauvegarde que les nouvelles images
+            // Générer les images de texte à partir de l'état éditable
+            const textImage2 = await createTextToImage(editableDescriptions[1], 800, 1000);
+            const textImage4 = await createTextToImage(editableDescriptions[3], 800, 1000);
+
+            const finalImagesToUpload = [textImage2, carouselResult.slides[2].imageUrl, textImage4];
 
             const savedImageIds = await Promise.all(
-                imageUrlsToSave.map(async (imageUrl, index) => {
+                finalImagesToUpload.map(async (imageUrl, index) => {
                     if (!imageUrl) return null;
                     const blob = await dataUriToBlob(imageUrl);
                     const newFileName = `carousel-${index + 2}-${Date.now()}.png`;
@@ -374,7 +375,7 @@ export default function EditImagePage() {
             const validImageIds = savedImageIds.filter((id): id is string => !!id);
 
             const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${format(new Date(), 'd MMM')}`}`;
-            const galleryDescription = carouselResult.slides.map((s, i) => `ÉTAPE ${i+1}: ${s.description}`).join('\n---\n');
+            const galleryDescription = editableDescriptions.map((desc, i) => `ÉTAPE ${i+1}: ${desc}`).join('\n---\n');
             const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
     
             // Ajoute l'image originale + les 3 nouvelles
@@ -417,13 +418,13 @@ export default function EditImagePage() {
             const newFileName = `carousel-creation-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
-            const fullDescription = carouselResult.slides.map((slide, index) => `Étape ${index + 1}: ${slide.description}`).join('\n\n');
+            const fullDescription = editableDescriptions.map((desc, index) => `Étape ${index + 1}: ${desc}`).join('\n\n');
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel: ${carouselResult.slides[0].description}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel: ${editableDescriptions[0]}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Carrousel : ${carouselResult.slides[2].description}`,
+                title: `Carrousel : ${editableDescriptions[2]}`,
                 description: fullDescription,
                 generatedByAI: true
             });
