@@ -43,10 +43,10 @@ const generateCarouselFlow = ai.defineFlow(
                 3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative et flagrante possible. Le résultat doit être visiblement supérieur à l'original.
                 
                 4.  **Rédige 4 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
-                    *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
-                    *   **Description 2 (Pendant) :** Explique brièvement ton défi créatif, la transformation que tu vas opérer.
-                    *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
-                    *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires.
+                    *   **Texte 1 (Avant) :** Décris le point de départ, l'image originale.
+                    *   **Texte 2 (Pendant) :** Explique brièvement ton défi créatif, la transformation que tu vas opérer.
+                    *   **Texte 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
+                    *   **Texte 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires.
             `},
         ],
         config: {
@@ -58,7 +58,8 @@ const generateCarouselFlow = ai.defineFlow(
       throw new Error("L'IA n'a pas pu générer le contenu principal du carrousel.");
     }
     
-    const descriptions = mainGeneration.text.split('---').map(d => d.trim());
+    // Nettoyer les descriptions pour enlever les préfixes potentiels
+    const descriptions = mainGeneration.text.split('---').map(d => d.replace(/Description \d+ \([^)]+\):/, '').trim());
     if (descriptions.length < 4) {
       throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");
     }
