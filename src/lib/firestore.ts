@@ -153,7 +153,7 @@ export type ScheduledPost = {
 
 
 const DAILY_UPLOAD_TICKETS = 5;
-const DAILY_AI_TICKETS = 3;
+const DAILY_AI_TICKETS = 5;
 const MONTHLY_AI_TICKET_LIMIT = 20;
 
 export async function checkAndRefillTickets(firestore: Firestore, userDocRef: DocumentReference, userProfile: UserProfile): Promise<void> {
@@ -176,21 +176,21 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     updates.lastTicketRefill = serverTimestamp();
   }
 
-  // --- Recharge Quotidienne des Tickets IA (Logique corrigée) ---
+  // --- Recharge Quotidienne des Tickets IA (Logique corrigée et juste) ---
   const lastAiRefill = userProfile.lastAiTicketRefill ? userProfile.lastAiTicketRefill.toDate() : new Date(0);
   if (isBefore(startOfDay(lastAiRefill), startOfDay(now))) {
-      // Si on est encore dans la limite mensuelle
-      if (currentMonthlyAiCount < MONTHLY_AI_TICKET_LIMIT) {
-          const ticketsUsedYesterday = Math.max(0, DAILY_AI_TICKETS - (userProfile.aiTicketCount || 0));
-          const ticketsToGrant = Math.min(ticketsUsedYesterday, MONTHLY_AI_TICKET_LIMIT - currentMonthlyAiCount);
+    // Si on est encore dans la limite mensuelle
+    if (currentMonthlyAiCount < MONTHLY_AI_TICKET_LIMIT) {
+      const ticketsUsedYesterday = Math.max(0, DAILY_AI_TICKETS - (userProfile.aiTicketCount || 0));
+      const ticketsToGrant = Math.min(ticketsUsedYesterday, MONTHLY_AI_TICKET_LIMIT - currentMonthlyAiCount);
 
-          if (ticketsToGrant > 0) {
-              updates.aiTicketCount = increment(ticketsToGrant);
-              updates.aiTicketMonthlyCount = increment(ticketsToGrant);
-          }
+      if (ticketsToGrant > 0) {
+        updates.aiTicketCount = increment(ticketsToGrant);
+        updates.aiTicketMonthlyCount = increment(ticketsToGrant);
       }
-      // On met à jour la date de recharge même si on ne donne rien
-      updates.lastAiTicketRefill = serverTimestamp();
+    }
+    // On met à jour la date de recharge même si on ne donne rien
+    updates.lastAiTicketRefill = serverTimestamp();
   }
 
 

@@ -28,7 +28,7 @@ Ce document a pour but de vous fournir toutes les informations nécessaires pour
 ### d) Système de Tickets
 Pour garantir un service gratuit et équitable, l'utilisation de Clikup est régulée par un système de tickets quotidiens :
 *   **5 tickets de téléversement** par jour.
-*   **3 tickets IA** par jour (pour la génération de description ou l'édition d'image).
+*   **5 tickets IA** par jour (pour la génération de description ou l'édition d'image).
 Ce quota est réinitialisé automatiquement toutes les 24 heures.
 
 ---

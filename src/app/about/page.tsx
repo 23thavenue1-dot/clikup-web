@@ -62,7 +62,7 @@ export default function AboutPage() {
                            </p>
                            <ul className="mt-2 pl-6 list-disc">
                                <li><strong>5 tickets de téléversement</strong> par jour.</li>
-                               <li><strong>3 tickets IA</strong> par jour (pour la génération de description ou l'édition d'image), avec une limite de 20 tickets gratuits par mois.</li>
+                               <li><strong>5 tickets IA</strong> par jour (pour la génération de description ou l'édition d'image), avec une limite de 20 tickets gratuits par mois.</li>
                            </ul>
                            <p className="mt-2">Ce quota est réinitialisé automatiquement toutes les 24 heures.</p>
                        </details>
