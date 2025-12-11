@@ -905,15 +905,15 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                            <div className="grid grid-cols-4 gap-4">
+                             <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => (
                                     <div key={index} className="flex flex-col gap-2 group">
                                         <div className="aspect-square rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                            {slide.imageUrl ? (
+                                            {slide.imageUrl && index !== 1 && index !== 3 ? (
                                                 <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-contain" unoptimized/>
                                             ) : (
                                                 <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
-                                                    <p className="text-xl font-bold tracking-tight font-headline">"{slide.description}"</p>
+                                                    <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -939,4 +939,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
 
