@@ -185,6 +185,7 @@ export default function EditImagePage() {
     const [isCarouselDialogOpen, setIsCarouselDialogOpen] = useState(false);
     const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
     const [carouselResult, setCarouselResult] = useState<GenerateCarouselOutput | null>(null);
+    const [editableDescriptions, setEditableDescriptions] = useState<string[]>([]);
     const [carouselUserDirective, setCarouselUserDirective] = useState('');
     const [carouselApi, setCarouselApi] = useState<CarouselApi>()
     const [currentSlide, setCurrentSlide] = useState(0)
@@ -336,6 +337,7 @@ export default function EditImagePage() {
             };
 
             setCarouselResult(resultWithRenderedText);
+            setEditableDescriptions(result.slides.map(s => s.description));
 
 
             for (let i = 0; i < CAROUSEL_COST; i++) {
@@ -1093,7 +1095,7 @@ export default function EditImagePage() {
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
-                            Voici les images et les textes générés pour votre carrousel.
+                            Voici les images et les textes générés pour votre carrousel. Vous pouvez modifier les textes des diapositives 2 et 4.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -1105,14 +1107,23 @@ export default function EditImagePage() {
                         ) : carouselResult ? (
                              <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => {
+                                   const isEditable = index === 1 || index === 3;
                                    return (
                                         <div key={index} className="flex flex-col gap-2 group">
                                              <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
                                                 {slide.imageUrl ? (
                                                      <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                                 ) : (
-                                                    <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
-                                                        <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
+                                                    <div className="p-4 text-center flex flex-col items-center justify-center h-full w-full bg-gradient-to-br from-gray-900 to-black">
+                                                        <Textarea
+                                                            value={editableDescriptions[index] || ''}
+                                                            onChange={(e) => {
+                                                                const newDescriptions = [...editableDescriptions];
+                                                                newDescriptions[index] = e.target.value;
+                                                                setEditableDescriptions(newDescriptions);
+                                                            }}
+                                                            className="text-xl font-bold tracking-tight bg-transparent border-none text-white text-center focus-visible:ring-0 resize-none h-full w-full flex items-center justify-center"
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
