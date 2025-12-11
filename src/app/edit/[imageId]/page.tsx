@@ -480,12 +480,12 @@ export default function EditImagePage() {
                             <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Tabs defaultValue="instagram">
+                             <Tabs defaultValue="instagram">
                                 <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-                                    <TabsTrigger value="instagram"><Instagram className="mr-2" />Instagram</TabsTrigger>
-                                    <TabsTrigger value="facebook"><Facebook className="mr-2" />Facebook</TabsTrigger>
-                                    <TabsTrigger value="x"><MessageSquare className="mr-2" />X (Twitter)</TabsTrigger>
-                                    <TabsTrigger value="tiktok"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
+                                    <TabsTrigger value="instagram" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><Instagram className="mr-2" />Instagram</TabsTrigger>
+                                    <TabsTrigger value="facebook" className="data-[state=active]:bg-[#1877F2] data-[state=active]:text-white"><Facebook className="mr-2" />Facebook</TabsTrigger>
+                                    <TabsTrigger value="x" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black"><MessageSquare className="mr-2" />X (Twitter)</TabsTrigger>
+                                    <TabsTrigger value="tiktok" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="instagram" className="pt-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
