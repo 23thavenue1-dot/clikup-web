@@ -21,9 +21,7 @@ const generateCarouselFlow = ai.defineFlow(
   },
   async ({ baseImageUrl, concept, subjectPrompt }) => {
     
-    // Le modèle ne supporte pas le mode JSON, nous retirons donc la demande de formatage JSON.
-    // Nous allons demander une seule image améliorée et du texte, puis construire le carrousel.
-    const { output } = await ai.generate({
+    const { media, text } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
             { media: { url: baseImageUrl } },
@@ -36,7 +34,7 @@ const generateCarouselFlow = ai.defineFlow(
                 1.  **Analyse l'image de base.** Identifie sa nature (portrait, paysage, objet...) et son potentiel d'amélioration le plus pertinent et impactant. ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
                 2.  **Imagine la transformation :** Quelle est LA modification clé qui sublimerait cette image ? (Ex: améliorer l'éclairage d'un portrait, rendre un ciel plus dramatique, changer une ambiance de couleur, etc.).
                 3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative possible.
-                4.  **Rédige 3 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel :
+                4.  **Rédige 3 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
                     *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
                     *   **Description 2 (Pendant) :** Explique brièvement l'intention créative, la transformation que tu vas opérer.
                     *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
@@ -45,28 +43,25 @@ const generateCarouselFlow = ai.defineFlow(
         config: {
             responseModalities: ['TEXT', 'IMAGE'],
         },
-        output: {
-          format: "json",
-          schema: GenerateCarouselOutputSchema,
-        }
     });
 
-    if (!output) {
+    if (!media || !media.url || !text) {
       throw new Error("L'IA n'a pas pu générer le carrousel.");
     }
     
-    // Le modèle ne retourne qu'une seule image (la version "Après") et 3 descriptions.
-    // Nous construisons le carrousel en réutilisant l'image originale et la nouvelle.
-    const finalImageUrl = output.slides[2].imageUrl;
+    const descriptions = text().split('---').map(d => d.trim());
+    if (descriptions.length < 3) {
+      throw new Error("L'IA n'a pas retourné les 3 descriptions attendues.");
+    }
+    
+    const finalImageUrl = media.url;
 
     return {
         slides: [
-            { imageUrl: baseImageUrl, description: output.slides[0].description },
-            { imageUrl: finalImageUrl, description: output.slides[1].description },
-            { imageUrl: finalImageUrl, description: output.slides[2].description },
+            { imageUrl: baseImageUrl, description: descriptions[0] },
+            { imageUrl: finalImageUrl, description: descriptions[1] },
+            { imageUrl: finalImageUrl, description: descriptions[2] },
         ]
     };
   }
 );
-
-    
