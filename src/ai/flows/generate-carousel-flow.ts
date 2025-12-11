@@ -54,7 +54,7 @@ const generateCarouselFlow = ai.defineFlow(
 
     // --- APPEL 2: Génération des 4 descriptions textuelles ---
     const textGeneration = await ai.generate({
-        model: ai.model('gemini-2.5-flash'),
+        model: 'googleai/gemini-2.5-flash',
         prompt: `
             **Rôle :** Tu es un social media manager expert en storytelling.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
