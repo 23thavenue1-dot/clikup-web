@@ -23,7 +23,7 @@ const generateCarouselFlow = ai.defineFlow(
     
     // Le modèle ne supporte pas le mode JSON, nous retirons donc la demande de formatage JSON.
     // Nous allons demander une seule image améliorée et du texte, puis construire le carrousel.
-    const { output } = await ai.generate({
+    const { media } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
             { media: { url: baseImageUrl } },
@@ -40,7 +40,7 @@ const generateCarouselFlow = ai.defineFlow(
         }
     });
 
-    if (!output || !output.media) {
+    if (!media || !media.url) {
       throw new Error("L'IA n'a pas pu générer le carrousel.");
     }
     
@@ -49,8 +49,8 @@ const generateCarouselFlow = ai.defineFlow(
     return {
         slides: [
             { imageUrl: baseImageUrl, description: "Étape 1 : Le point de départ." },
-            { imageUrl: output.media.url, description: "Étape 2 : Le processus de transformation." },
-            { imageUrl: output.media.url, description: "Étape 3 : Le résultat final, sublimé !" },
+            { imageUrl: media.url, description: "Étape 2 : Le processus de transformation." },
+            { imageUrl: media.url, description: "Étape 3 : Le résultat final, sublimé !" },
         ]
     };
   }
