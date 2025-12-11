@@ -20,9 +20,37 @@ const generateCarouselFlow = ai.defineFlow(
   },
   async ({ baseImageUrl, subjectPrompt, userDirective, platform }) => {
     
-    // --- ÉTAPE 1: Générer l'image "Après" ET les 4 descriptions textuelles en un seul appel ---
-    const mainGeneration = await ai.generate({
-        model: 'googleai/gemini-2.5-flash', // Modèle texte puissant
+    // --- APPEL 1: Génération de l'image "Après" ---
+    const afterImageGeneration = await ai.generate({
+        model: 'googleai/gemini-2.5-flash-image-preview',
+        prompt: [
+            { media: { url: baseImageUrl } },
+            { text: `
+                **Rôle :** Tu es un directeur artistique de renommée mondiale, spécialiste des portraits pour les magazines de mode.
+                
+                **Objectif :** Transformer ce portrait amateur en une photo de qualité studio professionnelle. La différence doit être spectaculaire.
+                ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
+
+                **Instruction de transformation :** 
+                ${userDirective 
+                    ? `L'utilisateur a donné une directive claire : "${userDirective}". Ta transformation DOIT suivre cette instruction.`
+                    : "Ta mission est de réaliser un 'glow-up' complet de ce portrait. 1. Modifie l'éclairage pour un rendu de studio flatteur et professionnel. 2. Optimise les couleurs pour que la peau soit radieuse (effet 'glowy') et les tons vibrants. 3. Lisse la peau pour unifier le teint tout en conservant une texture naturelle. 4. Accentue la netteté du regard pour le faire ressortir. Le résultat doit être visiblement optimisé."
+                }
+            `},
+        ],
+        config: {
+            responseModalities: ['IMAGE'],
+        },
+    });
+
+    if (!afterImageGeneration.media || !afterImageGeneration.media.url) {
+      throw new Error("L'IA n'a pas pu générer l'image 'Après'.");
+    }
+    const afterImageUrl = afterImageGeneration.media.url;
+
+    // --- APPEL 2: Génération des 4 descriptions textuelles ---
+    const textGeneration = await ai.generate({
+        model: 'googleai/gemini-2.5-flash',
         prompt: `
             **Rôle :** Tu es un social media manager expert en storytelling pour ${platform}.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
@@ -42,44 +70,17 @@ const generateCarouselFlow = ai.defineFlow(
         `
     });
 
-    const afterImageGeneration = await ai.generate({
-        model: 'googleai/gemini-2.5-flash-image-preview',
-        prompt: [
-            { media: { url: baseImageUrl } },
-            { text: `
-                **Rôle :** Tu es un directeur artistique expert, un retoucheur photo.
-                
-                **Objectif :** En te basant sur l'image fournie, tu vas générer une unique image "Après" qui représente une transformation.
-                ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
-
-                **Instruction de transformation :** 
-                ${userDirective 
-                    ? `L'utilisateur a donné une directive claire : "${userDirective}". Ta transformation DOIT suivre cette instruction.`
-                    : "Ta mission est d'embellir ce portrait. Apporte plus de lumière, rehausse les couleurs pour un éclat naturel et vibrant, améliore la netteté du regard et lisse subtilement la peau pour un résultat professionnel et esthétique."
-                }
-                
-                Le résultat doit être visiblement optimisé.
-            `},
-        ],
-        config: {
-            responseModalities: ['IMAGE'],
-        },
-    });
-
-    if (!afterImageGeneration.media || !afterImageGeneration.media.url || !mainGeneration.text) {
-      throw new Error("L'IA n'a pas pu générer le contenu principal du carrousel.");
+    if (!textGeneration.text) {
+        throw new Error("L'IA n'a pas pu générer les textes du carrousel.");
     }
-    
-    // Nettoyer les descriptions pour enlever les préfixes potentiels (ex: "Description 1 (Avant):", "**Texte 2:**")
-    const descriptions = mainGeneration.text.split('---').map(d => d.replace(/^\*+ *(?:Description|Texte) \d+[^:]*:[ \n]*/i, '').trim());
+
+    const descriptions = textGeneration.text.split('---').map(d => d.replace(/^\*+ *(?:Description|Texte) \d+[^:]*:[ \n]*/i, '').trim());
 
     if (descriptions.length < 4) {
       throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");
     }
-
-    const afterImageUrl = afterImageGeneration.media.url;
-
-    // Pour les slides 2 et 4, on ne retourne pas d'URL d'image, seul le texte compte.
+    
+    // Pas de génération d'image pour les textes, on retourne null.
     // L'image sera construite côté client.
     return {
         slides: [
