@@ -728,8 +728,39 @@ export default function EditImagePage() {
                             <TabsContent value="instagram" className="pt-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Carrousel Narratif</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">L'IA analyse l'image et génère un carrousel "Avant/Après" avec une histoire pour captiver votre audience.</p>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
+                                                <h4 className="font-semibold">Carrousel Narratif</h4>
+                                            </div>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground"><HelpCircle className="h-4 w-4"/></Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Comment fonctionne le Carrousel Narratif ?</DialogTitle>
+                                                        <DialogDescription>
+                                                            Cette IA analyse votre image et génère une histoire en 4 diapositives pour captiver votre audience.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="py-4 space-y-4 text-sm">
+                                                        <p>Le carrousel est conçu pour maximiser l'engagement en créant un "avant/après" percutant. Voici le comportement de l'IA selon votre image :</p>
+                                                        <ul className="space-y-2 list-disc pl-5">
+                                                            <li><strong>Pour un Portrait :</strong> L'IA sublime le modèle en ajustant la lumière, le contraste et la netteté pour un rendu professionnel, sans dénaturer la personne.</li>
+                                                            <li><strong>Pour un Paysage de Jour :</strong> L'IA transforme la scène en un <span className="font-semibold text-primary">coucher de soleil spectaculaire</span> avec des couleurs chaudes et un éclairage dramatique.</li>
+                                                            <li><strong>Pour un Objet :</strong> L'IA crée une <span className="font-semibold text-primary">mise en scène "lifestyle" réaliste</span> et inspirante pour mettre le produit en valeur dans son contexte d'utilisation.</li>
+                                                            <li><strong>Pour une Pièce d'Intérieur :</strong> L'IA range et redécore subtilement l'espace pour créer une ambiance zen et minimaliste.</li>
+                                                        </ul>
+                                                         <Separator/>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            <strong>Avis de non-responsabilité :</strong> Clikup utilise des modèles d'IA expérimentaux. Les résultats sont fournis "en l'état" et peuvent parfois être imprévisibles ou ne pas correspondre exactement à vos attentes.
+                                                        </p>
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground flex-grow">Générez un carrousel "Avant/Après" avec une histoire pour captiver votre audience.</p>
                                         <div className="space-y-2 pt-2">
                                             <Label htmlFor="carousel-directive" className="text-xs font-semibold">Directive (optionnel)</Label>
                                             <Input 
