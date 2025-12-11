@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import type { GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
+import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -189,6 +190,7 @@ export default function EditImagePage() {
     const [carouselUserDirective, setCarouselUserDirective] = useState('');
     const [carouselApi, setCarouselApi] = useState<CarouselApi>()
     const [currentSlide, setCurrentSlide] = useState(0)
+    const [regeneratingSlideIndex, setRegeneratingSlideIndex] = useState<number | null>(null);
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -347,6 +349,39 @@ export default function EditImagePage() {
             setIsCarouselDialogOpen(false);
         } finally {
             setIsGeneratingCarousel(false);
+        }
+    };
+    
+    const handleRegenerateText = async (index: number) => {
+        if (!carouselResult || !originalImage || !userProfile || totalAiTickets < 1) {
+            toast({ variant: 'destructive', title: 'Action impossible', description: 'Données manquantes ou tickets IA insuffisants.' });
+            return;
+        }
+        
+        const afterImage = carouselResult.slides[2];
+        if (!afterImage || !afterImage.imageUrl) return;
+
+        setRegeneratingSlideIndex(index);
+        try {
+            const result = await regenerateCarouselText({
+                baseImageUrl: originalImage.directUrl,
+                afterImageUrl: afterImage.imageUrl,
+                slideIndex: index,
+                currentText: editableDescriptions[index],
+                platform: 'instagram', // ou une autre plateforme si nécessaire
+            });
+
+            const newDescriptions = [...editableDescriptions];
+            newDescriptions[index] = result.newText;
+            setEditableDescriptions(newDescriptions);
+            
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
+            toast({ title: 'Texte regénéré !', description: 'Un ticket IA a été utilisé.' });
+
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de regénérer le texte.' });
+        } finally {
+            setRegeneratingSlideIndex(null);
         }
     };
 
@@ -1083,7 +1118,7 @@ export default function EditImagePage() {
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
-                            Voici les images et les textes générés. Vous pouvez <span className="text-green-600 font-semibold">modifier les textes</span> des diapositives textuelles en cliquant simplement dessus.
+                            Voici les images et les textes générés. Vous pouvez <span className="text-green-600 font-semibold">modifier les textes</span> en cliquant simplement dessus pour les personnaliser.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -1112,6 +1147,17 @@ export default function EditImagePage() {
                                                             }}
                                                             className="text-xl font-bold tracking-tight bg-transparent border-none text-white text-center focus-visible:ring-0 resize-none h-full w-full flex items-center justify-center"
                                                         />
+                                                         {isEditable && (
+                                                            <Button 
+                                                                size="icon" 
+                                                                variant="ghost" 
+                                                                className="absolute bottom-2 right-2 text-white/50 hover:text-white hover:bg-white/10"
+                                                                onClick={() => handleRegenerateText(index)}
+                                                                disabled={regeneratingSlideIndex === index}
+                                                            >
+                                                                {regeneratingSlideIndex === index ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4"/>}
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -1201,4 +1247,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
