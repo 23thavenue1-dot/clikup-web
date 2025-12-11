@@ -38,7 +38,7 @@ const generateCarouselFlow = ai.defineFlow(
                     : "Ta mission est d'embellir ce portrait. Apporte plus de lumière, rehausse les couleurs pour un éclat naturel et vibrant, améliore la netteté du regard et lisse subtilement la peau pour un résultat professionnel et esthétique."
                 }
                 
-                Le résultat doit être visiblement supérieur à l'original.
+                Le résultat doit être visiblement optimisé.
             `},
         ],
         config: {
