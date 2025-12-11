@@ -24,7 +24,7 @@ import {
 } from 'firebase/firestore';
 import { getStorage, ref, listAll, deleteObject, Storage, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User } from 'firebase/auth';
-import { isBefore, startOfDay, startOfMonth, format } from 'date-fns';
+import { isBefore, startOfDay, startOfMonth, format, subDays } from 'date-fns';
 import { withErrorHandling } from '@/lib/async-wrapper';
 
 
@@ -161,6 +161,7 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
   const now = new Date();
   let currentMonthlyAiCount = userProfile.aiTicketMonthlyCount ?? 0;
 
+  // --- Réinitialisation Mensuelle ---
   const lastMonthlyReset = userProfile.aiTicketMonthlyReset ? userProfile.aiTicketMonthlyReset.toDate() : new Date(0);
   if (isBefore(startOfMonth(lastMonthlyReset), startOfMonth(now))) {
     updates.aiTicketMonthlyCount = 0;
@@ -168,25 +169,30 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     currentMonthlyAiCount = 0;
   }
 
+  // --- Recharge Quotidienne des Tickets d'Upload ---
   const lastUploadRefill = userProfile.lastTicketRefill ? userProfile.lastTicketRefill.toDate() : new Date(0);
   if (isBefore(startOfDay(lastUploadRefill), startOfDay(now))) {
     updates.ticketCount = DAILY_UPLOAD_TICKETS;
     updates.lastTicketRefill = serverTimestamp();
   }
 
+  // --- Recharge Quotidienne des Tickets IA (Logique corrigée) ---
   const lastAiRefill = userProfile.lastAiTicketRefill ? userProfile.lastAiTicketRefill.toDate() : new Date(0);
   if (isBefore(startOfDay(lastAiRefill), startOfDay(now))) {
-    if (currentMonthlyAiCount < MONTHLY_AI_TICKET_LIMIT) {
-      const ticketsToGrant = Math.min(DAILY_AI_TICKETS, MONTHLY_AI_TICKET_LIMIT - currentMonthlyAiCount);
-      updates.aiTicketCount = ticketsToGrant;
-      if (ticketsToGrant > 0) {
-        updates.aiTicketMonthlyCount = increment(ticketsToGrant);
+      // Si on est encore dans la limite mensuelle
+      if (currentMonthlyAiCount < MONTHLY_AI_TICKET_LIMIT) {
+          const ticketsUsedYesterday = Math.max(0, DAILY_AI_TICKETS - (userProfile.aiTicketCount || 0));
+          const ticketsToGrant = Math.min(ticketsUsedYesterday, MONTHLY_AI_TICKET_LIMIT - currentMonthlyAiCount);
+
+          if (ticketsToGrant > 0) {
+              updates.aiTicketCount = increment(ticketsToGrant);
+              updates.aiTicketMonthlyCount = increment(ticketsToGrant);
+          }
       }
-    } else {
-      updates.aiTicketCount = 0;
-    }
-    updates.lastAiTicketRefill = serverTimestamp();
+      // On met à jour la date de recharge même si on ne donne rien
+      updates.lastAiTicketRefill = serverTimestamp();
   }
+
 
   if (Object.keys(updates).length > 0) {
     await withErrorHandling(() => updateDoc(userDocRef, updates), {
@@ -641,3 +647,4 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
 }
 
 
+    
