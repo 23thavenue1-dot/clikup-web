@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, addDoc, collection, getDoc, DocumentReference } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -31,7 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -433,8 +434,8 @@ export default function EditImagePage() {
     if (!originalImage) {
          return (
             <div className="container mx-auto p-8 text-center">
-                 <h1 className="text-2xl font-bold">Image introuvable</h1>
-                 <p className="text-muted-foreground">L'image que vous essayez de modifier n'existe pas ou vous n'y avez pas accès.</p>
+                 <h1 className="text-2xl font-bold">Rapport introuvable</h1>
+                 <p className="text-muted-foreground">Le rapport que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
                  <Button asChild className="mt-4">
                     <Link href="/">Retour à l'accueil</Link>
                  </Button>
@@ -448,7 +449,7 @@ export default function EditImagePage() {
 
 
     return (
-        <div className="flex flex-col h-screen bg-background">
+        <div className="flex flex-col md:flex-row h-screen bg-background">
             
             <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-6 overflow-y-auto">
                 {/* --- Header --- */}
