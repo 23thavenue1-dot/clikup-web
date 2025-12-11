@@ -42,11 +42,12 @@ const generateCarouselFlow = ai.defineFlow(
 
                 3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative et flagrante possible. Le résultat doit être visiblement supérieur à l'original.
                 
-                4.  **Rédige 4 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
-                    *   **Texte 1 (Avant) :** Décris le point de départ, l'image originale.
-                    *   **Texte 2 (Pendant) :** Explique brièvement ton défi créatif, la transformation que tu vas opérer.
-                    *   **Texte 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
-                    *   **Texte 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires.
+                4.  **Rédige 4 descriptions très courtes et percutantes** pour raconter cette histoire. Sépare chaque description par '---'.
+                    **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Texte 1", "Texte 2", etc.
+                    *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
+                    *   **Description 2 (Pendant) :** Explique brièvement ton défi créatif, la transformation que tu vas opérer.
+                    *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
+                    *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires.
             `},
         ],
         config: {
@@ -58,8 +59,8 @@ const generateCarouselFlow = ai.defineFlow(
       throw new Error("L'IA n'a pas pu générer le contenu principal du carrousel.");
     }
     
-    // Nettoyer les descriptions pour enlever les préfixes potentiels
-    const descriptions = mainGeneration.text.split('---').map(d => d.replace(/Description \d+ \([^)]+\):/, '').trim());
+    // Nettoyer les descriptions pour enlever les préfixes potentiels (ex: "Description 1 (Avant):", "**Texte 2:**")
+    const descriptions = mainGeneration.text.split('---').map(d => d.replace(/^\*+Texte\s\d+\s?\**[:\s]*/i, '').trim());
     if (descriptions.length < 4) {
       throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");
     }
@@ -81,7 +82,7 @@ const generateCarouselFlow = ai.defineFlow(
     // --- APPEL 3: Génération de l'image "Question" ---
     const questionGeneration = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: `Crée une image graphique simple et élégante pour un post de réseau social. Au centre, sur un fond texturé subtil (comme du papier ou un mur de couleur neutre), écris en grosses lettres lisibles et stylées la question : "${descriptions[3]}". L'ambiance doit être engageante et inciter à la réponse.`,
+        prompt: `Crée une image graphique simple et élégante pour un post de réseau social. Au centre, sur un fond texturé subtil (comme du papier ou un mur de couleur neutre), écris en grosses lettres lisibles et stylées le texte suivant : "${descriptions[3]}"`,
         config: { aspectRatio: '3:4' }
     });
 
