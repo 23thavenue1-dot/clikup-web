@@ -375,7 +375,7 @@ export default function EditImagePage() {
             const validImageIds = savedImageIds.filter((id): id is string => !!id);
 
             const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${format(new Date(), 'd MMM')}`}`;
-            const galleryDescription = editableDescriptions.map((desc, i) => `ÉTAPE ${i+1}: ${desc}`).join('\n---\n');
+            const galleryDescription = editableDescriptions.map((desc, i) => `ÉTAPE ${i+1}: ${desc}`).join('\\n---\\n');
             const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
     
             // Ajoute l'image originale + les 3 nouvelles
@@ -418,7 +418,7 @@ export default function EditImagePage() {
             const newFileName = `carousel-creation-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
-            const fullDescription = editableDescriptions.map((desc, index) => `Étape ${index + 1}: ${desc}`).join('\n\n');
+            const fullDescription = editableDescriptions.map((desc, index) => `Étape ${index + 1}: ${desc}`).join('\\n\\n');
 
             const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel: ${editableDescriptions[0]}`, () => {});
             
@@ -715,7 +715,7 @@ export default function EditImagePage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
-                            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
                             <span>Création de Contenus optimisés</span>
                         </CardTitle>
                         <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
@@ -912,7 +912,6 @@ export default function EditImagePage() {
                                     {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
                                     {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
                                 </Button>
-
                                  <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
@@ -920,7 +919,6 @@ export default function EditImagePage() {
                                         </Button>
                                     </DialogTrigger>
                                 </Dialog>
-
                                 <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating || !currentHistoryItem} className="w-full" variant="secondary">
                                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                     Enregistrer la création
