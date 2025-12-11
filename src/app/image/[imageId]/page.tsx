@@ -290,7 +290,7 @@ export default function ImageDetailPage() {
                             <div className="p-2 bg-primary/10 text-primary rounded-lg">
                                 <FileText className="h-6 w-6" />
                             </div>
-                            <span className="font-semibold">Générer une description</span>
+                            <span className="font-semibold">Modifier ou générer une descrption IA</span>
                             <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
                         </div>
                         
