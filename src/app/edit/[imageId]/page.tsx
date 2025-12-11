@@ -406,7 +406,7 @@ export default function EditImagePage() {
 
     return (
       <TooltipProvider>
-        <div className="flex flex-col md:flex-row-reverse h-screen bg-muted/20">
+        <div className="flex flex-col md:flex-row h-screen bg-muted/20">
             {/* --- RIGHT SIDEBAR (Controls) --- */}
             <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-background border-l flex flex-col h-full">
                  <div className="flex-1 overflow-y-auto p-1">
@@ -603,9 +603,9 @@ export default function EditImagePage() {
                   </div>
                 </div>
             </aside>
-            
+
             {/* -- MAIN CONTENT (Images & Complex Generation) -- */}
-            <main className="flex-1 flex flex-col overflow-auto">
+            <main className="flex-1 flex flex-col overflow-y-auto">
                 <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
                     <div className="container mx-auto p-3 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -629,7 +629,7 @@ export default function EditImagePage() {
                     </div>
                 </header>
 
-                <div className="flex-1 container mx-auto p-4 lg:p-6 flex flex-col items-center gap-6">
+                <div className="flex-1 container mx-auto p-4 lg:p-6 flex flex-col items-center">
                     <Card className="w-full max-w-7xl">
                         <CardContent className="p-4 md:p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -672,53 +672,57 @@ export default function EditImagePage() {
                             </div>
                         </CardContent>
                     </Card>
-                    
-                    <Card className="w-full max-w-7xl">
-                        <CardHeader>
-                            <CardTitle>Création de Contenus Complexes</CardTitle>
-                            <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Tabs defaultValue="instagram">
-                                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-                                    <TabsTrigger value="instagram"><Instagram className="mr-2" />Instagram</TabsTrigger>
-                                    <TabsTrigger value="facebook"><Facebook className="mr-2" />Facebook</TabsTrigger>
-                                    <TabsTrigger value="x"><MessageSquare className="mr-2" />X (Twitter)</TabsTrigger>
-                                    <TabsTrigger value="tiktok"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="instagram" className="pt-6">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
-                                                <h4 className="font-semibold">Carrousel Narratif</h4>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">Crée une séquence de 3 images (intro, action, conclusion) pour un post carrousel.</p>
-                                            <Button size="sm" disabled>Générer le Carrousel (3 Tickets IA)</Button>
-                                        </div>
-                                         <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
-                                                <h4 className="font-semibold">Motion Design pour Story</h4>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">Transforme l'image en une courte vidéo de 5s avec animations légères.</p>
-                                            <Button size="sm" disabled>Générer la Story (5 Tickets IA)</Button>
-                                        </div>
-                                         <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div>
-                                                <h4 className="font-semibold">Short / Réel Thématique</h4>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">Crée une vidéo sur un thème (ex: cyberpunk, vintage) inspiré de l'image.</p>
-                                            <Button size="sm" disabled>Générer le Réel (5 Tickets IA)</Button>
-                                        </div>
-                                    </div>
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-
                 </div>
+                
+                <div className="mt-auto w-full bg-background border-t">
+                    <div className="container mx-auto p-4 lg:p-6">
+                        <Card className="w-full max-w-7xl mx-auto">
+                            <CardHeader>
+                                <CardTitle>Création de Contenus Complexes</CardTitle>
+                                <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Tabs defaultValue="instagram">
+                                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                                        <TabsTrigger value="instagram"><Instagram className="mr-2" />Instagram</TabsTrigger>
+                                        <TabsTrigger value="facebook"><Facebook className="mr-2" />Facebook</TabsTrigger>
+                                        <TabsTrigger value="x"><MessageSquare className="mr-2" />X (Twitter)</TabsTrigger>
+                                        <TabsTrigger value="tiktok"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="instagram" className="pt-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
+                                                    <h4 className="font-semibold">Carrousel Narratif</h4>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">Crée une séquence de 3 images (intro, action, conclusion) pour un post carrousel.</p>
+                                                <Button size="sm" disabled>Générer le Carrousel (3 Tickets IA)</Button>
+                                            </div>
+                                             <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
+                                                    <h4 className="font-semibold">Motion Design pour Story</h4>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">Transforme l'image en une courte vidéo de 5s avec animations légères.</p>
+                                                <Button size="sm" disabled>Générer la Story (5 Tickets IA)</Button>
+                                            </div>
+                                             <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div>
+                                                    <h4 className="font-semibold">Short / Réel Thématique</h4>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">Crée une vidéo sur un thème (ex: cyberpunk, vintage) inspiré de l'image.</p>
+                                                <Button size="sm" disabled>Générer le Réel (5 Tickets IA)</Button>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
             </main>
             
             <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
