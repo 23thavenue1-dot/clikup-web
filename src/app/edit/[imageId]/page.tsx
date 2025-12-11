@@ -1,6 +1,4 @@
 
-
-      
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -15,8 +13,9 @@ import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { editImage } from '@/ai/flows/generate-image-flow';
-import { generateCarousel, type GenerateCarouselOutput } from '@/ai/flows/generate-carousel-flow';
+import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
+import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
+import type { GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -449,7 +448,7 @@ export default function EditImagePage() {
 
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-background">
+        <div className="flex flex-col h-screen bg-background">
             
             <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-6 overflow-y-auto">
                 {/* --- Header --- */}
@@ -470,34 +469,32 @@ export default function EditImagePage() {
                    </Badge>
                 </header>
 
-                <Card className="w-full max-w-7xl mx-auto">
-                    <CardContent className="p-4 md:p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            <div className="flex flex-col gap-2">
-                                <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
-                                <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
-                                    <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                                </div>
+                <Card>
+                    <CardContent className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div className="flex flex-col gap-2">
+                            <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
+                            <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
+                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-center gap-4 relative h-6">
-                                <Badge className="w-fit mx-auto">APRÈS</Badge>
-                                {!isGenerating && generatedImageHistory.length > 0 && (
-                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
-                                                <Undo2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
-                                                <Redo2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-sm">
-                                    {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                                    {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                                    {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-                                </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-center gap-4 relative h-6">
+                            <Badge className="w-fit mx-auto">APRÈS</Badge>
+                            {!isGenerating && generatedImageHistory.length > 0 && (
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+                                        <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
+                                            <Undo2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                            <Redo2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-sm">
+                                {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                             </div>
                         </div>
                     </CardContent>
@@ -910,6 +907,4 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-    
 
