@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -636,27 +636,22 @@ export default function EditImagePage() {
                                         <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
                                     </div>
                                     <Separator/>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button 
-                                                variant="outline" 
-                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" 
-                                                disabled={isGeneratingDescription || !hasAiTickets}
-                                            >
-                                                {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
-                                                {isGeneratingDescription ? "Génération..." : "Générer pour... (1 Ticket IA)"}
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                         <DropdownMenuContent className="w-56">
-                                            <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Optimisation IA pour... (1 Ticket)</Label>
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                                <span className="text-primary">{totalAiTickets}</span> tickets restants
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('instagram')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Instagram className="mr-2 h-4 w-4"/>Instagram</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('facebook')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Facebook className="mr-2 h-4 w-4"/>Facebook</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('x')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><MessageSquare className="mr-2 h-4 w-4"/>X (Twitter)</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('tiktok')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><VenetianMask className="mr-2 h-4 w-4"/>TikTok</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('ecommerce')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><ShoppingCart className="mr-2 h-4 w-4"/>E-commerce</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('generic')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Wand2 className="mr-2 h-4 w-4"/>Générique</Button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <DialogFooter>
                                      <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
@@ -670,6 +665,43 @@ export default function EditImagePage() {
                         </Button>
                       </CardContent>
                     </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white text-xs font-bold">4</span>
+                                <span>Création de Contenus Complexes</span>
+                            </CardTitle>
+                            <CardDescription>Générez des formats de contenu avancés à partir de votre image.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
+                                    <h4 className="font-semibold">Carrousel Narratif</h4>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Crée une séquence de 3 images (intro, action, conclusion) pour un post carrousel.</p>
+                                <Button size="sm" disabled>Générer le Carrousel (3 Tickets IA)</Button>
+                            </div>
+                             <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
+                                    <h4 className="font-semibold">Motion Design pour Story</h4>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Transforme l'image en une courte vidéo de 5s avec animations légères.</p>
+                                <Button size="sm" disabled>Générer la Story (5 Tickets IA)</Button>
+                            </div>
+                             <div className="p-4 border rounded-lg flex flex-col gap-2 bg-muted/30">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div>
+                                    <h4 className="font-semibold">Short / Réel Thématique</h4>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Crée une vidéo sur un thème (ex: cyberpunk, vintage) inspiré de l'image.</p>
+                                <Button size="sm" disabled>Générer le Réel (5 Tickets IA)</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                   </div>
                 </div>
             </aside>
