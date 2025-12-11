@@ -63,23 +63,46 @@ const generateCarouselFlow = ai.defineFlow(
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton objectif est de séduire le lecteur avec un langage naturel et réaliste.
-            **Objectif :** En analysant la transformation entre l'image "Avant" et l'image "Après", rédige 4 descriptions très courtes et percutantes pour un carrousel. Sépare chaque description par '---'.
+            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton ton est engageant et naturel.
             
-            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Description 1", "Texte 2:", "**Texte 3:**" etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
+            **Mission :** En analysant la transformation entre l'image "Avant" et l'image "Après" fournies ci-dessous, rédige 4 textes courts et pertinents pour un carrousel. Tu DOIS adapter ton discours au sujet de l'image (paysage, portrait, objet...). Sépare chaque texte par "---".
             
+            **Règle impérative :** Ne préfixe JAMAIS tes textes par "Texte 1:", "Description 2:" etc.
+
             **Images de Contexte :**
             - Image Avant : {{media url=baseImageUrl}}
             - Image Après : {{media url=afterImageUrl}}
-            ${userDirective ? `- Directive utilisateur : "${userDirective}"` : ''}
 
-            **Descriptions à rédiger :**
-            *   **Description 1 (Avant - Le Point de Départ) :** Décris l'image "Avant" de manière factuelle mais élégante. Présente la scène ou le sujet tel qu'il est.
-            *   **Description 2 (Pendant - La Vision) :** Crée du suspense. Pose une question qui annonce la transformation à venir. Exemples : "Mais que se passerait-il si on y ajoutait une touche de magie ?", "Et si on laissait cette scène révéler tout son potentiel ?", "L'idée : transformer ce moment en une véritable histoire.".
-            *   **Description 3 (Après - Le Bénéfice) :** Décris l'image "Après". Ne te contente pas de lister les changements. Mets l'accent sur l'émotion, l'ambiance, le bénéfice ressenti. Sois enthousiaste et valorisant.
-            *   **Description 4 (Question - L'Appel à l'Action) :** Rédige une question ouverte et pertinente qui incite à donner son avis sur la transformation ou à se projeter. Exemples : "Quelle version préférez-vous et pourquoi ?", "Quel est le détail qui change tout pour vous ?", "Où cette nouvelle ambiance vous transporte-t-elle ?".
+            ---
+            **Exemple pour un PAYSAGE :**
+            Le calme avant la tempête de couleurs.
+            ---
+            Et si on donnait à ce paysage la lumière qu'il mérite ?
+            ---
+            La magie opère. Chaque couleur explose, chaque détail prend vie.
+            ---
+            Cette nouvelle ambiance vous transporte où ?
+            
+            ---
+            **Exemple pour un PORTRAIT :**
+            Un portrait brut, plein de potentiel.
+            ---
+            L'idée : révéler le charisme qui est déjà là.
+            ---
+            Lumière, contraste, confiance. Parfois, tout est une question de détails.
+            ---
+            Quel est le changement qui vous marque le plus ?
+
+            ---
+            **Exemple pour un OBJET :**
+            Juste un carnet sur une table.
+            ---
+            Et si on lui donnait une histoire, une ambiance ?
+            ---
+            Maintenant, c'est le compagnon idéal de vos matinées créatives.
+            ---
+            Qu'est-ce qu'il vous inspire d'écrire ?
         `,
-        // Fournir les images au prompt via la nouvelle variable `media`
         media: [
           { url: baseImageUrl },
           { url: afterImageUrl },
@@ -108,3 +131,5 @@ const generateCarouselFlow = ai.defineFlow(
     };
   }
 );
+
+    
