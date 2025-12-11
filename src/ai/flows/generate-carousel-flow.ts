@@ -19,7 +19,7 @@ const generateCarouselFlow = ai.defineFlow(
     inputSchema: GenerateCarouselInputSchema,
     outputSchema: GenerateCarouselOutputSchema,
   },
-  async ({ baseImageUrl, subjectPrompt, userDirective }) => {
+  async ({ baseImageUrl, subjectPrompt, userDirective, platform }) => {
     
     // --- APPEL 1: Génération de l'image "Après" ---
     const afterImageGeneration = await ai.generate({
@@ -56,20 +56,20 @@ const generateCarouselFlow = ai.defineFlow(
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling.
+            **Rôle :** Tu es un social media manager expert en storytelling, spécialisé pour la plateforme **${platform || 'générique'}**.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
             
-            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Texte 1", "Texte 2", etc.
+            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Texte 1", "Texte 2", etc. Le ton doit être engageant et adapté à **${platform || 'un réseau social'}**.
             
             **Contexte :**
             - Image Avant : Une photo de base.
             - Image Après : La même photo, mais améliorée et plus professionnelle.
             
             **Descriptions à rédiger :**
-            *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
-            *   **Description 2 (Pendant) :** Explique brièvement le défi créatif, la transformation qui va être opérée.
-            *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
-            *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires.
+            *   **Description 1 (Avant) :** Décris le point de départ, l'image originale. Sois factuel mais intriguant.
+            *   **Description 2 (Pendant) :** Explique brièvement le défi créatif, la transformation qui va être opérée. Crée du suspense.
+            *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation. Utilise un ton enthousiaste.
+            *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires (style Instagram).
         `
     });
 
@@ -77,7 +77,6 @@ const generateCarouselFlow = ai.defineFlow(
         throw new Error("L'IA n'a pas pu générer les descriptions du carrousel.");
     }
     
-    // Nettoyer les descriptions pour enlever les préfixes potentiels (ex: "**Texte 2:**")
     const descriptions = textGeneration.text.split('---').map(d => d.replace(/^\*+Texte\s\d+\s?\**[:\s]*/i, '').trim());
     if (descriptions.length < 4) {
       throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");

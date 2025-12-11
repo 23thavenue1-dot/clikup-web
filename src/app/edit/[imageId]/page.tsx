@@ -233,7 +233,7 @@ export default function EditImagePage() {
         }
     };
     
-    const handleGenerateCarousel = async () => {
+    const handleGenerateCarousel = async (platform: string) => {
         const CAROUSEL_COST = 3;
         if (!originalImage || !userProfile || totalAiTickets < CAROUSEL_COST) {
             toast({ 
@@ -252,6 +252,7 @@ export default function EditImagePage() {
                 baseImageUrl: originalImage.directUrl,
                 subjectPrompt: originalImage.description || originalImage.title,
                 userDirective: carouselUserDirective || undefined,
+                platform: platform,
             });
 
             setCarouselResult(result);
@@ -672,7 +673,7 @@ ${carouselResult.slides[3].description}`;
                                                 disabled={isGeneratingCarousel}
                                             />
                                         </div>
-                                        <Button size="sm" onClick={handleGenerateCarousel} disabled={isGeneratingCarousel}>
+                                        <Button size="sm" onClick={() => handleGenerateCarousel('instagram')} disabled={isGeneratingCarousel}>
                                             {isGeneratingCarousel ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                                             Générer (3 Tickets)
                                         </Button>
