@@ -241,7 +241,7 @@ export function ImageList() {
         
         if (!error) {
             toast({
-                title: `${imageIdsToDelete.length} image(s) supprimée(s)`,
+                title: `${'imageIdsToDelete.length'} image(s) supprimée(s)`,
                 description: "Les images sélectionnées ont été définitivement supprimées.",
             });
             setIsSelectionMode(false);
@@ -466,7 +466,7 @@ export function ImageList() {
         
         if (!error) {
             if (scheduleDate) {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${'format(scheduleDate, \'PPP\', { locale: fr })'}.` });
             } else {
                 toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
             }
@@ -555,7 +555,7 @@ export function ImageList() {
                             <DropdownMenuItem asChild>
                                 <Link href={`/edit/${image.id}`} passHref>
                                     <Sparkles className="mr-2 h-4 w-4" />
-                                    <span>Éditer avec l'IA</span>
+                                    <span>Éditer, Modifier avec l'IA</span>
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
