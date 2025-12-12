@@ -147,7 +147,6 @@ export function Uploader() {
   const [showRegenerateAlert, setShowRegenerateAlert] = useState(false);
   const [showResetAlert, setShowResetAlert] = useState(false);
 
-  // NOUVEAU: Pour la conversion HEIC
   const [isConverting, setIsConverting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
@@ -289,17 +288,25 @@ export function Uploader() {
 
         setIsConverting(true);
         setPreviewUrl(null);
-        setSelectedFile(file);
+        setSelectedFile(file); // Garder le fichier original pour l'info
 
         try {
             const convertedFile = await convertHeicToJpeg(file);
-            setPreviewUrl(URL.createObjectURL(convertedFile));
-            setSelectedFile(convertedFile); // Mettre à jour le fichier sélectionné avec la version convertie
+            setSelectedFile(convertedFile); // Mettre à jour avec le fichier converti
+            
+            // Utiliser FileReader pour un aperçu fiable
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result as string);
+                setIsConverting(false);
+            };
+            reader.readAsDataURL(convertedFile);
+
         } catch (error) {
+            console.error("Erreur de conversion ou d'aperçu:", error);
             toast({ variant: 'destructive', title: 'Erreur de conversion', description: "Impossible de générer l'aperçu pour cette image." });
-            setPreviewUrl(null);
-        } finally {
             setIsConverting(false);
+            setPreviewUrl(null);
         }
         setStatus({ state: 'idle' });
     }
