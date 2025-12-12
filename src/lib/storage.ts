@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask, listAll } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import type { ImageMetadata } from './firestore';
 import { initializeFirebase } from '@/firebase';
-import heic2any from './heic-converter';
+
 
 // -----------------------------
 // Config côté client (guards)
@@ -14,49 +13,6 @@ import heic2any from './heic-converter';
 export const MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
 export const ALLOWED_MIME = /^(image\/.*)$/i;
 const NAME_EXT_FALLBACK = /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i;
-const HEIC_MIME_TYPES = ['image/heic', 'image/heif'];
-
-
-/**
- * Converts a HEIC/HEIF file to a JPEG File object if necessary.
- * If the file is not a HEIC/HEIF, it returns the original file.
- * This version is more robust and handles different outputs from heic2any.
- * @param file The file to potentially convert.
- * @returns A promise that resolves with a File object (either the original or the converted one).
- */
-export async function convertHeicToJpeg(file: File): Promise<File> {
-  const isHeic = HEIC_MIME_TYPES.includes(file.type.toLowerCase()) || 
-                 /\.(heic|heif)$/i.test(file.name);
-
-  if (!isHeic) {
-    return file; // Pas de conversion nécessaire
-  }
-
-  try {
-    const conversionResult = await heic2any({
-      blob: file,
-      toType: "image/jpeg",
-      quality: 0.9, // Qualité légèrement augmentée
-    });
-
-    const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
-    
-    // Remplacer l'extension du nom de fichier
-    const newFileName = file.name.replace(/\.[^/.]+$/, "") + ".jpeg";
-    
-    return new File([blob], newFileName, {
-      type: 'image/jpeg',
-      lastModified: file.lastModified,
-    });
-
-  } catch (error) {
-    console.error("Erreur de conversion HEIC:", error);
-    // En cas d'échec, retourner le fichier original pour que le navigateur tente de le gérer.
-    return file;
-  }
-}
-
-
 
 /**
  * DEPRECATED / TEST-ONLY: Deletes a file from Firebase Storage.

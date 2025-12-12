@@ -1,17 +1,17 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { uploadFileAndGetMetadata, convertHeicToJpeg } from '@/lib/storage';
+import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl, type UserProfile, type CustomPrompt, decrementTicketCount, decrementAiTicketCount, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,9 @@ import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { suggestionCategories } from '@/lib/ai-prompts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Importation dynamique pour heic2any
+const heic2any = dynamic(() => import('heic2any'), { ssr: false });
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -273,44 +276,51 @@ export function Uploader() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-        if (!looksLikeImage(file)) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
-            return;
-        }
-        if (userProfile && (storageUsed + file.size) > storageLimit) {
-            toast({
-                variant: 'destructive',
-                title: 'Espace de stockage insuffisant',
-                description: `Ce fichier est trop volumineux. Libérez de l'espace ou augmentez votre quota.`
-            });
-            return;
-        }
+    if (!file) return;
 
+    if (!looksLikeImage(file)) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
+        return;
+    }
+    if (userProfile && (storageUsed + file.size) > storageLimit) {
+        toast({
+            variant: 'destructive',
+            title: 'Espace de stockage insuffisant',
+            description: `Ce fichier est trop volumineux. Libérez de l'espace ou augmentez votre quota.`
+        });
+        return;
+    }
+
+    const isHeic = /\.(heic|heif)$/i.test(file.name) || ['image/heic', 'image/heif'].includes(file.type.toLowerCase());
+    
+    if (isHeic) {
         setIsConverting(true);
         setPreviewUrl(null);
-
+        setSelectedFile(null);
         try {
-            const convertedFile = await convertHeicToJpeg(file);
-            setSelectedFile(convertedFile); // Mettre à jour avec le fichier converti
+            const heicConverter = await heic2any;
+            const conversionResult = await heicConverter({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+            const convertedBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+            const newFileName = file.name.replace(/\.[^/.]+$/, ".jpeg");
+            const convertedFile = new File([convertedBlob], newFileName, { type: 'image/jpeg', lastModified: Date.now() });
             
-            // Utiliser FileReader pour un aperçu fiable
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewUrl(reader.result as string);
-                setIsConverting(false);
-            };
-            reader.readAsDataURL(convertedFile);
-
+            setSelectedFile(convertedFile);
+            setPreviewUrl(URL.createObjectURL(convertedFile));
         } catch (error) {
-            console.error("Erreur de conversion ou d'aperçu:", error);
-            toast({ variant: 'destructive', title: 'Erreur de conversion', description: "Impossible de générer l'aperçu pour cette image." });
-            setIsConverting(false);
+            console.error("Erreur de conversion HEIC:", error);
+            toast({ variant: 'destructive', title: 'Erreur de conversion', description: 'Impossible de convertir le fichier HEIC.' });
+            setSelectedFile(null);
             setPreviewUrl(null);
+        } finally {
+            setIsConverting(false);
         }
-        setStatus({ state: 'idle' });
+    } else {
+        setSelectedFile(file);
+        setPreviewUrl(URL.createObjectURL(file));
     }
-  };
+
+    setStatus({ state: 'idle' });
+};
 
 
   // Generic upload handler
