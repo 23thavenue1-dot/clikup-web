@@ -55,8 +55,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { suggestionCategories } from '@/lib/ai-prompts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// Importation dynamique pour heic2any
-const heic2any = dynamic(() => import('heic2any'), { ssr: false });
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -298,8 +296,9 @@ export function Uploader() {
         setPreviewUrl(null);
         setSelectedFile(null);
         try {
-            const heicConverter = await heic2any;
-            const conversionResult = await heicConverter({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+            // Importation dynamique de heic2any
+            const heic2any = (await import('heic2any')).default;
+            const conversionResult = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
             const convertedBlob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
             const newFileName = file.name.replace(/\.[^/.]+$/, ".jpeg");
             const convertedFile = new File([convertedBlob], newFileName, { type: 'image/jpeg', lastModified: Date.now() });
@@ -637,8 +636,8 @@ const handleGenerateVideo = async () => {
                     <p className="mt-4 text-sm font-medium text-foreground">Conversion en cours...</p>
                 </>
             ) : previewUrl ? (
-                <div className="relative w-24 h-24 rounded-md overflow-hidden">
-                    <Image src={previewUrl} alt="Aperçu" layout="fill" objectFit="cover" />
+                 <div className="relative w-24 h-24 rounded-md overflow-hidden">
+                    <Image src={previewUrl} alt="Aperçu" fill className="object-cover" />
                 </div>
             ) : (
                 <UploadCloud className="h-12 w-12 text-muted-foreground" />
