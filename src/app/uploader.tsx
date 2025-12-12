@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -288,7 +289,6 @@ export function Uploader() {
 
         setIsConverting(true);
         setPreviewUrl(null);
-        setSelectedFile(file); // Garder le fichier original pour l'info
 
         try {
             const convertedFile = await convertHeicToJpeg(file);
