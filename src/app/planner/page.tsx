@@ -766,7 +766,7 @@ export default function PlannerPage() {
                         <ScrollArea className="max-h-[60vh]">
                             <div className="space-y-2 pr-4">
                                 {draftPosts.length > 0 ? draftPosts.map(draft => (
-                                    <Card key={draft.id} className="p-3">
+                                    <Card key={draft.id} className="p-3 hover:bg-muted/50 transition-colors">
                                         <div className="flex items-center gap-4">
                                             <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                                                 {draft.imageUrl && <Image src={draft.imageUrl} alt={draft.title} fill className="object-cover" />}
@@ -785,7 +785,7 @@ export default function PlannerPage() {
                                             </Button>
                                         </div>
                                     </Card>
-                                )) : <p className="text-center text-muted-foreground">Aucun brouillon disponible.</p>}
+                                )) : <p className="text-center text-muted-foreground py-8">Aucun brouillon disponible.</p>}
                             </div>
                         </ScrollArea>
                     </div>
