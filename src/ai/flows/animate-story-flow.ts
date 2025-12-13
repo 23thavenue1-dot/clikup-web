@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Flow Genkit pour l'animation d'une image statique en vidéo (Story Animée).
@@ -47,16 +48,18 @@ const animateStoryFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt, aspectRatio }) => {
     
-    let { operation } = await ai.generate({
-        model: 'googleai/veo-2.0-generate-001',
+    // --- CHANGEMENT DE MODÈLE POUR PLUS DE STABILITÉ ---
+    // Nous utilisons gemini-2.5-flash-image-preview qui peut aussi générer des vidéos (cinemagraphs)
+    // C'est plus fiable que Veo qui est encore très restrictif.
+    const { media, output } = await ai.generate({
+        model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
             { media: { url: imageUrl } },
-            { text: prompt },
+            { text: `Crée une vidéo animée (cinemagraph) de 5 secondes à partir de cette image, en suivant cette instruction : "${prompt}". L'animation doit être subtile et élégante.` },
         ],
         config: {
-            durationSeconds: 5,
-            aspectRatio: aspectRatio || '9:16',
-            safetySettings: [
+            responseModalities: ['VIDEO'], // On demande explicitement une vidéo
+             safetySettings: [
                 { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -65,30 +68,22 @@ const animateStoryFlow = ai.defineFlow(
         },
     });
 
-    if (!operation) {
-        throw new Error("Le modèle n'a pas retourné d'opération pour la génération vidéo.");
-    }
-
-    // Polling loop to wait for the operation to complete
-    while (!operation.done) {
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
-        operation = await ai.checkOperation(operation);
-    }
-
-    if (operation.error) {
-        console.error("Erreur de l'opération Veo:", operation.error);
-        throw new Error(`La génération de la vidéo a échoué: ${operation.error.message}`);
-    }
-
-    const video = operation.output?.message?.content.find((p) => !!p.media && p.media.contentType?.startsWith('video/'));
-    
-    if (!video) {
-        const errorDetails = JSON.stringify(operation.output, null, 2);
+    if (!media || !media.url || !media.contentType?.startsWith('video/')) {
+        const errorDetails = JSON.stringify(output, null, 2);
         console.error("Résultat de l'opération inattendu:", errorDetails);
         throw new Error("Aucune vidéo n'a été trouvée dans le résultat de l'opération. L'IA a peut-être refusé de générer le contenu.");
     }
-
-    const videoDataUri = await downloadAndEncodeVideo(video);
+    
+    // Pour ce modèle, le data URI est souvent directement retourné, pas besoin de re-télécharger.
+    // Mais on garde la logique au cas où une URL temporaire serait renvoyée.
+    if (media.url.startsWith('data:')) {
+        return {
+          videoUrl: media.url,
+        };
+    }
+    
+    // La logique de téléchargement est conservée comme fallback.
+    const videoDataUri = await downloadAndEncodeVideo({ media });
 
     return {
       videoUrl: videoDataUri,
