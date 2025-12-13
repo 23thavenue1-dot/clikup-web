@@ -1112,9 +1112,21 @@ export default function EditImagePage() {
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
-                        <DialogDescription>
-                            Voici les images et les textes générés. Vous pouvez <span className="text-green-600 font-semibold">modifier les textes</span> en cliquant simplement dessus pour les personnaliser. 
-                            Utilisez l'icône <Wand2 className="inline h-4 w-4 text-primary" /> pour obtenir de nouvelles suggestions de l'IA et renforcer la cohérence entre vos images et votre message.
+                         <DialogDescription asChild>
+                            <div className="space-y-2">
+                                <p className="flex items-start gap-2">
+                                    <span className="flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">1</span>
+                                    <span>
+                                        Vous pouvez <span className="font-semibold text-green-600">modifier les textes</span> des diapositives 2 et 4 en cliquant simplement dessus.
+                                    </span>
+                                </p>
+                                <p className="flex items-start gap-2">
+                                    <span className="flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">2</span>
+                                    <span>
+                                        Utilisez l'icône <Wand2 className="inline-block h-4 w-4 text-primary" /> pour demander à l'IA de <span className="font-semibold text-green-600">générer une nouvelle suggestion</span> de texte.
+                                    </span>
+                                </p>
+                            </div>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -1134,7 +1146,7 @@ export default function EditImagePage() {
                                                      <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                                 ) : (
                                                     <div className="p-4 text-center flex flex-col items-center justify-center h-full w-full bg-gradient-to-br from-gray-900 to-black">
-                                                        {editableDescriptions[index] ? (
+                                                        {isEditable ? (
                                                             <Textarea
                                                                 value={editableDescriptions[index] || ''}
                                                                 onChange={(e) => {
@@ -1143,9 +1155,10 @@ export default function EditImagePage() {
                                                                     setEditableDescriptions(newDescriptions);
                                                                 }}
                                                                 className="text-xl font-bold tracking-tight bg-transparent border-none text-white text-center focus-visible:ring-0 resize-none h-full w-full flex items-center justify-center"
+                                                                placeholder="Votre texte ici..."
                                                             />
                                                         ) : (
-                                                            <div className="w-full h-full" /> // Fond noir
+                                                             <p className="text-xl font-bold tracking-tight">{editableDescriptions[index]}</p>
                                                         )}
                                                          {isEditable && (
                                                             <Button 
@@ -1247,3 +1260,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+
