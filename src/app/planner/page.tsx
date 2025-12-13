@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -760,7 +759,7 @@ export default function PlannerPage() {
                 <DialogContent className="max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Ajouter un brouillon au {targetDateForDraft && format(targetDateForDraft, "d MMMM yyyy", { locale: fr })}</DialogTitle>
-                        <DialogDescription>Sélectionnez un brouillon à programmer pour ce jour.</DialogDescription>
+                        <DialogDescription>Sélectionnez un brouillon à programmer pour ce jour (à 9h00).</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <ScrollArea className="max-h-[60vh]">
@@ -779,13 +778,14 @@ export default function PlannerPage() {
                                                 size="sm"
                                                 onClick={() => handleScheduleDraftFromDialog(draft)}
                                                 disabled={isSchedulingFromDialog === draft.id}
+                                                className="flex-shrink-0"
                                             >
                                                 {isSchedulingFromDialog === draft.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarIcon className="mr-2 h-4 w-4" />}
                                                 Planifier
                                             </Button>
                                         </div>
                                     </Card>
-                                )) : <p className="text-center text-muted-foreground py-8">Aucun brouillon disponible.</p>}
+                                )) : <p className="text-center text-muted-foreground py-8">Aucun brouillon disponible pour ce profil.</p>}
                             </div>
                         </ScrollArea>
                     </div>
@@ -797,10 +797,3 @@ export default function PlannerPage() {
     );
 }
 
-
-
-    
-
-
-
-    
