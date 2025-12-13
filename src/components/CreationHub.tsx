@@ -48,7 +48,7 @@ interface CreationHubProps {
 const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
     <div
         className={cn(
-            "group relative p-5 border rounded-lg h-full flex flex-col items-start gap-3 transition-all duration-300 ease-out cursor-pointer",
+            "group relative p-5 border rounded-lg h-full flex flex-col items-start gap-3 transition-all duration-300 ease-out cursor-pointer flex-grow", // Ajout de flex-grow
             "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50", // Couleurs de base et au survol
             className
         )}
@@ -212,9 +212,9 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
                     <Link href={`/image/${lastImage.id}`} passHref>
-                        <div className="relative aspect-square rounded-lg overflow-hidden border shadow-md cursor-pointer group">
+                        <div className="relative aspect-square rounded-lg overflow-hidden border shadow-md cursor-pointer group h-full">
                             <Image
                                 src={lastImage.directUrl}
                                 alt={lastImage.title || lastImage.originalName || 'Dernière image'}
@@ -225,29 +225,26 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                             />
                         </div>
                     </Link>
-                    <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">Que voulez-vous faire avec cette image ?</p>
-                        <div className="grid grid-cols-1 gap-4">
-                            <Link href={`/edit/${lastImage.id}`} passHref>
-                                <ActionCard>
-                                    <ActionIcon icon={Wand2} />
-                                    <ActionTitle>Éditer avec l'IA</ActionTitle>
-                                    <ActionDescription>Modifiez votre image en décrivant les changements en langage naturel.</ActionDescription>
-                                </ActionCard>
-                            </Link>
-                            
-                             <ActionCard onClick={() => setIsDescriptionDialogOpen(true)}>
-                                <ActionIcon icon={FileText} />
-                                <ActionTitle>Modifier ou générer une description IA</ActionTitle>
-                                <ActionDescription>Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</ActionDescription>
+                    <div className="flex flex-col h-full gap-4">
+                        <Link href={`/edit/${lastImage.id}`} passHref>
+                            <ActionCard>
+                                <ActionIcon icon={Wand2} />
+                                <ActionTitle>Éditer avec l'IA</ActionTitle>
+                                <ActionDescription>Modifiez votre image en décrivant les changements en langage naturel.</ActionDescription>
                             </ActionCard>
-                            
-                            <ActionCard onClick={() => setScheduleDialogOpen(true)}>
-                                <ActionIcon icon={FilePlus} />
-                                <ActionTitle>Planifier / Brouillon</ActionTitle>
-                                <ActionDescription>Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</ActionDescription>
-                            </ActionCard>
-                        </div>
+                        </Link>
+                        
+                         <ActionCard onClick={() => setIsDescriptionDialogOpen(true)}>
+                            <ActionIcon icon={FileText} />
+                            <ActionTitle>Modifier ou générer une description IA</ActionTitle>
+                            <ActionDescription>Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</ActionDescription>
+                        </ActionCard>
+                        
+                        <ActionCard onClick={() => setScheduleDialogOpen(true)}>
+                            <ActionIcon icon={FilePlus} />
+                            <ActionTitle>Planifier / Brouillon</ActionTitle>
+                            <ActionDescription>Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</ActionDescription>
+                        </ActionCard>
                     </div>
                 </div>
             </CardContent>
