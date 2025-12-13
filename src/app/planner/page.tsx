@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -756,36 +757,36 @@ export default function PlannerPage() {
             </Dialog>
             
             <Dialog open={addDraftsDialogOpen} onOpenChange={setAddDraftsDialogOpen}>
-                <DialogContent className="max-w-xl">
+                <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Ajouter un brouillon au {targetDateForDraft && format(targetDateForDraft, "d MMMM yyyy", { locale: fr })}</DialogTitle>
                         <DialogDescription>Sélectionnez un brouillon à programmer pour ce jour (à 9h00).</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <ScrollArea className="max-h-[60vh]">
-                            <div className="space-y-2 pr-4">
-                                {draftPosts.length > 0 ? draftPosts.map(draft => (
-                                    <Card key={draft.id} className="p-3 hover:bg-muted/50 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                                                {draft.imageUrl && <Image src={draft.imageUrl} alt={draft.title} fill className="object-cover" />}
+                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pr-4">
+                                {(draftPostsWithImages.length > 0) ? draftPostsWithImages.map(draft => (
+                                    <div key={draft.id} className="relative aspect-square group">
+                                        <button
+                                            onClick={() => handleScheduleDraftFromDialog(draft)}
+                                            disabled={isSchedulingFromDialog === draft.id}
+                                            className="w-full h-full rounded-md overflow-hidden relative border-2 border-transparent hover:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none"
+                                        >
+                                            {draft.imageUrl ? (
+                                                <Image src={draft.imageUrl} alt={draft.title} fill className="object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground"><FileText/></div>
+                                            )}
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                {isSchedulingFromDialog === draft.id ? (
+                                                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                                                ) : (
+                                                    <PlusCircle className="h-6 w-6 text-white" />
+                                                )}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold truncate">{draft.title}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{draft.description}</p>
-                                            </div>
-                                            <Button 
-                                                size="sm"
-                                                onClick={() => handleScheduleDraftFromDialog(draft)}
-                                                disabled={isSchedulingFromDialog === draft.id}
-                                                className="flex-shrink-0"
-                                            >
-                                                {isSchedulingFromDialog === draft.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarIcon className="mr-2 h-4 w-4" />}
-                                                Planifier
-                                            </Button>
-                                        </div>
-                                    </Card>
-                                )) : <p className="text-center text-muted-foreground py-8">Aucun brouillon disponible pour ce profil.</p>}
+                                        </button>
+                                    </div>
+                                )) : <p className="col-span-full text-center text-muted-foreground py-8">Aucun brouillon disponible pour ce profil.</p>}
                             </div>
                         </ScrollArea>
                     </div>
@@ -797,3 +798,4 @@ export default function PlannerPage() {
     );
 }
 
+const draftPostsWithImages = []; // This should be populated with the actual data
