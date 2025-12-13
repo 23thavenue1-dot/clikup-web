@@ -48,9 +48,6 @@ const animateStoryFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt, aspectRatio }) => {
     
-    // --- CHANGEMENT DE MODÈLE POUR PLUS DE STABILITÉ ---
-    // Nous utilisons gemini-2.5-flash-image-preview qui peut aussi générer des vidéos (cinemagraphs)
-    // C'est plus fiable que Veo qui est encore très restrictif.
     const { media, output } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -58,7 +55,7 @@ const animateStoryFlow = ai.defineFlow(
             { text: `Crée une vidéo animée (cinemagraph) de 5 secondes à partir de cette image, en suivant cette instruction : "${prompt}". L'animation doit être subtile et élégante.` },
         ],
         config: {
-            responseModalities: ['TEXT', 'IMAGE'], // Correction: ce modèle attend IMAGE, pas VIDEO.
+            responseModalities: ['TEXT', 'IMAGE'],
              safetySettings: [
                 { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
@@ -74,15 +71,14 @@ const animateStoryFlow = ai.defineFlow(
         throw new Error("Aucune vidéo n'a été trouvée dans le résultat de l'opération. L'IA a peut-être refusé de générer le contenu.");
     }
     
-    // Pour ce modèle, le data URI est souvent directement retourné, pas besoin de re-télécharger.
-    // Mais on garde la logique au cas où une URL temporaire serait renvoyée.
+    // Si le modèle retourne directement le data URI (cas le plus courant avec ce modèle)
     if (media.url.startsWith('data:')) {
         return {
           videoUrl: media.url,
         };
     }
     
-    // La logique de téléchargement est conservée comme fallback.
+    // Sinon, on garde la logique de téléchargement comme solution de secours
     const videoDataUri = await downloadAndEncodeVideo({ media });
 
     return {
