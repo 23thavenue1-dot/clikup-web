@@ -61,48 +61,29 @@ const generateCarouselFlow = ai.defineFlow(
     }
     const afterImageUrl = afterImageGeneration.media.url;
 
-    // --- APPEL 2: Génération des descriptions pour les diapos 1 et 3 ---
+    // --- APPEL 2: Génération de la description pour la diapo 1 ---
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}.
-            
-            **Mission :** En analysant la transformation entre l'image "Avant" et l'image "Après" fournies, rédige 2 textes courts et pertinents.
-            
-            **Règle impérative :** Sépare chaque texte par "---". Ne préfixe JAMAIS tes textes par des numéros.
-            - **Texte 1 :** Décris l'image "Avant" de manière factuelle et courte.
-            - **Texte 2 :** Décris l'émotion ou le bénéfice de l'image "Après".
-
-            **Images de Contexte :**
-            - Image Avant : {{media url=baseImageUrl}}
-            - Image Après : {{media url=afterImageUrl}}
-
-            ---
-            **Exemple :**
-            Un paysage brut, plein de potentiel.
-            ---
-            La magie opère. Chaque couleur explose, chaque détail prend vie.
+            **Rôle :** Tu es un social media manager expert en storytelling.
+            **Mission :** En une phrase courte, décris l'image suivante de manière factuelle mais intrigante.
+            **Image de Contexte :**
+            {{media url=baseImageUrl}}
         `,
         media: [
           { url: baseImageUrl },
-          { url: afterImageUrl },
         ]
     });
 
     if (!textGeneration.text) {
-        throw new Error("L'IA n'a pas pu générer les textes du carrousel.");
-    }
-
-    const descriptions = textGeneration.text.split('---').map(d => d.trim());
-    if (descriptions.length < 2) {
-      throw new Error("L'IA n'a pas retourné les 2 descriptions attendues.");
+        throw new Error("L'IA n'a pas pu générer le texte de la diapositive 1.");
     }
     
     return {
         slides: [
-            { imageUrl: baseImageUrl, description: descriptions[0] },
+            { imageUrl: baseImageUrl, description: textGeneration.text.trim() },
             { imageUrl: null, description: "" }, // Diapo 2 vide
-            { imageUrl: afterImageUrl, description: descriptions[1] }, 
+            { imageUrl: afterImageUrl, description: "" }, // Diapo 3 avec image mais sans texte
             { imageUrl: null, description: "" }, // Diapo 4 vide
         ]
     };
