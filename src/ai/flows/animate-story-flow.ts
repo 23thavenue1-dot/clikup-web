@@ -58,7 +58,7 @@ const animateStoryFlow = ai.defineFlow(
             { text: `Crée une vidéo animée (cinemagraph) de 5 secondes à partir de cette image, en suivant cette instruction : "${prompt}". L'animation doit être subtile et élégante.` },
         ],
         config: {
-            responseModalities: ['VIDEO'], // On demande explicitement une vidéo
+            responseModalities: ['TEXT', 'IMAGE'], // Correction: ce modèle attend IMAGE, pas VIDEO.
              safetySettings: [
                 { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
