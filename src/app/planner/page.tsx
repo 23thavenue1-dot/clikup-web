@@ -8,7 +8,7 @@ import { collection, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings, PlusCircle } from 'lucide-react';
 import { format, isSameDay, startOfMonth, addMonths, subMonths, endOfMonth, startOfWeek, endOfWeek, isSameMonth, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,7 @@ import {
 import { TimePicker } from '@/components/ui/time-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
@@ -282,7 +283,7 @@ function ImageLoader({ post, storage }: { post: ScheduledPost, storage: Firebase
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
-function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule, onDelete, router }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
+function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule, onDelete, router, onAddClick }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter>, onAddClick: (date: Date) => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
@@ -291,19 +292,29 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
         <div
             ref={setNodeRef}
             className={cn(
-                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
+                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200 group",
                 !isCurrentMonth && "bg-muted/30 text-muted-foreground",
                 isToday && !isOver && "bg-blue-600/10",
                 isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10"
             )}
         >
-            <span className={cn(
-                "text-xs font-semibold mb-1", 
-                !isCurrentMonth && "opacity-50",
-                isToday && "text-blue-600 font-bold"
-            )}>
-                {format(day, 'd')}
-            </span>
+            <div className="flex justify-between items-center">
+                <span className={cn(
+                    "text-xs font-semibold mb-1", 
+                    !isCurrentMonth && "opacity-50",
+                    isToday && "text-blue-600 font-bold"
+                )}>
+                    {format(day, 'd')}
+                </span>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onAddClick(day)}
+                >
+                    <PlusCircle className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            </div>
             <div className="space-y-1 overflow-y-auto flex-1">
                 {posts.map(post => (
                      <DropdownMenu key={post.id}>
@@ -355,7 +366,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
 }
 
 
-function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void }) {
+function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule, onAddDraftToDay }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, onAddDraftToDay: (date: Date) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
     const storage = useStorage();
@@ -398,7 +409,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                 {weekDays.map(day => <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 border-l">
-                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule} onDelete={onDelete} router={router} />)}
+                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule} onDelete={onDelete} router={router} onAddClick={onAddDraftToDay} />)}
             </div>
             <section className="mt-12">
                 <div className="flex items-baseline gap-4 mb-4">
@@ -437,17 +448,21 @@ export default function PlannerPage() {
     const [scheduleDateTime, setScheduleDateTime] = useState<Date | undefined>(undefined);
     const [isScheduling, setIsScheduling] = useState(false);
     
-    // Nouveaux états pour la reprogrammation
     const [postToReschedule, setPostToReschedule] = useState<ScheduledPost | null>(null);
     const [newScheduleDate, setNewScheduleDate] = useState<Date | undefined>(undefined);
     const [isRescheduling, setIsRescheduling] = useState(false);
+
+    // --- Nouveaux états pour le dialogue d'ajout de brouillon ---
+    const [addDraftsDialogOpen, setAddDraftsDialogOpen] = useState(false);
+    const [targetDateForDraft, setTargetDateForDraft] = useState<Date | null>(null);
+    const [isSchedulingFromDialog, setIsSchedulingFromDialog] = useState<string | null>(null);
 
 
     const postsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/scheduledPosts`), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
-    const { data: posts, isLoading: arePostsLoading } = useCollection<ScheduledPost>(postsQuery);
+    const { data: posts, isLoading: arePostsLoading, refetch: refetchPosts } = useCollection<ScheduledPost>(postsQuery);
 
     const [postsWithImages, setPostsWithImages] = useState<ScheduledPostWithImage[]>([]);
 
@@ -490,7 +505,10 @@ export default function PlannerPage() {
         if (!user || !storage || !firestore || !postToDelete) return;
         setIsDeleting(true);
         const { error } = await withErrorHandling(() => deleteScheduledPost(firestore, storage, user.uid, postToDelete));
-        if (!error) toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
+        if (!error) {
+            toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
+            refetchPosts();
+        }
         setIsDeleting(false);
         setPostToDelete(null);
     };
@@ -507,6 +525,7 @@ export default function PlannerPage() {
         );
         if (!error) {
             toast({ title: 'Post converti en brouillon' });
+            refetchPosts();
         }
         setIsLoadingAction(null);
     };
@@ -530,6 +549,7 @@ export default function PlannerPage() {
                 title: "Post reprogrammé !",
                 description: `Nouveau créneau : ${format(newScheduleDate, "d MMMM 'à' HH:mm", { locale: fr })}.`
             });
+            refetchPosts();
             setPostToReschedule(null);
         }
         setIsRescheduling(false);
@@ -564,10 +584,45 @@ export default function PlannerPage() {
                 title: "Post programmé !", 
                 description: `Le post a été programmé pour le ${format(scheduleDateTime, "d MMMM 'à' HH:mm", { locale: fr })}.` 
             });
+            refetchPosts();
         }
         setIsScheduling(false);
         setDraggedPost(null);
         setScheduleDateTime(undefined);
+    };
+    
+    const handleAddDraftToDay = (date: Date) => {
+        setTargetDateForDraft(date);
+        setAddDraftsDialogOpen(true);
+    };
+    
+    const handleScheduleDraftFromDialog = async (post: ScheduledPost) => {
+        if (!user || !firestore || !targetDateForDraft) return;
+        setIsSchedulingFromDialog(post.id);
+
+        const scheduleTime = new Date(targetDateForDraft);
+        scheduleTime.setHours(9,0,0,0);
+
+        const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, post.id);
+        const { error } = await withErrorHandling(() => 
+            updateDoc(postRef, { 
+                status: 'scheduled', 
+                scheduledAt: Timestamp.fromDate(scheduleTime) 
+            })
+        );
+        
+        if (!error) {
+            toast({
+                title: "Brouillon programmé !",
+                description: `Le post a été ajouté au calendrier.`
+            });
+            refetchPosts();
+            const remainingDrafts = draftPosts.filter(p => p.id !== post.id);
+            if (remainingDrafts.length === 0) {
+                 setAddDraftsDialogOpen(false);
+            }
+        }
+        setIsSchedulingFromDialog(null);
     };
 
 
@@ -618,7 +673,6 @@ export default function PlannerPage() {
                                     <section>
                                         <div className="flex items-baseline gap-4 mb-4">
                                             <h2 className="text-2xl font-semibold">Brouillons ({draftPosts.length})</h2>
-                                            <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -634,7 +688,7 @@ export default function PlannerPage() {
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} />
+                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} onAddDraftToDay={handleAddDraftToDay} />
                         </TabsContent>
                     </Tabs>
                 </div>
@@ -700,6 +754,43 @@ export default function PlannerPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            
+            <Dialog open={addDraftsDialogOpen} onOpenChange={setAddDraftsDialogOpen}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Ajouter un brouillon au {targetDateForDraft && format(targetDateForDraft, "d MMMM yyyy", { locale: fr })}</DialogTitle>
+                        <DialogDescription>Sélectionnez un brouillon à programmer pour ce jour.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <ScrollArea className="max-h-[60vh]">
+                            <div className="space-y-2 pr-4">
+                                {draftPosts.length > 0 ? draftPosts.map(draft => (
+                                    <Card key={draft.id} className="p-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                                                {draft.imageUrl && <Image src={draft.imageUrl} alt={draft.title} fill className="object-cover" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold truncate">{draft.title}</p>
+                                                <p className="text-xs text-muted-foreground truncate">{draft.description}</p>
+                                            </div>
+                                            <Button 
+                                                size="sm"
+                                                onClick={() => handleScheduleDraftFromDialog(draft)}
+                                                disabled={isSchedulingFromDialog === draft.id}
+                                            >
+                                                {isSchedulingFromDialog === draft.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarIcon className="mr-2 h-4 w-4" />}
+                                                Planifier
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                )) : <p className="text-center text-muted-foreground">Aucun brouillon disponible.</p>}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
           </TooltipProvider>
         </DndContext>
     );
