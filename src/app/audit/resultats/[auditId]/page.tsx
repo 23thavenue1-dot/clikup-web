@@ -6,10 +6,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc, addDoc, collection, getDoc, DocumentReference, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -246,7 +246,7 @@ export default function AuditResultPage() {
 
     
     const handleUndoGeneration = () => {
-        if (historyIndex > -1) {
+        if (historyIndex > 0) {
             setHistoryIndex(prev => prev - 1);
         }
     };
@@ -540,9 +540,11 @@ export default function AuditResultPage() {
                                             {creativeSuggestions.map((suggestion, index) => (
                                                 <Card key={index} className="bg-background">
                                                     <CardContent className="p-3 flex items-center justify-between gap-2">
-                                                        <p className="text-sm font-medium flex-1 truncate" title={suggestion.prompt}>
-                                                            <span className="font-bold">{suggestion.title}:</span> {suggestion.prompt}
-                                                        </p>
+                                                        <div className="text-sm font-medium flex-1 min-w-0">
+                                                            <p className="truncate" title={suggestion.prompt}>
+                                                                <span className="font-bold">{suggestion.title}:</span> {suggestion.prompt}
+                                                            </p>
+                                                        </div>
                                                         <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.prompt); toast({ title: "Prompt chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
                                                             <Copy className="mr-2 h-4 w-4"/> Charger
                                                         </Button>
@@ -619,7 +621,7 @@ export default function AuditResultPage() {
 
                                             {!isGenerating && !isGeneratingVideo && generatedImageHistory.length > 0 && (
                                                 <div className="absolute top-2 left-2 z-10 flex gap-2">
-                                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 1}>
                                                         <Undo2 className="h-5 w-5" />
                                                     </Button>
                                                     <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
@@ -701,3 +703,4 @@ export default function AuditResultPage() {
     );
 }
 
+    
