@@ -55,17 +55,19 @@ const socialAuditPrompt = ai.definePrompt({
         
         4.  **action_plan**: Crée un plan d'action simple et motivant sur 7 jours. Chaque jour doit avoir une seule action concrète à réaliser pour commencer à appliquer tes conseils. Par exemple : "Jour 1: Mettre à jour votre biographie.", "Jour 2: Poster une photo en utilisant la règle des tiers."
 
-        5. **creative_suggestions**: C'est l'étape la plus importante. Tu vas maintenant créer un **plan de contenu narratif sur 14 jours** pour l'utilisateur. L'objectif est de raconter une histoire ou de suivre une progression logique sur deux semaines, en lien direct avec l'objectif de l'utilisateur. Chaque jour doit s'appuyer sur le précédent.
+        5. **creative_suggestions**: C'est la mission la plus cruciale. Tu vas maintenant agir comme un **Directeur de Contenu** et créer une campagne narrative complète sur 14 jours. L'objectif est de raconter une histoire cohérente qui progresse de jour en jour, en lien direct avec l'objectif de l'utilisateur : "{{goal}}".
 
-           Génère **exactement 14** suggestions de post. Chaque suggestion doit avoir :
-           - Un **titre court** qui représente l'idée du jour (ex: "Jour 1: L'Accroche", "Jour 7: Le Point Culminant", "Jour 14: L'Ouverture").
-           - Un **prompt créatif et détaillé** pour générer une image qui illustre ce titre.
+           Génère **exactement 14** objets, un pour chaque jour. Chaque objet doit contenir :
+           - **day**: Le numéro du jour (de 1 à 14).
+           - **title**: Le titre thématique du post pour ce jour (ex: "Jour 1 : Le Point de Départ").
+           - **image_prompt**: Une instruction créative et détaillée pour générer l'image qui illustre le thème du jour.
+           - **post_description**: Le texte complet pour la publication sur les réseaux sociaux. Ce texte doit être engageant, raconter une partie de l'histoire de la campagne et être adapté à la plateforme cible ({{platform}}).
+           - **hashtags**: Une chaîne de caractères contenant 5 à 7 hashtags pertinents, séparés par des espaces.
 
            {{#if subject_image_urls}}
-           Si des images du sujet sont fournies, les prompts doivent explicitement demander de mettre en scène la personne présente dans ces photos de référence. Par exemple : "Photo de cette personne, le Jour 1, en train de...".
+           L'image_prompt doit explicitement demander de mettre en scène la personne présente dans les photos de référence du SUJET. Par exemple : "Photo de cette personne, le Jour 1, en train de...".
            {{/if}}
-           
-           La séquence de 14 jours doit être cohérente et raconter une histoire qui captive l'audience et sert l'objectif : "{{goal}}". Pense à une introduction, un développement avec des rebondissements ou des focus différents, et une conclusion.
+
+           Assure-toi que la séquence des 14 `post_description` forme une histoire fluide et captivante.
     `,
 });
-

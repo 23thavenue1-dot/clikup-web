@@ -35,7 +35,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 
 
-type AuditReport = SocialAuditOutput & {
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
+
+// Update this type to match the new schema
+type CreativeSuggestion = {
+    day: number;
+    title: string;
+    image_prompt: string;
+    post_description: string;
+    hashtags: string;
+};
+
+type AuditReport = Omit<SocialAuditOutput, 'creative_suggestions'> & {
     createdAt: any; // Timestamp
     platform: string;
     goal: string;
@@ -43,7 +54,8 @@ type AuditReport = SocialAuditOutput & {
     image_urls?: string[];
     post_texts?: string[];
     additionalContext?: string;
-    brandProfileId: string; // Ajouté
+    brandProfileId: string;
+    creative_suggestions: CreativeSuggestion[];
 }
 
 // Helper pour convertir Data URI en Blob
@@ -80,7 +92,7 @@ export default function AuditResultPage() {
     const [historyIndex, setHistoryIndex] = useState(-1);
 
     const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-    const [creativeSuggestions, setCreativeSuggestions] = useState<SocialAuditOutput['creative_suggestions']>([]);
+    const [creativeSuggestions, setCreativeSuggestions] = useState<CreativeSuggestion[]>([]);
     
     const [isSavingDraft, setIsSavingDraft] = useState(false);
     const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
@@ -109,7 +121,7 @@ export default function AuditResultPage() {
         if (auditReport?.creative_suggestions) {
             setCreativeSuggestions(auditReport.creative_suggestions);
             if (auditReport.creative_suggestions.length > 0 && !prompt) {
-                 setPrompt(auditReport.creative_suggestions[0].prompt);
+                 setPrompt(auditReport.creative_suggestions[0].image_prompt);
             }
         }
     }, [auditReport, prompt]);
@@ -125,13 +137,13 @@ export default function AuditResultPage() {
     
     const handleGeneratePlan = async () => {
         if (!auditReport || !user || !firestore || !userProfile || !auditDocRef) return;
-
+    
         const cost = 14;
         if (totalAiTickets < cost) {
             toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `Cette action requiert ${cost} tickets.` });
             return;
         }
-
+    
         setIsGeneratingPlan(true);
         try {
             const input: SocialAuditInput = {
@@ -141,18 +153,18 @@ export default function AuditResultPage() {
                 subject_image_urls: auditReport.subjectImageUrls,
                 post_texts: auditReport.post_texts || [],
                 additionalContext: auditReport.additionalContext,
-                suggestion_count: cost
+                suggestion_count: 14,
             };
             
             const result = await socialAuditFlow(input);
             
-            if (result.creative_suggestions) {
+            if (result.creative_suggestions && auditDocRef) {
                 await updateDoc(auditDocRef, {
                     creative_suggestions: result.creative_suggestions
                 });
-                // Le hook useDoc s'occupera de mettre à jour l'UI via `auditReport`
+                // Le hook useDoc va mettre à jour l'UI via `auditReport`
             }
-
+    
             for (let i = 0; i < cost; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
@@ -256,7 +268,7 @@ export default function AuditResultPage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev + 1);
+            setHistoryIndex(prev => prev - 1);
         }
     };
 
@@ -533,11 +545,11 @@ export default function AuditResultPage() {
                                                 <Card key={index} className="bg-background">
                                                     <CardContent className="p-3 flex items-center justify-between gap-2">
                                                         <div className="text-sm font-medium flex-1 min-w-0">
-                                                            <p className="truncate font-bold" title={suggestion.prompt}>
+                                                            <p className="truncate font-bold" title={suggestion.image_prompt}>
                                                                 {suggestion.title}
                                                             </p>
                                                         </div>
-                                                        <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.prompt); toast({ title: "Prompt chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
+                                                        <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.image_prompt); toast({ title: "Prompt d'image chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
                                                             <Copy className="mr-2 h-4 w-4"/> Charger
                                                         </Button>
                                                     </CardContent>
@@ -553,7 +565,7 @@ export default function AuditResultPage() {
                             </div>
                         </StepIndicator>
 
-                        <StepIndicator step={2} title="Personnaliser le prompt">
+                        <StepIndicator step={2} title="Personnaliser le prompt de l'image">
                              <div className="space-y-2">
                                 <Label htmlFor="prompt-input">Votre instruction pour l'IA</Label>
                                 <Textarea id="prompt-input" value={prompt} onChange={e => setPrompt(e.target.value)} rows={3} placeholder="Chargez une idée ou écrivez directement votre prompt..."/>
@@ -605,7 +617,7 @@ export default function AuditResultPage() {
 
                                     {!isGenerating && !isGeneratingVideo && generatedImageHistory.length > 0 && (
                                         <div className="absolute top-2 left-2 z-10 flex gap-2">
-                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 1}>
+                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
                                                 <Undo2 className="h-5 w-5" />
                                             </Button>
                                             <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
