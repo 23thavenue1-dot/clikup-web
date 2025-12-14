@@ -124,7 +124,7 @@ export default function AuditResultPage() {
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) : 0;
     
     const handleGeneratePlan = async () => {
-        if (!auditReport || !user || !firestore || !userProfile) return;
+        if (!auditReport || !user || !firestore || !userProfile || !auditDocRef) return;
 
         const cost = 14;
         if (totalAiTickets < cost) {
@@ -145,7 +145,13 @@ export default function AuditResultPage() {
             };
             
             const result = await socialAuditFlow(input);
-            setCreativeSuggestions(result.creative_suggestions);
+            
+            if (result.creative_suggestions) {
+                await updateDoc(auditDocRef, {
+                    creative_suggestions: result.creative_suggestions
+                });
+                // Le hook useDoc s'occupera de mettre à jour l'UI via `auditReport`
+            }
 
             for (let i = 0; i < cost; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
@@ -250,7 +256,7 @@ export default function AuditResultPage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev - 1);
+            setHistoryIndex(prev => prev + 1);
         }
     };
 
@@ -678,4 +684,3 @@ export default function AuditResultPage() {
         </div>
     );
 }
-
