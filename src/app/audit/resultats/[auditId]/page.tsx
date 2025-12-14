@@ -38,33 +38,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
-// On utilise le type importé
-// type CreativeSuggestion = { ... };
-
-type AuditReport = Omit<SocialAuditOutput, 'creative_suggestions'> & {
-    createdAt: any; // Timestamp
-    platform: string;
-    goal: string;
-    subjectImageUrls?: string[];
-    image_urls?: string[];
-    post_texts?: string[];
-    additionalContext?: string;
-    brandProfileId: string;
-    creative_suggestions: CreativeSuggestion[];
-}
-
-// Helper pour convertir Data URI en Blob
-async function dataUriToBlob(dataUri: string): Promise<Blob> {
-    const response = await fetch(dataUri);
-    const blob = await response.blob();
-    return blob;
-}
-
 interface ImageHistoryItem {
     imageUrl: string;
     prompt: string;
 }
-
 
 export default function AuditResultPage() {
     const { user, isUserLoading, firebaseApp } = useFirebase();
@@ -82,7 +59,6 @@ export default function AuditResultPage() {
     const [videoAspectRatio, setVideoAspectRatio] = useState('9:16');
     const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
     
-    // Historique des images et descriptions générées
     const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
     
@@ -117,12 +93,8 @@ export default function AuditResultPage() {
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
             setCreativeSuggestions(auditReport.creative_suggestions);
-            if (auditReport.creative_suggestions.length > 0 && prompt === '') {
-                 setPrompt(auditReport.creative_suggestions[0].image_prompt || '');
-                 setActiveSuggestion(auditReport.creative_suggestions[0]);
-            }
         }
-    }, [auditReport, prompt]);
+    }, [auditReport]);
     
     const currentHistoryItem = useMemo(() => {
         if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
@@ -151,7 +123,6 @@ export default function AuditResultPage() {
                 subject_image_urls: auditReport.subjectImageUrls,
                 post_texts: auditReport.post_texts || [],
                 additionalContext: auditReport.additionalContext,
-                suggestion_count: 14,
             };
             
             const result = await socialAuditFlow(input);
@@ -527,53 +498,54 @@ export default function AuditResultPage() {
                                     {isGeneratingPlan ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
                                     Générer un plan de contenu sur 14 jours
                                 </Button>
-                                <ScrollArea className="h-40 border bg-muted/50 rounded-md p-2">
+                                <ScrollArea className="h-60 border bg-muted/50 rounded-md p-2">
                                     {creativeSuggestions.length > 0 ? (
-                                        <div className="space-y-2 p-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
                                             {creativeSuggestions.map((suggestion, index) => (
-                                                <Card key={index} className="bg-background">
-                                                    <CardHeader className="p-3 pb-2">
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <CardTitle className="text-base flex items-center gap-2">
-                                                                <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-full">Jour {suggestion.day}</span>
-                                                                <span className="flex-1 truncate">{suggestion.title}</span>
-                                                            </CardTitle>
-                                                             <Dialog>
-                                                                <DialogTrigger asChild>
-                                                                    <Button variant="outline" size="sm" className="h-auto px-2 py-1 text-xs">
-                                                                        <FileText className="mr-1 h-3 w-3 text-green-500" />
-                                                                        Prompt
-                                                                    </Button>
-                                                                </DialogTrigger>
-                                                                <DialogContent>
-                                                                    <DialogHeader>
-                                                                        <DialogTitle>Instruction pour l'image (Prompt)</DialogTitle>
-                                                                        <DialogDescription>
-                                                                            Voici l'instruction complète qui sera utilisée par l'IA pour générer l'image de ce post.
-                                                                        </DialogDescription>
-                                                                    </DialogHeader>
-                                                                    <div className="py-4">
-                                                                        <p className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap">{suggestion.image_prompt}</p>
-                                                                    </div>
-                                                                    <DialogFooter>
-                                                                        <DialogClose asChild>
-                                                                            <Button>Fermer</Button>
-                                                                        </DialogClose>
-                                                                    </DialogFooter>
-                                                                </DialogContent>
-                                                            </Dialog>
+                                                <Dialog key={index}>
+                                                    <DialogTrigger asChild>
+                                                        <Card className="bg-background cursor-pointer hover:bg-muted/50 transition-colors">
+                                                            <CardHeader className="p-3">
+                                                                <CardTitle className="text-sm flex items-center justify-between gap-2">
+                                                                    <span className="flex-1 truncate">{suggestion.title}</span>
+                                                                    <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-full">
+                                                                        Jour {suggestion.day}
+                                                                    </span>
+                                                                </CardTitle>
+                                                            </CardHeader>
+                                                        </Card>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="sm:max-w-lg">
+                                                        <DialogHeader>
+                                                            <DialogTitle>{suggestion.title}</DialogTitle>
+                                                            <DialogDescription>Détail de la suggestion pour le Jour {suggestion.day}.</DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                                                            <div>
+                                                                <h4 className="font-semibold text-sm">Description pour le post</h4>
+                                                                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{suggestion.post_description}</p>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-sm">Hashtags</h4>
+                                                                <p className="text-sm text-primary mt-1">{suggestion.hashtags}</p>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-sm">Instruction pour l'image (Prompt)</h4>
+                                                                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md mt-1 whitespace-pre-wrap">{suggestion.image_prompt}</p>
+                                                            </div>
                                                         </div>
-                                                    </CardHeader>
-                                                    <CardContent className="p-3 pt-0">
-                                                        <p className="text-sm text-muted-foreground line-clamp-2">{suggestion.post_description}</p>
-                                                        <p className="text-xs text-primary/80 mt-2 truncate">{suggestion.hashtags}</p>
-                                                    </CardContent>
-                                                    <CardFooter className="p-3 pt-0">
-                                                        <Button size="sm" variant="secondary" className="w-full" onClick={() => { setPrompt(suggestion.image_prompt || ''); setActiveSuggestion(suggestion); toast({ title: "Suggestion chargée !", description: "L'instruction et le texte sont prêts." }); }}>
-                                                            <Copy className="mr-2 h-4 w-4"/> Charger la suggestion
-                                                        </Button>
-                                                    </CardFooter>
-                                                </Card>
+                                                        <DialogFooter>
+                                                            <DialogClose asChild>
+                                                                <Button variant="secondary">Fermer</Button>
+                                                            </DialogClose>
+                                                            <DialogClose asChild>
+                                                                <Button onClick={() => { setPrompt(suggestion.image_prompt || ''); setActiveSuggestion(suggestion); toast({ title: "Suggestion chargée !", description: "L'instruction et le texte sont prêts." }); }}>
+                                                                    <Copy className="mr-2 h-4 w-4"/> Charger cette suggestion
+                                                                </Button>
+                                                            </DialogClose>
+                                                        </DialogFooter>
+                                                    </DialogContent>
+                                                </Dialog>
                                             ))}
                                         </div>
                                     ) : (
@@ -613,11 +585,6 @@ export default function AuditResultPage() {
                                         Générer Image (1 Ticket)
                                     </Button>
                                 </div>
-                                {(totalAiTickets <= 0 && !isGenerating && !isGeneratingVideo) && (
-                                    <p className="text-center text-sm text-destructive">
-                                        Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
-                                    </p>
-                                )}
                                 <div className="aspect-video w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
                                     {(isGenerating || isGeneratingVideo) && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
                                     
@@ -733,6 +700,3 @@ export default function AuditResultPage() {
         </div>
     );
 }
-
-
-    
