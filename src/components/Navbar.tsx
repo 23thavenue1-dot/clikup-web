@@ -180,19 +180,6 @@ export function Navbar() {
                     <p>Planificateur</p>
                   </TooltipContent>
                 </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <UnsavedChangesLink href="/shop" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Boutique">
-                        <ShoppingCart className="h-5 w-5" />
-                      </Button>
-                    </UnsavedChangesLink>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Boutique</p>
-                  </TooltipContent>
-                </Tooltip>
               </>
             ) : (
               <AlertDialog>
@@ -240,6 +227,18 @@ export function Navbar() {
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             ) : user ? (
               <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <UnsavedChangesLink href="/shop" passHref>
+                      <Button variant="ghost" size="icon" aria-label="Boutique">
+                        <ShoppingCart className="h-5 w-5" />
+                      </Button>
+                    </UnsavedChangesLink>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Boutique</p>
+                  </TooltipContent>
+                </Tooltip>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full">
