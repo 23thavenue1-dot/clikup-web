@@ -8,7 +8,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Lightbulb, Pencil } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,7 +29,7 @@ import { fr } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
 import { withErrorHandling } from '@/lib/async-wrapper';
 import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
-import type { SocialAuditInput } from '@/ai/schemas/social-audit-schemas';
+import type { SocialAuditInput, CreativeSuggestion } from '@/ai/schemas/social-audit-schemas';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -38,14 +38,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
-// Update this type to match the new schema
-type CreativeSuggestion = {
-    day: number;
-    title: string;
-    image_prompt: string;
-    post_description: string;
-    hashtags: string;
-};
+// On utilise le type importé
+// type CreativeSuggestion = { ... };
 
 type AuditReport = Omit<SocialAuditOutput, 'creative_suggestions'> & {
     createdAt: any; // Timestamp
@@ -88,9 +82,11 @@ export default function AuditResultPage() {
     const [videoAspectRatio, setVideoAspectRatio] = useState('9:16');
     const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
     
-    // Nouveaux états pour l'historique
+    // Historique des images et descriptions générées
     const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
+    
+    const [activeSuggestion, setActiveSuggestion] = useState<CreativeSuggestion | null>(null);
 
     const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
     const [creativeSuggestions, setCreativeSuggestions] = useState<CreativeSuggestion[]>([]);
@@ -104,7 +100,7 @@ export default function AuditResultPage() {
         return doc(firestore, `users/${user.uid}/audits`, auditId);
     }, [user, firestore, auditId]);
     
-    const { data: auditReport, isLoading: isAuditLoading } = useDoc<AuditReport>(auditDocRef);
+    const { data: auditReport, isLoading: isAuditLoading, refetch: refetchAuditReport } = useDoc<AuditReport>(auditDocRef);
     
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -123,6 +119,7 @@ export default function AuditResultPage() {
             setCreativeSuggestions(auditReport.creative_suggestions);
             if (auditReport.creative_suggestions.length > 0 && prompt === '') {
                  setPrompt(auditReport.creative_suggestions[0].image_prompt || '');
+                 setActiveSuggestion(auditReport.creative_suggestions[0]);
             }
         }
     }, [auditReport, prompt]);
@@ -163,6 +160,7 @@ export default function AuditResultPage() {
                 await updateDoc(auditDocRef, {
                     creative_suggestions: result.creative_suggestions
                 });
+                refetchAuditReport(); // Force a refetch of the audit data to get the latest suggestions
             } else {
                 setCreativeSuggestions([]);
             }
@@ -270,7 +268,7 @@ export default function AuditResultPage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev - 1);
+            setHistoryIndex(prev => prev + 1);
         }
     };
 
@@ -282,7 +280,7 @@ export default function AuditResultPage() {
 
         try {
             // --- Étape 1 : Générer la description stratégique ---
-            const descriptionContext = `Analyse Stratégique : ${'auditReport.strategic_analysis.strengths.join(\', \')'}. Améliorations : ${'auditReport.strategic_analysis.improvements.join(\', \')'}`;
+            const descriptionContext = `Analyse Stratégique : ${auditReport.strategic_analysis.strengths.join(', ')}. Améliorations : ${auditReport.strategic_analysis.improvements.join(', ')}`;
             const descriptionResult = await generateImageDescription({
                 imageUrl: currentHistoryItem.imageUrl,
                 platform: auditReport.platform as Platform,
@@ -292,7 +290,7 @@ export default function AuditResultPage() {
 
             const newTitle = descriptionResult.title;
             const newDescription = descriptionResult.description;
-            const newHashtags = descriptionResult.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' ');
+            const newHashtags = descriptionResult.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
 
             // --- Étape 2 : Sauvegarder l'image générée dans la bibliothèque ---
             const storage = getStorage(firebaseApp);
@@ -319,7 +317,7 @@ export default function AuditResultPage() {
             
             // --- Étape 3 : Utiliser la nouvelle image pour créer le brouillon/post ---
             await savePostForLater(firestore, storage, user.uid, {
-                title: isDraft ? 'Brouillon généré par IA' : `Post du ${'format(date!, \'d MMMM\')'}`,
+                title: isDraft ? 'Brouillon généré par IA' : `Post du ${format(date!, 'd MMMM')}`,
                 description: newDescription,
                 scheduledAt: isDraft ? undefined : date,
                 imageSource: newImageMetadata,
@@ -581,8 +579,8 @@ export default function AuditResultPage() {
                                                         <p className="text-xs text-primary/80 mt-2 truncate">{suggestion.hashtags}</p>
                                                     </CardContent>
                                                     <CardFooter className="p-3 pt-0">
-                                                        <Button size="sm" variant="secondary" className="w-full" onClick={() => { setPrompt(suggestion.image_prompt || ''); toast({ title: "Prompt d'image chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
-                                                            <Copy className="mr-2 h-4 w-4"/> Charger l'instruction de l'image
+                                                        <Button size="sm" variant="secondary" className="w-full" onClick={() => { setPrompt(suggestion.image_prompt || ''); setActiveSuggestion(suggestion); toast({ title: "Suggestion chargée !", description: "L'instruction et le texte sont prêts." }); }}>
+                                                            <Copy className="mr-2 h-4 w-4"/> Charger la suggestion
                                                         </Button>
                                                     </CardFooter>
                                                 </Card>
@@ -658,6 +656,23 @@ export default function AuditResultPage() {
                                         </div>
                                     )}
                                 </div>
+
+                                {currentHistoryItem && activeSuggestion && (
+                                    <div className="mt-4 p-4 border rounded-lg bg-background space-y-3">
+                                        <div>
+                                            <Label className="text-xs font-semibold text-muted-foreground">Titre</Label>
+                                            <p className="text-sm font-medium">{activeSuggestion.title}</p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs font-semibold text-muted-foreground">Description Suggérée</Label>
+                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{activeSuggestion.post_description}</p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs font-semibold text-muted-foreground">Hashtags Suggérés</Label>
+                                            <p className="text-sm text-primary">{activeSuggestion.hashtags}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </StepIndicator>
 
@@ -728,5 +743,3 @@ export default function AuditResultPage() {
         </div>
     );
 }
-
-    
