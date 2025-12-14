@@ -8,7 +8,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -121,7 +121,7 @@ export default function AuditResultPage() {
         if (auditReport?.creative_suggestions) {
             setCreativeSuggestions(auditReport.creative_suggestions);
             if (auditReport.creative_suggestions.length > 0 && !prompt) {
-                 setPrompt(auditReport.creative_suggestions[0].image_prompt);
+                 setPrompt(auditReport.creative_suggestions[0].image_prompt || '');
             }
         }
     }, [auditReport, prompt]);
@@ -162,7 +162,6 @@ export default function AuditResultPage() {
                 await updateDoc(auditDocRef, {
                     creative_suggestions: result.creative_suggestions
                 });
-                // Le hook useDoc va mettre à jour l'UI via `auditReport`
             }
     
             for (let i = 0; i < cost; i++) {
@@ -543,16 +542,21 @@ export default function AuditResultPage() {
                                         <div className="space-y-2 p-2">
                                             {creativeSuggestions.map((suggestion, index) => (
                                                 <Card key={index} className="bg-background">
-                                                    <CardContent className="p-3 flex items-center justify-between gap-2">
-                                                        <div className="text-sm font-medium flex-1 min-w-0">
-                                                            <p className="truncate font-bold" title={suggestion.image_prompt}>
-                                                                {suggestion.title}
-                                                            </p>
-                                                        </div>
-                                                        <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.image_prompt); toast({ title: "Prompt d'image chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
-                                                            <Copy className="mr-2 h-4 w-4"/> Charger
-                                                        </Button>
+                                                    <CardHeader className="p-3 pb-2">
+                                                        <CardTitle className="text-base flex items-center gap-2">
+                                                            <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-full">Jour {suggestion.day}</span>
+                                                            <span className="flex-1 truncate">{suggestion.title}</span>
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="p-3 pt-0">
+                                                        <p className="text-sm text-muted-foreground line-clamp-2">{suggestion.post_description}</p>
+                                                        <p className="text-xs text-primary/80 mt-2 truncate">{suggestion.hashtags}</p>
                                                     </CardContent>
+                                                    <CardFooter className="p-3 pt-0">
+                                                        <Button size="sm" variant="secondary" className="w-full" onClick={() => { setPrompt(suggestion.image_prompt || ''); toast({ title: "Prompt d'image chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
+                                                            <Copy className="mr-2 h-4 w-4"/> Charger l'instruction de l'image
+                                                        </Button>
+                                                    </CardFooter>
                                                 </Card>
                                             ))}
                                         </div>
@@ -586,7 +590,7 @@ export default function AuditResultPage() {
                                     </Select>
                                     <Button 
                                         onClick={() => handleGenerateImage()}
-                                        disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
+                                        disabled={isGenerating || isGeneratingVideo || !prompt?.trim() || totalAiTickets <= 0}
                                         className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
                                     >
                                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
