@@ -8,7 +8,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Lightbulb } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +33,7 @@ import type { SocialAuditInput } from '@/ai/schemas/social-audit-schemas';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -120,7 +121,7 @@ export default function AuditResultPage() {
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
             setCreativeSuggestions(auditReport.creative_suggestions);
-            if (auditReport.creative_suggestions.length > 0 && !prompt) {
+            if (auditReport.creative_suggestions.length > 0 && prompt === '') {
                  setPrompt(auditReport.creative_suggestions[0].image_prompt || '');
             }
         }
@@ -162,6 +163,8 @@ export default function AuditResultPage() {
                 await updateDoc(auditDocRef, {
                     creative_suggestions: result.creative_suggestions
                 });
+            } else {
+                setCreativeSuggestions([]);
             }
     
             for (let i = 0; i < cost; i++) {
@@ -178,7 +181,7 @@ export default function AuditResultPage() {
 
 
     const handleGenerateImage = async () => {
-        if (!prompt || !user || !userProfile || !firestore || !auditReport) return;
+        if (!prompt?.trim() || !user || !userProfile || !firestore || !auditReport) return;
     
         if (totalAiTickets <= 0) {
             toast({
@@ -543,10 +546,35 @@ export default function AuditResultPage() {
                                             {creativeSuggestions.map((suggestion, index) => (
                                                 <Card key={index} className="bg-background">
                                                     <CardHeader className="p-3 pb-2">
-                                                        <CardTitle className="text-base flex items-center gap-2">
-                                                            <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-full">Jour {suggestion.day}</span>
-                                                            <span className="flex-1 truncate">{suggestion.title}</span>
-                                                        </CardTitle>
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <CardTitle className="text-base flex items-center gap-2">
+                                                                <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-full">Jour {suggestion.day}</span>
+                                                                <span className="flex-1 truncate">{suggestion.title}</span>
+                                                            </CardTitle>
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                                                        <Lightbulb className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent>
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>Instruction pour l'image (Prompt)</DialogTitle>
+                                                                        <DialogDescription>
+                                                                            Voici l'instruction complète qui sera utilisée par l'IA pour générer l'image de ce post.
+                                                                        </DialogDescription>
+                                                                    </DialogHeader>
+                                                                    <div className="py-4">
+                                                                        <p className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap">{suggestion.image_prompt}</p>
+                                                                    </div>
+                                                                    <DialogFooter>
+                                                                        <DialogClose asChild>
+                                                                            <Button>Fermer</Button>
+                                                                        </DialogClose>
+                                                                    </DialogFooter>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        </div>
                                                     </CardHeader>
                                                     <CardContent className="p-3 pt-0">
                                                         <p className="text-sm text-muted-foreground line-clamp-2">{suggestion.post_description}</p>
@@ -700,3 +728,5 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+    
