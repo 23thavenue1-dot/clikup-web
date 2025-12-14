@@ -330,32 +330,44 @@ export default function AuditPage() {
             const selectedSubjectImageObjects = images?.filter(img => selectedSubjectImages.has(img.id)) || [];
             const subjectImageUrls = selectedSubjectImageObjects.map(img => img.directUrl);
 
-            const result = await socialAuditFlow({
+            // Créer les objets pour le flow et pour Firestore en omettant les champs `undefined`
+            const flowInput: any = {
                 platform,
                 goal,
                 image_urls: styleImageUrls,
-                subject_image_urls: subjectImageUrls.length > 0 ? subjectImageUrls : undefined,
                 post_texts: postTexts.filter(t => t.trim() !== ''),
-                additionalContext: additionalContext.trim() || undefined,
-            });
+            };
 
-            for (let i = 0; i < AUDIT_COST; i++) {
-                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            }
-            
-            const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
-            const auditDataToSave = {
-                ...result,
+            const auditDataToSave: any = {
                 userId: user.uid,
                 brandProfileId: selectedProfileId,
                 createdAt: new Date(),
                 platform,
                 goal,
-                subjectImageUrls: subjectImageUrls,
                 image_urls: styleImageUrls,
                 post_texts: postTexts.filter(t => t.trim() !== ''),
-                additionalContext: additionalContext.trim() || undefined,
             };
+
+            if (subjectImageUrls.length > 0) {
+                flowInput.subject_image_urls = subjectImageUrls;
+                auditDataToSave.subjectImageUrls = subjectImageUrls;
+            }
+
+            if (additionalContext.trim()) {
+                flowInput.additionalContext = additionalContext.trim();
+                auditDataToSave.additionalContext = additionalContext.trim();
+            }
+
+            const result = await socialAuditFlow(flowInput);
+
+            // Compléter les données à sauvegarder avec le résultat du flow
+            Object.assign(auditDataToSave, result);
+            
+            for (let i = 0; i < AUDIT_COST; i++) {
+                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            }
+            
+            const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
             const docRef = await addDoc(auditsCollectionRef, auditDataToSave);
             
             toast({
@@ -862,5 +874,7 @@ export default function AuditPage() {
         </>
     );
 }
+
+    
 
     
