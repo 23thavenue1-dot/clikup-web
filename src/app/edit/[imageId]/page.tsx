@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, addDoc, collection, getDoc, DocumentReference, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/firestore';
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb, FileText as FileTextIcon } from 'lucide-react';
@@ -47,6 +47,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel"
+import { Input } from '@/components/ui/input';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -523,7 +524,8 @@ export default function EditImagePage() {
                 ...metadata,
                 title: `Animation : ${storyAnimationPrompt}`,
                 description: `Story animée générée à partir de l'image originale avec le prompt : "${storyAnimationPrompt}"`,
-                generatedByAI: true
+                generatedByAI: true,
+                mimeType: 'video/mp4' // S'assurer que le type est correct
             });
             toast({ title: "Animation sauvegardée !", description: "Votre nouvelle vidéo a été ajoutée à votre galerie." });
             setIsStoryDialogOpen(false); // Fermer le dialogue après la sauvegarde
