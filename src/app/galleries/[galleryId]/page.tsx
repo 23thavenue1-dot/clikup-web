@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { doc, getDoc, query, collection, orderBy, limit, startAfter, getDocs, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { doc, getDoc, query, collection, orderBy, limit, startAfter, getDocs, DocumentData, QueryDocumentSnapshot, where } from 'firebase/firestore';
 import { type Gallery, type ImageMetadata, type UserProfile, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImagePinInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket, Pin, PinOff, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +34,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
-
-const IMAGES_PER_PAGE = 12;
 
 const platformOptions = [
     { id: 'instagram', label: 'Instagram', icon: Instagram },
@@ -51,7 +49,7 @@ const platformOptions = [
 
 
 export default function GalleryDetailPage() {
-    const { user, isUserLoading, firebaseApp } = useFirebase();
+    const { user, isUserLoading } = useFirebase();
     const firestore = useFirestore();
     const router = useRouter();
     const params = useParams();
@@ -62,9 +60,8 @@ export default function GalleryDetailPage() {
     const [gallery, setGallery] = useState<Gallery | null>(null);
     const [images, setImages] = useState<ImageMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [hasMore, setHasMore] = useState(true);
+    
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const [isManageMode, setIsManageMode] = useState(false);
     const [isRemoveSelectionMode, setIsRemoveSelectionMode] = useState(false);
@@ -106,68 +103,77 @@ export default function GalleryDetailPage() {
         }
     }, [user, isUserLoading, router]);
 
-    const fetchGalleryAndImages = useCallback(async (loadMore = false) => {
+    const fetchGalleryAndImages = useCallback(async () => {
         if (!user || !firestore || !galleryId) return;
-
-        if (loadMore) setIsLoadingMore(true); else setIsLoading(true);
+        setIsLoading(true);
 
         try {
-            if (!loadMore) {
-                const galleryDocRef = doc(firestore, `users/${user.uid}/galleries/${galleryId}`);
-                const gallerySnap = await getDoc(galleryDocRef);
-                if (gallerySnap.exists()) {
-                    setGallery(gallerySnap.data() as Gallery);
-                } else {
-                    toast({ variant: 'destructive', title: 'Erreur', description: 'Galerie introuvable.' });
-                    router.push('/galleries');
-                    return;
-                }
+            const galleryDocRef = doc(firestore, `users/${user.uid}/galleries/${galleryId}`);
+            const gallerySnap = await getDoc(galleryDocRef);
+            
+            if (!gallerySnap.exists()) {
+                toast({ variant: 'destructive', title: 'Erreur', description: 'Galerie introuvable.' });
+                router.push('/galleries');
+                return;
+            }
+            
+            const galleryData = gallerySnap.data() as Gallery;
+            setGallery(galleryData);
+
+            if (galleryData.imageIds.length === 0) {
+                setImages([]);
+                setIsLoading(false);
+                return;
             }
 
-            // Fetch images only if we have gallery data
-            setImages(prevImages => {
-                const existingImageIds = new Set(prevImages.map(img => img.id));
-                const imageIdsToFetch = gallery?.imageIds.filter(id => !existingImageIds.has(id)) || [];
+            // Fetch all image documents for this gallery
+            const imageDocs: ImageMetadata[] = [];
+            const imageIdChunks: string[][] = [];
+            for (let i = 0; i < galleryData.imageIds.length; i += 30) {
+                imageIdChunks.push(galleryData.imageIds.slice(i, i + 30));
+            }
+            
+            for (const chunk of imageIdChunks) {
+                const q = query(collection(firestore, `users/${user.uid}/images`), where('id', 'in', chunk));
+                const imageSnapshots = await getDocs(q);
+                imageSnapshots.forEach(doc => {
+                    imageDocs.push({ ...doc.data(), id: doc.id } as ImageMetadata);
+                });
+            }
 
-                if (imageIdsToFetch.length > 0) {
-                    const q = query(collection(firestore, `users/${user.uid}/images`), where('id', 'in', imageIdsToFetch), limit(IMAGES_PER_PAGE));
-                    getDocs(q).then(imageSnapshots => {
-                        const newImages = imageSnapshots.docs.map(d => d.data() as ImageMetadata);
-                        
-                        const allFetchedImages = [...prevImages, ...newImages];
-                        const pinnedIds = new Set(gallery?.pinnedImageIds || []);
-                        allFetchedImages.sort((a, b) => {
-                            const aIsPinned = pinnedIds.has(a.id);
-                            const bIsPinned = pinnedIds.has(b.id);
-                            if (aIsPinned && !bIsPinned) return -1;
-                            if (!aIsPinned && bIsPinned) return 1;
-                            return 0;
-                        });
-                        setImages(allFetchedImages);
-                        setHasMore(newImages.length === IMAGES_PER_PAGE);
-                    });
-                } else {
-                    setHasMore(false);
-                }
-                return prevImages; // return current state while fetching
+            // Sort images in memory based on uploadTimestamp
+            imageDocs.sort((a, b) => {
+                const timeA = a.uploadTimestamp?.toMillis() || 0;
+                const timeB = b.uploadTimestamp?.toMillis() || 0;
+                return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
             });
 
+            // Prioritize pinned images if sorting by newest
+            if (sortOrder === 'desc' && galleryData.pinnedImageIds) {
+                imageDocs.sort((a, b) => {
+                    const aIsPinned = galleryData.pinnedImageIds!.includes(a.id);
+                    const bIsPinned = galleryData.pinnedImageIds!.includes(b.id);
+                    if (aIsPinned && !bIsPinned) return -1;
+                    if (!aIsPinned && bIsPinned) return 1;
+                    return 0; // Keep original sort for non-pinned or both-pinned
+                });
+            }
+
+            setImages(imageDocs);
 
         } catch (error) {
             console.error("Erreur lors de la récupération de la galerie:", error);
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données de la galerie.' });
         } finally {
-            if (loadMore) setIsLoadingMore(false); else setIsLoading(false);
+            setIsLoading(false);
         }
-    }, [user, firestore, galleryId, toast, router, gallery]);
-    
-    // Initial fetch
+    }, [user, firestore, galleryId, toast, router, sortOrder]);
+
     useEffect(() => {
         if(user && firestore && galleryId) {
-            fetchGalleryAndImages(false);
+            fetchGalleryAndImages();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, firestore, galleryId]);
+    }, [user, firestore, galleryId, sortOrder, fetchGalleryAndImages]);
 
 
      useEffect(() => {
@@ -351,7 +357,7 @@ export default function GalleryDetailPage() {
             const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+            setHashtagsString(result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' '));
             setWasGeneratedByAI(true);
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             toast({ title: "Contenu généré !", description: `Un ticket IA a été utilisé.` });
@@ -407,19 +413,30 @@ export default function GalleryDetailPage() {
                     </header>
 
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                         <div>
                                 <CardTitle>Images de la galerie</CardTitle>
                                 <CardDescription>
                                     {images.length} image{images.length !== 1 ? 's' : ''} dans cette galerie.
                                 </CardDescription>
                         </div>
-                        {images.length > 0 && (
-                                <Button variant="outline" onClick={() => setIsManageMode(!isManageMode)}>
+                         <div className="flex items-center gap-2">
+                            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'desc' | 'asc')}>
+                                <SelectTrigger className="w-[150px] h-9">
+                                    <SelectValue placeholder="Trier par..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="desc">Plus récent</SelectItem>
+                                    <SelectItem value="asc">Plus ancien</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {images.length > 0 && (
+                                <Button variant="outline" onClick={() => setIsManageMode(!isManageMode)} className="h-9">
                                     {isManageMode ? <X className="mr-2 h-4 w-4"/> : <Settings className="mr-2 h-4 w-4"/>}
-                                    {isManageMode ? 'Annuler' : 'Gérer la galerie'}
-                            </Button>
-                        )}
+                                    {isManageMode ? 'Annuler' : 'Gérer'}
+                                </Button>
+                            )}
+                         </div>
                         </CardHeader>
                         <CardContent>
                             {isManageMode && (
@@ -469,7 +486,6 @@ export default function GalleryDetailPage() {
                                 </div>
                             )}
                             {images.length > 0 ? (
-                                <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {images.map(image => {
                                         const isPinned = gallery?.pinnedImageIds?.includes(image.id) ?? false;
@@ -493,7 +509,7 @@ export default function GalleryDetailPage() {
                                                     </div>
                                                 </div>
                                             )}
-                                            {isPinned && !isRemoveSelectionMode && (
+                                            {isPinned && !isRemoveSelectionMode && sortOrder === 'desc' && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
@@ -501,7 +517,7 @@ export default function GalleryDetailPage() {
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Image épinglée</p>
+                                                        <p>Image épinglée dans cette galerie</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
@@ -524,7 +540,7 @@ export default function GalleryDetailPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => handleTogglePin(image.id)}>
+                                                                <DropdownMenuItem onClick={() => handleTogglePin(image.id)} disabled={sortOrder !== 'desc'}>
                                                                     {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                                                     <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
                                                                 </DropdownMenuItem>
@@ -562,15 +578,6 @@ export default function GalleryDetailPage() {
                                         </div>
                                     )})}
                                 </div>
-                                {hasMore && (
-                                    <div className="mt-8 text-center">
-                                        <Button onClick={() => fetchGalleryAndImages(true)} disabled={isLoadingMore}>
-                                            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Charger plus
-                                        </Button>
-                                    </div>
-                                )}
-                                </>
                             ) : (
                                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
                                     <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -655,7 +662,7 @@ export default function GalleryDetailPage() {
                                 <Label>Optimisation IA pour... (1 Ticket)</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
-                                    <span>{(userProfile?.aiTicketCount ?? 0) + (userProfile?.subscriptionAiTickets ?? 0) + (userProfile?.packAiTickets ?? 0)} restants</span>
+                                    <span>{(userProfile?.aiTicketCount || 0) + (userProfile?.subscriptionAiTickets || 0) + (userProfile?.packAiTickets || 0)} restants</span>
                                 </div>
                             </div>
                              <div className="grid grid-cols-2 gap-2">

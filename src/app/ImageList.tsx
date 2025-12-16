@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, query, orderBy, doc, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData, where } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,10 +86,11 @@ export function ImageList() {
     const isMobile = useIsMobile();
 
     const [allMedia, setAllMedia] = useState<ImageMetadata[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
     const [hasMore, setHasMore] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -141,13 +142,14 @@ export function ImageList() {
         }
 
         try {
+            const cursor = loadMore ? lastVisible : null;
             let q;
             const collectionRef = collection(firestore, `users/${user.uid}/images`);
             
-            if (loadMore && lastVisible) {
-                q = query(collectionRef, orderBy('uploadTimestamp', 'desc'), startAfter(lastVisible), limit(IMAGES_PER_PAGE));
+            if (cursor) {
+                q = query(collectionRef, orderBy('uploadTimestamp', sortOrder), startAfter(cursor), limit(IMAGES_PER_PAGE));
             } else {
-                q = query(collectionRef, orderBy('uploadTimestamp', 'desc'), limit(IMAGES_PER_PAGE));
+                q = query(collectionRef, orderBy('uploadTimestamp', sortOrder), limit(IMAGES_PER_PAGE));
             }
 
             const documentSnapshots = await getDocs(q);
@@ -171,19 +173,16 @@ export function ImageList() {
             setIsLoading(false);
             setIsLoadingMore(false);
         }
-    }, [user, firestore, lastVisible, toast]);
+    }, [user, firestore, lastVisible, sortOrder, toast]);
 
     useEffect(() => {
-        loadImages(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, firestore]);
-
-    const refetchMedia = () => {
         setAllMedia([]);
         setLastVisible(null);
         setHasMore(true);
         loadImages(false);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, firestore, sortOrder]);
+
 
     const imagesOnly = useMemo(() => {
         return allMedia?.filter(media => !media.mimeType?.startsWith('video/')) ?? [];
@@ -209,14 +208,21 @@ export function ImageList() {
     const sortedImages = useMemo(() => {
         if (!imagesOnly) return [];
         const pinnedIds = new Set(userProfile?.pinnedImageIds || []);
-        return [...imagesOnly].sort((a, b) => {
-            const aIsPinned = pinnedIds.has(a.id);
-            const bIsPinned = pinnedIds.has(b.id);
-            if (aIsPinned && !bIsPinned) return -1;
-            if (!aIsPinned && bIsPinned) return 1;
-            return 0;
-        });
-    }, [imagesOnly, userProfile]);
+        
+        // La logique de tri est maintenant gérée par la requête Firestore,
+        // mais nous devons toujours prioriser les images épinglées si on trie par "plus récent".
+        if (sortOrder === 'desc') {
+            return [...imagesOnly].sort((a, b) => {
+                const aIsPinned = pinnedIds.has(a.id);
+                const bIsPinned = pinnedIds.has(b.id);
+                if (aIsPinned && !bIsPinned) return -1;
+                if (!aIsPinned && bIsPinned) return 1;
+                // Le tri par date est déjà fait par Firestore, pas besoin de le refaire ici.
+                return 0; 
+            });
+        }
+        return imagesOnly; // Pour le tri par 'plus ancien', on n'épingle pas pour l'instant.
+    }, [imagesOnly, userProfile, sortOrder]);
 
     useEffect(() => {
         if (imageToEdit) {
@@ -273,7 +279,7 @@ export function ImageList() {
 
         if (!error) {
             toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès." });
-            refetchMedia();
+            setAllMedia(prev => prev.filter(media => media.id !== imageToDelete.id));
         }
 
         setIsDeleting(null);
@@ -296,7 +302,7 @@ export function ImageList() {
                 title: `${imageIdsToDelete.length} image(s) supprimée(s)`,
                 description: "Les images sélectionnées ont été définitivement supprimées.",
             });
-            refetchMedia();
+             setAllMedia(prev => prev.filter(media => !imageIdsToDelete.includes(media.id)));
             setIsSelectionMode(false);
             setSelectedImages(new Set());
         }
@@ -405,7 +411,7 @@ export function ImageList() {
         if (!error) {
             toast({ title: 'Description enregistrée', description: 'Les informations de l\'image ont été mises à jour.' });
             setShowEditDialog(false);
-            refetchMedia();
+            setAllMedia(prev => prev.map(media => media.id === imageToEdit.id ? { ...media, ...dataToSave } : media));
         }
         setIsSavingDescription(false);
     };
@@ -499,21 +505,23 @@ export function ImageList() {
                 title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée globalement',
             });
             // Re-sort local state to reflect pinning change instantly
-            const pinnedIds = new Set(userProfile.pinnedImageIds || []);
-            if (!isCurrentlyPinned) {
-                pinnedIds.add(image.id);
-            } else {
-                pinnedIds.delete(image.id);
-            }
-            setAllMedia(currentImages => [...currentImages].sort((a, b) => {
-                const aIsPinned = pinnedIds.has(a.id);
-                const bIsPinned = pinnedIds.has(b.id);
-                if (aIsPinned && !bIsPinned) return -1;
-                if (!aIsPinned && bIsPinned) return 1;
-                const dateA = a.uploadTimestamp?.toDate()?.getTime() || 0;
-                const dateB = b.uploadTimestamp?.toDate()?.getTime() || 0;
-                return dateB - dateA;
-            }));
+             if (sortOrder === 'desc') {
+                const pinnedIds = new Set(userProfile.pinnedImageIds || []);
+                if (!isCurrentlyPinned) {
+                    pinnedIds.add(image.id);
+                } else {
+                    pinnedIds.delete(image.id);
+                }
+                setAllMedia(currentImages => [...currentImages].sort((a, b) => {
+                    const aIsPinned = pinnedIds.has(a.id);
+                    const bIsPinned = pinnedIds.has(b.id);
+                    if (aIsPinned && !bIsPinned) return -1;
+                    if (!aIsPinned && bIsPinned) return 1;
+                    const dateA = a.uploadTimestamp?.toDate()?.getTime() || 0;
+                    const dateB = b.uploadTimestamp?.toDate()?.getTime() || 0;
+                    return dateB - dateA;
+                }));
+             }
         }
     };
     
@@ -578,7 +586,7 @@ export function ImageList() {
                         </div>
                     </div>
                 ) : (
-                    isPinned && (
+                    isPinned && sortOrder === 'desc' && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
@@ -615,7 +623,7 @@ export function ImageList() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
+                            <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)} disabled={sortOrder !== 'desc'}>
                                 {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                 <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
                             </DropdownMenuItem>
@@ -724,16 +732,25 @@ export function ImageList() {
             <Card>
                 <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
                     <AccordionItem value="item-1" className="border-b-0">
-                        <div className="flex items-center justify-between p-6">
-                            <div className="flex-1">
+                        <div className="flex items-center justify-between p-6 gap-4 flex-wrap">
+                            <div className="flex-1 min-w-0">
                                 <CardTitle>Mes Images</CardTitle>
                                 <CardDescription>
                                     Voici la liste de vos images téléversées.
                                 </CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
+                                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'desc' | 'asc')}>
+                                    <SelectTrigger className="w-[150px] h-9">
+                                        <SelectValue placeholder="Trier par..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="desc">Plus récent</SelectItem>
+                                        <SelectItem value="asc">Plus ancien</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 {imagesOnly && imagesOnly.length > 0 && (
-                                    <Button variant="outline" onClick={handleToggleSelectionMode} disabled={isSelectionMode}>
+                                    <Button variant="outline" onClick={handleToggleSelectionMode} disabled={isSelectionMode} className="h-9">
                                         <BoxSelect className="mr-2 h-4 w-4"/> Sélectionner
                                     </Button>
                                 )}
