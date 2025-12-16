@@ -198,7 +198,44 @@ export default function EditImagePage() {
 
 
     const handleGenerateImage = async () => {
-        // ... (existing code for manual image generation, unchanged)
+        if (!prompt?.trim() || !user || !userProfile || !firestore || !originalImage) return;
+    
+        if (totalAiTickets <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: (<Link href="/shop" className="font-bold underline text-white">Rechargez (dès 0,08€ / ticket)</Link>),
+            });
+            return;
+        }
+    
+        setIsGenerating(true);
+    
+        try {
+            const baseImageUrl = currentHistoryItem?.imageUrl || originalImage.directUrl;
+            const result = await editImage({ imageUrl: baseImageUrl, prompt });
+            
+            const newHistoryItem: ImageHistoryItem = {
+                imageUrl: result.imageUrl,
+                prompt: prompt,
+                title: generatedTitle,
+                description: generatedDescription,
+                hashtags: generatedHashtags
+            };
+    
+            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
+            newHistory.push(newHistoryItem);
+            setGeneratedImageHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+            
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            refetchUserProfile();
+            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleGenerateStory = async () => {
@@ -258,7 +295,7 @@ export default function EditImagePage() {
     };
     
     const handleUndoGeneration = () => {
-        if (historyIndex > -1) {
+        if (historyIndex >= 0) {
             setHistoryIndex(prev => prev - 1);
         }
     };
@@ -619,7 +656,7 @@ export default function EditImagePage() {
 
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full">
+                                <Button className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
                                     <Lightbulb className="mr-2 h-4 w-4" />
                                     Trouver l'inspiration
                                 </Button>
