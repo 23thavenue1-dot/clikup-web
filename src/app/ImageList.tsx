@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -497,6 +496,7 @@ export function ImageList() {
     // Component that wraps the clickable area
     const ClickableArea = ({ image }: { image: ImageMetadata }) => {
         const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
+        const isVideo = image.mimeType?.startsWith('video/');
 
         const content = (
             <>
@@ -524,14 +524,25 @@ export function ImageList() {
                     )
                 )}
                     
-                <Image
-                    src={image.directUrl}
-                    alt={image.originalName || 'Image téléversée'}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                    className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
-                    unoptimized // Important pour les Data URLs et celles de Storage
-                />
+                {isVideo ? (
+                    <video 
+                        src={image.directUrl} 
+                        className="object-cover bg-muted w-full h-full" 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline 
+                    />
+                ) : (
+                    <Image
+                        src={image.directUrl}
+                        alt={image.originalName || 'Média téléversé'}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                        className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
+                        unoptimized // Important pour les Data URLs et celles de Storage
+                    />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                 
                 <div className="absolute top-2 right-2 z-10">
@@ -590,7 +601,7 @@ export function ImageList() {
                     className="text-sm font-semibold truncate"
                     title={image.originalName}
                     >
-                        {image.originalName || 'Image depuis URL'}
+                        {image.originalName || 'Média depuis URL'}
                     </p>
                     {image.uploadTimestamp && (
                         <p className="text-xs opacity-80">
@@ -623,7 +634,7 @@ export function ImageList() {
         <TooltipProvider>
             {isSelectionMode && (
                 <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-sm -mx-6 mb-4 px-6 py-3 border-b flex items-center justify-between">
-                    <span className="font-semibold text-sm">{selectedImages.size} image(s) sélectionnée(s)</span>
+                    <span className="font-semibold text-sm">{selectedImages.size} média(s) sélectionné(s)</span>
                     <div className="flex items-center gap-2">
                          <Button 
                             variant="default" 
@@ -658,9 +669,9 @@ export function ImageList() {
                     <AccordionItem value="item-1" className="border-b-0">
                         <div className="flex items-center justify-between p-6">
                             <div className="flex-1">
-                                <CardTitle>Mes images</CardTitle>
+                                <CardTitle>Mes médias</CardTitle>
                                 <CardDescription>
-                                    Voici la liste de vos images téléversées ou ajoutées par URL.
+                                    Voici la liste de vos images et vidéos téléversées.
                                 </CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
@@ -680,8 +691,8 @@ export function ImageList() {
                                 {!isLoading && (!sortedImages || sortedImages.length === 0) && (
                                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                                         <ImageIcon className="h-12 w-12 mb-4" />
-                                        <p className="font-medium">Aucune image pour le moment.</p>
-                                        <p className="text-sm">Utilisez le module ci-dessus pour en ajouter une.</p>
+                                        <p className="font-medium">Aucun média pour le moment.</p>
+                                        <p className="text-sm">Utilisez le module ci-dessus pour en ajouter un.</p>
                                     </div>
                                 )}
                                 
@@ -716,7 +727,7 @@ export function ImageList() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Cette action est irréversible. L'image sera définitivement supprimée de votre galerie.
+                        Cette action est irréversible. Le média sera définitivement supprimé de votre galerie.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -729,9 +740,9 @@ export function ImageList() {
             <AlertDialog open={showMultiDeleteAlert} onOpenChange={setShowMultiDeleteAlert}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer {selectedImages.size} image(s) ?</AlertDialogTitle>
+                        <AlertDialogTitle>Supprimer {selectedImages.size} média(s) ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est irréversible. Les images sélectionnées seront définitivement supprimées de votre compte.
+                            Cette action est irréversible. Les médias sélectionnés seront définitivement supprimés de votre compte.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

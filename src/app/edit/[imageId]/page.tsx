@@ -21,18 +21,22 @@ import { animateStory } from '@/ai/flows/animate-story-flow';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { suggestionCategories } from '@/lib/ai-prompts';
-import { format, addMonths, startOfMonth } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format, addMonths, startOfMonth } from "date-fns"
+import { fr } from "date-fns/locale"
+import { Calendar } from "@/components/ui/calendar"
+import { withErrorHandling } from '@/lib/async-wrapper';
+import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
+import type { SocialAuditInput, CreativeSuggestion } from '@/ai/schemas/social-audit-schemas';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { generateImageDescription } from '@/ai/flows/generate-description-flow';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
@@ -214,13 +218,10 @@ export default function EditImagePage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, isLoading: isProfileLoading, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
-    const totalAiTickets = useMemo(() => {
-        if (!userProfile) return 0;
-        return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
-    }, [userProfile]);
-
+    const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) : 0;
+    
     const currentHistoryItem = useMemo(() => {
         if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
             return generatedImageHistory[historyIndex];
@@ -496,6 +497,7 @@ export default function EditImagePage() {
             for (let i = 0; i < STORY_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            refetchUserProfile();
             toast({ title: 'Story animée générée !', description: `${STORY_COST} tickets IA ont été utilisés.` });
         } catch (error) {
             console.error("Story animation error:", error);
@@ -505,6 +507,33 @@ export default function EditImagePage() {
         }
     };
 
+    const handleSaveGeneratedStory = async () => {
+        if (!generatedStoryUrl || !user || !firebaseApp || !firestore) return;
+        setIsSaving(true);
+        
+        try {
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(generatedStoryUrl);
+            const newFileName = `animated-story-${Date.now()}.mp4`; // Sauvegarder en mp4
+            const videoFile = new File([blob], newFileName, { type: 'video/mp4' });
+
+            const metadata = await uploadFileAndGetMetadata(storage, user, videoFile, `Story Animée: ${storyAnimationPrompt}`, () => {});
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Animation : ${storyAnimationPrompt}`,
+                description: `Story animée générée à partir de l'image originale avec le prompt : "${storyAnimationPrompt}"`,
+                generatedByAI: true
+            });
+            toast({ title: "Animation sauvegardée !", description: "Votre nouvelle vidéo a été ajoutée à votre galerie." });
+            setIsStoryDialogOpen(false); // Fermer le dialogue après la sauvegarde
+        } catch (error) {
+            console.error("Erreur lors de la sauvegarde de la story:", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: 'Impossible d\'enregistrer la vidéo.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
     
     const handleUndoGeneration = () => {
         if (historyIndex > -1) {
@@ -921,11 +950,18 @@ export default function EditImagePage() {
                                                     </div>
                                                 </div>
                                                 <DialogFooter>
-                                                    <Button variant="secondary" onClick={() => setIsStoryDialogOpen(false)} disabled={isGeneratingStory}>Fermer</Button>
-                                                    <Button onClick={handleGenerateStory} disabled={!storyAnimationPrompt.trim() || isGeneratingStory || totalAiTickets < 5}>
-                                                        {isGeneratingStory ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                                        Générer la Story
-                                                    </Button>
+                                                    <Button variant="secondary" onClick={() => setIsStoryDialogOpen(false)} disabled={isGeneratingStory || isSaving}>Fermer</Button>
+                                                    {generatedStoryUrl ? (
+                                                        <Button onClick={handleSaveGeneratedStory} disabled={isSaving}>
+                                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
+                                                            Sauvegarder
+                                                        </Button>
+                                                    ) : (
+                                                        <Button onClick={handleGenerateStory} disabled={!storyAnimationPrompt.trim() || isGeneratingStory || totalAiTickets < 5}>
+                                                            {isGeneratingStory ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                                            Générer
+                                                        </Button>
+                                                    )}
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>
