@@ -48,6 +48,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel"
 import { Input } from '@/components/ui/input';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -1374,3 +1375,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
