@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -835,7 +836,7 @@ export default function EditImagePage() {
                                 <TabsTrigger value="tiktok" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
                             </TabsList>
                             <TabsContent value="instagram" className="pt-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
@@ -886,7 +887,7 @@ export default function EditImagePage() {
                                             Générer (1 Ticket)
                                         </Button>
                                     </Card>
-                                     <AlertDialog>
+                                    <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Card className="p-4 flex flex-col gap-2 bg-muted/30 cursor-pointer hover:bg-muted/50">
                                                 <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Story Animée</h4></div>
@@ -906,11 +907,6 @@ export default function EditImagePage() {
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">Réel "Zoom & Révèle"</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Crée une courte vidéo qui zoome sur un détail avant de révéler l'image complète.</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
-                                    </Card>
                                 </div>
                             </TabsContent>
                              <TabsContent value="facebook" className="pt-6">
@@ -1312,3 +1308,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
