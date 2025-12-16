@@ -841,7 +841,7 @@ export default function EditImagePage() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
-                                                <h4 className="font-semibold">Carrousel Narratif</h4>
+                                                <h4 className="font-semibold">Carrousel AI</h4>
                                             </div>
                                             <Dialog>
                                                 <DialogTrigger asChild>
@@ -849,7 +849,7 @@ export default function EditImagePage() {
                                                 </DialogTrigger>
                                                 <DialogContent>
                                                     <DialogHeader>
-                                                        <DialogTitle>Comment fonctionne le Carrousel Narratif ?</DialogTitle>
+                                                        <DialogTitle>Comment fonctionne le Carrousel AI ?</DialogTitle>
                                                         <DialogDescription>
                                                             Cette IA analyse votre image et génère une histoire en 4 diapositives pour captiver votre audience.
                                                         </DialogDescription>
