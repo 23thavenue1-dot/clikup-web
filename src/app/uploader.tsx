@@ -502,42 +502,10 @@ export function Uploader() {
 };
 
 const handleGenerateVideo = async () => {
-    if (!videoPrompt.trim() || !user || !firestore || !userProfile) return;
-
-    // TODO: Définir un coût en tickets pour la vidéo
-    const VIDEO_COST = 5;
-    if (totalAiTickets < VIDEO_COST) {
-        toast({
-            variant: 'destructive',
-            title: `Tickets IA insuffisants (${VIDEO_COST} requis)`,
-            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez (dès 0,08€ / ticket)</Link>),
-        });
-        return;
-    }
-    
-    setIsGeneratingVideo(true);
-    setGeneratedVideoUrl(null);
-
-    try {
-        const result = await generateVideo({ 
-            prompt: videoPrompt, 
-            aspectRatio: videoAspectRatio, 
-            durationSeconds: videoDuration 
-        });
-        
-        setGeneratedVideoUrl(result.videoUrl);
-
-        for (let i = 0; i < VIDEO_COST; i++) {
-            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-        }
-      
-        toast({ title: 'Vidéo générée !', description: `${VIDEO_COST} tickets IA ont été utilisés.` });
-    } catch (error) {
-        const errorMessage = (error as Error).message;
-        toast({ variant: 'destructive', title: 'Erreur de génération vidéo', description: errorMessage });
-    } finally {
-        setIsGeneratingVideo(false);
-    }
+    toast({
+        title: "Fonctionnalité en cours de développement",
+        description: "La génération de vidéos est en cours d'amélioration et sera bientôt disponible.",
+    });
 };
 
   const handleUndoGeneration = () => {

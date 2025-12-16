@@ -479,35 +479,10 @@ export default function EditImagePage() {
     };
     
     const handleGenerateStory = async () => {
-        if (!originalImage || !userProfile || !storyAnimationPrompt.trim()) return;
-
-        const STORY_COST = 5;
-        if (totalAiTickets < STORY_COST) {
-            toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `${STORY_COST} tickets sont requis.` });
-            return;
-        }
-
-        setIsGeneratingStory(true);
-        setGeneratedStoryUrl(null);
-        try {
-            const result = await animateStory({
-                imageUrl: originalImage.directUrl,
-                prompt: storyAnimationPrompt,
-                aspectRatio: '9:16',
-            });
-            setGeneratedStoryUrl(result.videoUrl);
-
-            for (let i = 0; i < STORY_COST; i++) {
-                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            }
-            refetchUserProfile();
-            toast({ title: 'Story animée générée !', description: `${STORY_COST} tickets IA ont été utilisés.` });
-        } catch (error) {
-            console.error("Story animation error:", error);
-            toast({ variant: 'destructive', title: 'Erreur de génération', description: "La story n'a pas pu être créée." });
-        } finally {
-            setIsGeneratingStory(false);
-        }
+        toast({
+            title: "Fonctionnalité en cours de développement",
+            description: "La génération de vidéos animées est en cours d'amélioration et sera bientôt disponible.",
+        });
     };
 
     const handleSaveGeneratedStory = async () => {
@@ -920,7 +895,7 @@ export default function EditImagePage() {
                                         <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une vidéo de 5s avec des animations de texte et d'effets.</p>
                                         <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
                                             <DialogTrigger asChild>
-                                                <Button size="sm" disabled={isGeneratingStory}>Générer (5 Tickets)</Button>
+                                                <Button size="sm">Générer (5 Tickets)</Button>
                                             </DialogTrigger>
                                             <DialogContent>
                                                 <DialogHeader>
