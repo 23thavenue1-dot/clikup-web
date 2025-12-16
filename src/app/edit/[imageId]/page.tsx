@@ -13,8 +13,9 @@ import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { optimizeImage } from '@/ai/flows/generate-carousel-flow';
-import type { OptimizeImageOutput } from '@/ai/schemas/carousel-schemas';
+import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
+import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
+import type { GenerateCarouselOutput, CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { animateStory } from '@/ai/flows/animate-story-flow';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -109,6 +110,65 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     return blob;
 }
 
+// --- Helper pour convertir du texte en image ---
+async function createTextToImage(text: string, width: number, height: number): Promise<string> {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return '';
+
+    // Fond
+    ctx.fillStyle = '#111827'; // bg-gray-900
+    ctx.fillRect(0, 0, width, height);
+
+    // Texte
+    ctx.fillStyle = '#F9FAFB'; // text-gray-50
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const max_width = width * 0.8;
+    const words = text.split(' ');
+    const lines = [];
+    let current_line = words[0];
+
+    // Gérer la taille de police dynamique
+    let fontSize = Math.min(width / 18, 60); // Augmentation de la taille de base
+    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const test_line = current_line + ' ' + word;
+        const test_width = ctx.measureText(test_line).width;
+        if (test_width > max_width) {
+            lines.push(current_line);
+            current_line = word;
+        } else {
+            current_line = test_line;
+        }
+    }
+    lines.push(current_line);
+
+    // Réduire la taille de la police si le texte est trop haut
+    const textHeight = lines.length * fontSize;
+    while (textHeight > height * 0.8 && fontSize > 10) {
+        fontSize -= 2;
+        ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+    }
+
+    const line_height = fontSize * 1.2;
+    const start_y = (height - (lines.length - 1) * line_height) / 2;
+
+    for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], width / 2, start_y + i * line_height);
+    }
+
+    return canvas.toDataURL('image/png');
+}
+
+
+
 export default function EditImagePage() {
     const params = useParams();
     const router = useRouter();
@@ -117,6 +177,18 @@ export default function EditImagePage() {
     const { user, isUserLoading, firebaseApp } = useFirebase();
     const { toast } = useToast();
     const firestore = useFirestore();
+
+    // --- State pour le carrousel ---
+    const [isCarouselDialogOpen, setIsCarouselDialogOpen] = useState(false);
+    const [carouselResult, setCarouselResult] = useState<GenerateCarouselOutput | null>(null);
+    const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
+    const [carouselDirective, setCarouselDirective] = useState('');
+    const [platformForCarousel, setPlatformForCarousel] = useState('');
+    const [carouselApi, setCarouselApi] = React.useState<CarouselApi>()
+    const [currentCarouselSlide, setCurrentCarouselSlide] = React.useState(0)
+    const [isRegeneratingText, setIsRegeneratingText] = useState<number | null>(null);
+    const [textImageUrls, setTextImageUrls] = useState<Record<number, string>>({});
+
 
     // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
@@ -153,15 +225,6 @@ export default function EditImagePage() {
     const [promptToEdit, setPromptToEdit] = useState<CustomPrompt | null>(null);
     const [editedPromptName, setEditedPromptName] = useState("");
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
-
-    // NOUVEAU: State pour l'optimisation
-    const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
-    const [isOptimizing, setIsOptimizing] = useState(false);
-    const [optimizedImageResult, setOptimizedImageResult] = useState<OptimizeImageOutput | null>(null);
-    const [optimizationDirective, setOptimizationDirective] = useState('');
-    const [platformForOptimization, setPlatformForOptimization] = useState('');
-    const [isSavingOptimized, setIsSavingOptimized] = useState(false);
-
 
     // NOUVEAU: State pour la Story Animée
     const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
@@ -212,68 +275,135 @@ export default function EditImagePage() {
     }, [currentHistoryItem, originalImage]);
 
 
-    const handleOptimizeImageClick = async (platform: string) => {
+    const handleGenerateCarousel = async (platform: string) => {
         if (!originalImage || !userProfile || totalAiTickets < 1) {
             toast({ variant: 'destructive', title: 'Action impossible', description: 'Tickets IA insuffisants ou image non chargée.' });
             return;
         }
 
-        setIsOptimizing(true);
-        setPlatformForOptimization(platform);
-        setOptimizedImageResult(null);
+        setIsGeneratingCarousel(true);
+        setPlatformForCarousel(platform);
+        setCarouselResult(null);
 
         toast({
-            title: "Optimisation en cours...",
-            description: `L'IA prépare votre image pour ${platform}.`,
+            title: "Génération du carrousel en cours...",
+            description: `L'IA prépare votre histoire pour ${platform}.`,
         });
 
         try {
-            const result = await optimizeImage({
+            const result = await generateCarousel({
                 baseImageUrl: originalImage.directUrl,
                 subjectPrompt: originalImage.description || originalImage.title,
-                userDirective: optimizationDirective || undefined,
+                userDirective: carouselDirective || undefined,
                 platform: platform,
             });
 
-            setOptimizedImageResult(result);
-            setIsResultDialogOpen(true); // Ouvre la fenêtre de résultat
+            setCarouselResult(result);
+            setIsCarouselDialogOpen(true);
 
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
-            toast({ title: "Image optimisée !" });
+            toast({ title: "Carrousel généré !" });
         } catch (error) {
-            console.error("Optimization error:", error);
-            toast({ variant: 'destructive', title: "Erreur d'optimisation", description: (error as Error).message });
+            console.error("Carousel generation error:", error);
+            toast({ variant: 'destructive', title: "Erreur de génération", description: (error as Error).message });
         } finally {
-            setIsOptimizing(false);
-            setPlatformForOptimization('');
+            setIsGeneratingCarousel(false);
+            setPlatformForCarousel('');
         }
     };
     
-    const handleSaveOptimizedImage = async () => {
-        if (!optimizedImageResult || !user || !firebaseApp || !firestore) return;
-        setIsSavingOptimized(true);
-        const { error } = await withErrorHandling(async () => {
-            const storage = getStorage(firebaseApp);
-            const blob = await dataUriToBlob(optimizedImageResult.optimizedImageUrl);
-            const newFileName = `optimized-${platformForOptimization}-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: 'image/png' });
+    const handleRegenerateText = async (slideIndex: number) => {
+        if (!carouselResult || !originalImage || !userProfile) return;
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Optimisé pour ${platformForOptimization}`, () => {});
-            
-            await saveImageMetadata(firestore, user, { 
-                ...metadata,
-                title: `Optimisé pour ${platformForOptimization}`,
-                description: `Image optimisée par l'IA. ${optimizationDirective ? `Directive: "${optimizationDirective}"` : ''}`,
-                generatedByAI: true
+        const currentSlide = carouselResult.slides[slideIndex];
+        if (currentSlide.type !== 'text' || !currentSlide.content) return;
+        
+        setIsRegeneratingText(slideIndex);
+        
+        try {
+            const afterImageUrl = carouselResult.slides[2].content || '';
+            const { newText } = await regenerateCarouselText({
+                baseImageUrl: originalImage.directUrl,
+                afterImageUrl: afterImageUrl,
+                currentText: currentSlide.content,
+                slideIndex: slideIndex,
+                platform: platformForCarousel,
             });
-        });
+            
+            const newSlides = [...carouselResult.slides];
+            newSlides[slideIndex] = { ...newSlides[slideIndex], content: newText };
+            setCarouselResult({ ...carouselResult, slides: newSlides });
 
-        if (!error) {
-            toast({ title: "Sauvegardé dans la bibliothèque !", description: "Votre image optimisée a été ajoutée à votre galerie." });
-            setIsResultDialogOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de régénérer le texte.' });
+        } finally {
+            setIsRegeneratingText(null);
         }
-        setIsSavingOptimized(false);
+    };
+
+    // Effet pour générer les images à partir du texte
+    useEffect(() => {
+        if (carouselResult && carouselResult.slides) {
+            const generateImages = async () => {
+                const urls: Record<number, string> = {};
+                for (let i = 0; i < carouselResult.slides.length; i++) {
+                    const slide = carouselResult.slides[i];
+                    if (slide.type === 'text' && slide.content) {
+                        const url = await createTextToImage(slide.content, 1080, 1080);
+                        urls[i] = url;
+                    }
+                }
+                setTextImageUrls(urls);
+            };
+            generateImages();
+        }
+    }, [carouselResult]);
+
+    // Effet pour le carousel
+    useEffect(() => {
+        if (!carouselApi) return;
+        setCurrentCarouselSlide(carouselApi.selectedScrollSnap());
+        carouselApi.on("select", () => {
+            setCurrentCarouselSlide(carouselApi.selectedScrollSnap());
+        });
+    }, [carouselApi]);
+    
+    // Sauvegarder toutes les images générées du carrousel
+    const handleSaveCarousel = async () => {
+        if (!carouselResult || !user || !firebaseApp || !firestore) return;
+        setIsSaving(true);
+        
+        const generatedImagesToSave = [
+            { index: 1, content: textImageUrls[1] },
+            { index: 2, content: carouselResult.slides[2].content },
+            { index: 3, content: textImageUrls[3] }
+        ].filter(item => item.content);
+        
+        toast({ title: `Sauvegarde de ${generatedImagesToSave.length} image(s)...`, description: "Cela peut prendre un moment." });
+
+        try {
+            for (const item of generatedImagesToSave) {
+                const blob = await dataUriToBlob(item.content!);
+                const newFileName = `carousel-slide-${item.index}-${Date.now()}.png`;
+                const imageFile = new File([blob], newFileName, { type: 'image/png' });
+                
+                const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Diapositive Carrousel #${item.index + 1}`, () => {});
+                
+                await saveImageMetadata(firestore, user, { 
+                    ...metadata,
+                    title: `Carrousel : ${carouselResult.slides[item.index].title}`,
+                    description: `Diapositive générée par IA.`,
+                    generatedByAI: true
+                });
+            }
+            toast({ title: "Carrousel sauvegardé !", description: "Toutes les nouvelles images ont été ajoutées à votre galerie." });
+            setIsCarouselDialogOpen(false);
+        } catch (error) {
+            withErrorHandling(() => { throw error });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
 
@@ -296,10 +426,10 @@ export default function EditImagePage() {
         setIsGenerating(true);
         
         try {
-            const result = await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
+            const { imageUrl: newImageUrl } = await optimizeImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
             
             const newHistoryItem: ImageHistoryItem = {
-                imageUrl: result.imageUrl,
+                imageUrl: newImageUrl,
                 prompt: currentPrompt,
                 title: generatedTitle, // On conserve les titres/descriptions précédents
                 description: generatedDescription,
@@ -700,16 +830,16 @@ export default function EditImagePage() {
                     </CardHeader>
                     <CardContent>
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <ActionCard onClick={() => handleOptimizeImageClick('instagram')} disabled={isOptimizing}>
-                                {isOptimizing && platformForOptimization === 'instagram' ? (
+                           <ActionCard onClick={() => handleGenerateCarousel('instagram')} disabled={isGeneratingCarousel}>
+                                {isGeneratingCarousel && platformForCarousel === 'instagram' ? (
                                     <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
                                 ) : (
                                     <><div className="flex items-center justify-between w-full"><div className="flex items-center gap-3"><ActionIcon icon={Instagram} /><ActionTitle>Carrousel</ActionTitle></div><Dialog><DialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-green-500" onClick={(e) => e.stopPropagation()}><HelpCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Format Carrousel "Avant/Après"</DialogTitle><DialogDescription>Cet outil génère un carrousel complet prêt à l'emploi. Il crée une image "Après" spectaculaire, puis rédige une histoire en 4 étapes pour présenter la transformation et engager votre audience. Idéal pour maximiser l'impact.</DialogDescription></DialogHeader></DialogContent></Dialog></div><ActionDescription>Crée un carrousel "Avant/Après" engageant avec une histoire captivante.</ActionDescription></>
                                 )}
                             </ActionCard>
                             
-                            <ActionCard onClick={() => handleOptimizeImageClick('facebook')} disabled={isOptimizing}>
-                                 {isOptimizing && platformForOptimization === 'facebook' ? (
+                            <ActionCard onClick={() => handleGenerateCarousel('facebook')} disabled={isGeneratingCarousel}>
+                                 {isGeneratingCarousel && platformForCarousel === 'facebook' ? (
                                     <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
                                 ) : (
                                     <><div className="flex items-center justify-between w-full"><div className="flex items-center gap-3"><ActionIcon icon={Facebook} /><ActionTitle>Publication</ActionTitle></div><Dialog><DialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-green-500" onClick={(e) => e.stopPropagation()}><HelpCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Format Publication Simple</DialogTitle><DialogDescription>Cet outil se concentre sur la création d'une seule image finale, visuellement percutante. Il est parfait pour une publication rapide et efficace sur les fils d'actualité comme Facebook, où la clarté et l'impact immédiat sont essentiels.</DialogDescription></DialogHeader></DialogContent></Dialog></div><ActionDescription>Génère un format visuellement impactant, idéal pour le fil d'actualité.</ActionDescription></>
@@ -721,9 +851,9 @@ export default function EditImagePage() {
                             <Input 
                                 id="directive-input"
                                 placeholder="Ex: ajoute une ambiance de coucher de soleil..."
-                                value={optimizationDirective}
-                                onChange={(e) => setOptimizationDirective(e.target.value)}
-                                disabled={isOptimizing}
+                                value={carouselDirective}
+                                onChange={(e) => setCarouselDirective(e.target.value)}
+                                disabled={isGeneratingCarousel}
                             />
                             <p className="text-xs text-muted-foreground">Donnez une instruction à l'IA pour guider la transformation.</p>
                         </div>
@@ -916,39 +1046,60 @@ export default function EditImagePage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
+            <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle>Résultat de l'Optimisation Pro</DialogTitle>
+                        <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
-                            Voici la version optimisée par l'IA. Vous pouvez la sauvegarder ou fermer pour essayer une autre instruction.
+                            Voici l'histoire générée par l'IA. Vous pouvez régénérer les textes si besoin.
                         </DialogDescription>
                     </DialogHeader>
-                    {optimizedImageResult ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                            <div className="flex flex-col gap-2">
-                                <p className="text-sm font-semibold text-center text-muted-foreground">AVANT</p>
-                                <div className="relative aspect-square w-full rounded-md overflow-hidden border">
-                                    <Image src={originalImage.directUrl} alt="Image originale" fill className="object-contain" unoptimized />
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <p className="text-sm font-semibold text-center text-primary">APRÈS (IA)</p>
-                                <div className="relative aspect-square w-full rounded-md overflow-hidden border-2 border-primary">
-                                    <Image src={optimizedImageResult.optimizedImageUrl} alt="Image optimisée par l'IA" fill className="object-contain" unoptimized />
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                         <div className="flex items-center justify-center h-64">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
+                    {carouselResult ? (
+                         <Carousel setApi={setCarouselApi} className="w-full">
+                            <CarouselContent>
+                                {carouselResult.slides.map((slide, index) => (
+                                    <CarouselItem key={index}>
+                                        <div className="p-1">
+                                            <div className="relative aspect-square w-full rounded-md overflow-hidden border bg-gray-900 flex flex-col items-center justify-center">
+                                                 <Badge className="absolute top-2 left-2 z-10">{slide.title}</Badge>
+                                                {slide.type === 'image' && slide.content ? (
+                                                    <Image src={slide.content} alt={slide.title || `Diapositive ${index + 1}`} fill className="object-contain"/>
+                                                ) : slide.type === 'text' && textImageUrls[index] ? (
+                                                     <Image src={textImageUrls[index]} alt={slide.title || `Diapositive texte ${index + 1}`} fill className="object-contain" />
+                                                ) : (
+                                                    <Loader2 className="h-8 w-8 animate-spin"/>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CarouselItem>
+                                ))}
+                            </CarouselContent>
+                            <CarouselPrevious />
+                            <CarouselNext />
+                        </Carousel>
+                    ) : <Loader2 className="h-8 w-8 animate-spin mx-auto"/>}
+
+                    {carouselResult?.slides[currentCarouselSlide]?.type === 'text' && (
+                         <div className="flex justify-center items-center gap-2">
+                             <Button
+                                variant="outline"
+                                onClick={() => handleRegenerateText(currentCarouselSlide)}
+                                disabled={isRegeneratingText !== null}
+                            >
+                                {isRegeneratingText === currentCarouselSlide ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                ) : (
+                                    <Sparkles className="mr-2 h-4 w-4"/>
+                                )}
+                                Régénérer le texte
+                            </Button>
+                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="secondary" onClick={() => setIsResultDialogOpen(false)}>Fermer</Button>
-                        <Button onClick={handleSaveOptimizedImage} disabled={isSavingOptimized || !optimizedImageResult}>
-                            {isSavingOptimized && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Sauvegarder cette version
+                        <Button variant="secondary" onClick={() => setIsCarouselDialogOpen(false)}>Fermer</Button>
+                        <Button onClick={handleSaveCarousel} disabled={isSaving || !carouselResult}>
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Sauvegarder le carrousel
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1001,7 +1152,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-    
-
-    
