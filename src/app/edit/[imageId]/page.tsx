@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -8,7 +7,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/fi
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb, FileText as FileTextIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb, FileText as FileTextIcon, LineChart, FilePlus, Settings } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -136,8 +135,8 @@ async function createTextToImage(text: string, width: number, height: number): P
     ctx.textBaseline = 'middle';
     
     // Logique pour ajuster la taille de la police
-    let fontSize = Math.min(width / 18, 60); // Taille de base réduite avec un maximum
-    ctx.font = `bold ${'fontSize'}px "Inter", sans-serif`;
+    let fontSize = Math.min(width / 15, 70); // Taille de base augmentée
+    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
 
     // Fonction pour découper le texte en lignes
     const getLines = (currentText: string, maxWidth: number) => {
@@ -165,7 +164,7 @@ async function createTextToImage(text: string, width: number, height: number): P
     // Réduire la taille de la police si le texte est trop haut pour le canvas
     while (textHeight > height * 0.8 && fontSize > 10) {
         fontSize -= 2;
-        ctx.font = `bold ${'fontSize'}px "Inter", sans-serif`;
+        ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
         lines = getLines(text, width * 0.8);
         textHeight = lines.length * (fontSize * 1.2);
     }
@@ -861,7 +860,7 @@ export default function EditImagePage() {
                         <CardDescription>L'IA analyse votre image et la transforme en une version professionnelle et percutante, optimisée pour la plateforme de votre choix.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <ActionCard onClick={() => handleGenerateCarousel('instagram')}>
                                 <ActionIcon icon={Instagram} />
                                 <ActionTitle>Optimisation pour Instagram</ActionTitle>
@@ -872,26 +871,6 @@ export default function EditImagePage() {
                                 <ActionTitle>Optimisation pour Facebook</ActionTitle>
                                 <ActionDescription>Génère un format visuellement impactant, idéal pour le fil d'actualité.</ActionDescription>
                             </ActionCard>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <ActionCard>
-                                        <ActionIcon icon={VenetianMask} />
-                                        <ActionTitle>Optimisation pour TikTok</ActionTitle>
-                                        <ActionDescription>Crée une courte vidéo animée à partir de votre image pour un impact maximal.</ActionDescription>
-                                    </ActionCard>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            La génération de vidéo par IA est en cours de finalisation pour garantir une expérience stable et de qualité. Elle sera disponible prochainement. Merci de votre patience !
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogAction>Compris</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
                         </div>
                     </CardContent>
                 </Card>
