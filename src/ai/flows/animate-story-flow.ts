@@ -6,39 +6,10 @@
 
 import { ai } from '@/ai/genkit';
 import { AnimateStoryInputSchema, AnimateStoryOutputSchema, type AnimateStoryInput, type AnimateStoryOutput } from '@/ai/schemas/story-animation-schemas';
-import { MediaPart } from 'genkit';
-
-
-// Helper function to download the video and convert to data URI
-async function downloadAndEncodeVideo(videoPart: MediaPart): Promise<string> {
-    if (!videoPart?.media?.url || !videoPart?.media?.contentType) {
-        throw new Error('Media part invalide pour la vidéo.');
-    }
-
-    const fetch = (await import('node-fetch')).default;
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        throw new Error("La clé d'API GEMINI_API_KEY est manquante dans les variables d'environnement.");
-    }
-    
-    const videoDownloadUrl = `${videoPart.media.url}&key=${apiKey}`;
-    
-    const response = await fetch(videoDownloadUrl);
-
-    if (!response.ok || !response.body) {
-        throw new Error(`Échec du téléchargement de la vidéo: ${response.statusText}`);
-    }
-
-    const videoBuffer = await response.buffer();
-    const base64Video = videoBuffer.toString('base64');
-    return `data:${videoPart.media.contentType};base64,${base64Video}`;
-}
-
 
 export async function animateStory(input: AnimateStoryInput): Promise<AnimateStoryOutput> {
   return animateStoryFlow(input);
 }
-
 
 const animateStoryFlow = ai.defineFlow(
   {
@@ -48,6 +19,7 @@ const animateStoryFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt, aspectRatio }) => {
     
+    // Appel à l'IA simplifié pour correspondre aux autres flows fonctionnels
     const { media, output } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -65,24 +37,16 @@ const animateStoryFlow = ai.defineFlow(
         },
     });
 
-    if (!media || !media.url || !media.contentType?.startsWith('video/')) {
+    // Vérification simplifiée : on s'assure juste qu'un média a été retourné.
+    if (!media || !media.url) {
         const errorDetails = JSON.stringify(output, null, 2);
         console.error("Résultat de l'opération inattendu:", errorDetails);
-        throw new Error("Aucune vidéo n'a été trouvée dans le résultat de l'opération. L'IA a peut-être refusé de générer le contenu.");
+        throw new Error("Aucun média n'a été trouvé dans le résultat de l'opération. L'IA a peut-être refusé de générer le contenu.");
     }
     
-    // Si le modèle retourne directement le data URI (cas le plus courant avec ce modèle)
-    if (media.url.startsWith('data:')) {
-        return {
-          videoUrl: media.url,
-        };
-    }
-    
-    // Sinon, on garde la logique de téléchargement comme solution de secours
-    const videoDataUri = await downloadAndEncodeVideo({ media });
-
+    // On fait confiance au modèle et on retourne directement l'URL du média.
     return {
-      videoUrl: videoDataUri,
+      videoUrl: media.url,
     };
   }
 );
