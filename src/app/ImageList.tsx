@@ -496,7 +496,10 @@ export function ImageList() {
     // Component that wraps the clickable area
     const ClickableArea = ({ image }: { image: ImageMetadata }) => {
         const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
-        const isVideo = image.mimeType?.startsWith('video/');
+        
+        // CORRECTION : On vérifie si le mimeType est 'video' OU si l'URL finit par .mp4
+        const isVideo = image.mimeType?.startsWith('video/') || image.directUrl.toLowerCase().includes('.mp4');
+
 
         const content = (
             <>
