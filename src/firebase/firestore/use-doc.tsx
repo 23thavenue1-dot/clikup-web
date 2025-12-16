@@ -97,7 +97,7 @@ export function useDoc<T = any>(
   }, [memoizedDocRef, retryToggle]); // Re-run if the memoizedDocRef or retryToggle changes.
 
   if(memoizedDocRef && !memoizedDocRef.__memo) {
-    throw new Error(memoizedDocRef.path + ' was not properly memoized using useMemoFirebase');
+    console.warn(`useDoc reference '${memoizedDocRef.path}' was not memoized. This can cause infinite render loops.`);
   }
 
   return { data, isLoading, error, refetch };

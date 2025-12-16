@@ -241,7 +241,7 @@ export function ImageList() {
         
         if (!error) {
             toast({
-                title: `${'imageIdsToDelete.length'} image(s) supprimée(s)`,
+                title: `${imageIdsToDelete.length} image(s) supprimée(s)`,
                 description: "Les images sélectionnées ont été définitivement supprimées.",
             });
             setIsSelectionMode(false);
@@ -466,7 +466,7 @@ export function ImageList() {
         
         if (!error) {
             if (scheduleDate) {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${'format(scheduleDate, \'PPP\', { locale: fr })'}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
             } else {
                 toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
             }
