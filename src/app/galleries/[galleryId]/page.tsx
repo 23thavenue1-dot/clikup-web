@@ -5,8 +5,8 @@
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
-import { type Gallery, type ImageMetadata, type UserProfile, getImagesForGallery, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImagePinInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
+import { doc, getDoc, query, collection, orderBy, limit, startAfter, getDocs, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { type Gallery, type ImageMetadata, type UserProfile, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImagePinInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket, Pin, PinOff, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
@@ -38,6 +38,8 @@ import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
+const IMAGES_PER_PAGE = 12;
+
 const platformOptions = [
     { id: 'instagram', label: 'Instagram', icon: Instagram },
     { id: 'facebook', label: 'Facebook', icon: Facebook },
@@ -60,6 +62,9 @@ export default function GalleryDetailPage() {
     const [gallery, setGallery] = useState<Gallery | null>(null);
     const [images, setImages] = useState<ImageMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [hasMore, setHasMore] = useState(true);
 
     const [isManageMode, setIsManageMode] = useState(false);
     const [isRemoveSelectionMode, setIsRemoveSelectionMode] = useState(false);
@@ -101,47 +106,69 @@ export default function GalleryDetailPage() {
         }
     }, [user, isUserLoading, router]);
 
-    const fetchGalleryData = useCallback(async () => {
+    const fetchGalleryAndImages = useCallback(async (loadMore = false) => {
         if (!user || !firestore || !galleryId) return;
-        setIsLoading(true);
-        try {
-            const galleryDocRef = doc(firestore, `users/${user.uid}/galleries/${galleryId}`);
-            const gallerySnap = await getDoc(galleryDocRef);
 
-            if (gallerySnap.exists()) {
-                const galleryData = gallerySnap.data() as Gallery;
-                setGallery(galleryData);
-                
-                if (galleryData.imageIds.length > 0) {
-                    const galleryImages = await getImagesForGallery(firestore, user.uid, galleryData.imageIds);
-                    // Trier les images : épinglées d'abord
-                    const pinnedIds = new Set(galleryData.pinnedImageIds || []);
-                    galleryImages.sort((a, b) => {
-                        const aIsPinned = pinnedIds.has(a.id);
-                        const bIsPinned = pinnedIds.has(b.id);
-                        if (aIsPinned && !bIsPinned) return -1;
-                        if (!aIsPinned && bIsPinned) return 1;
-                        return 0; // Conserver l'ordre original sinon
-                    });
-                    setImages(galleryImages);
+        if (loadMore) setIsLoadingMore(true); else setIsLoading(true);
+
+        try {
+            if (!loadMore) {
+                const galleryDocRef = doc(firestore, `users/${user.uid}/galleries/${galleryId}`);
+                const gallerySnap = await getDoc(galleryDocRef);
+                if (gallerySnap.exists()) {
+                    setGallery(gallerySnap.data() as Gallery);
                 } else {
-                    setImages([]);
+                    toast({ variant: 'destructive', title: 'Erreur', description: 'Galerie introuvable.' });
+                    router.push('/galleries');
+                    return;
                 }
-            } else {
-                toast({ variant: 'destructive', title: 'Erreur', description: 'Galerie introuvable.' });
-                router.push('/galleries');
             }
+
+            // Fetch images only if we have gallery data
+            setImages(prevImages => {
+                const existingImageIds = new Set(prevImages.map(img => img.id));
+                const imageIdsToFetch = gallery?.imageIds.filter(id => !existingImageIds.has(id)) || [];
+
+                if (imageIdsToFetch.length > 0) {
+                    const q = query(collection(firestore, `users/${user.uid}/images`), where('id', 'in', imageIdsToFetch), limit(IMAGES_PER_PAGE));
+                    getDocs(q).then(imageSnapshots => {
+                        const newImages = imageSnapshots.docs.map(d => d.data() as ImageMetadata);
+                        
+                        const allFetchedImages = [...prevImages, ...newImages];
+                        const pinnedIds = new Set(gallery?.pinnedImageIds || []);
+                        allFetchedImages.sort((a, b) => {
+                            const aIsPinned = pinnedIds.has(a.id);
+                            const bIsPinned = pinnedIds.has(b.id);
+                            if (aIsPinned && !bIsPinned) return -1;
+                            if (!aIsPinned && bIsPinned) return 1;
+                            return 0;
+                        });
+                        setImages(allFetchedImages);
+                        setHasMore(newImages.length === IMAGES_PER_PAGE);
+                    });
+                } else {
+                    setHasMore(false);
+                }
+                return prevImages; // return current state while fetching
+            });
+
+
         } catch (error) {
             console.error("Erreur lors de la récupération de la galerie:", error);
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données de la galerie.' });
         } finally {
-            setIsLoading(false);
+            if (loadMore) setIsLoadingMore(false); else setIsLoading(false);
         }
-    }, [user, firestore, galleryId, toast, router]);
-
+    }, [user, firestore, galleryId, toast, router, gallery]);
+    
+    // Initial fetch
     useEffect(() => {
-        fetchGalleryData();
-    }, [fetchGalleryData]);
+        if(user && firestore && galleryId) {
+            fetchGalleryAndImages(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, firestore, galleryId]);
+
 
      useEffect(() => {
         if (imageToEdit) {
@@ -178,14 +205,14 @@ export default function GalleryDetailPage() {
 
     const handleRemoveImages = async () => {
         if (!user || !firestore || selectedImagesForRemoval.size === 0) return;
-        setIsDeleting('batch'); // Use a generic string for batch operations
+        setIsDeleting('batch');
         try {
             await removeImagesFromGallery(firestore, user.uid, galleryId, Array.from(selectedImagesForRemoval));
             toast({
                 title: 'Images retirées',
                 description: `${selectedImagesForRemoval.size} image(s) ont été retirée(s) de la galerie.`
             });
-            await fetchGalleryData();
+            await fetchGalleryAndImages();
             cancelManagement();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de retirer les images.' });
@@ -207,7 +234,7 @@ export default function GalleryDetailPage() {
                 title: 'Images ajoutées',
                 description: `${selectedImagesForAddition.size} image(s) ont été ajoutée(s) à la galerie.`
             });
-            await fetchGalleryData();
+            await fetchGalleryAndImages();
             cancelManagement();
             setIsAddImagesDialogOpen(false);
         } catch (error) {
@@ -246,7 +273,7 @@ export default function GalleryDetailPage() {
         try {
             await deleteImageMetadata(firestore, user.uid, imageToDelete.id);
             toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès de votre bibliothèque." });
-            await fetchGalleryData();
+            await fetchGalleryAndImages();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: "Une erreur est survenue lors de la suppression de l'image." });
         } finally {
@@ -266,7 +293,7 @@ export default function GalleryDetailPage() {
             toast({
                 title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée',
             });
-            await fetchGalleryData(); // Re-fetch to get new order
+            await fetchGalleryAndImages();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de modifier l'épingle." });
         }
@@ -343,7 +370,7 @@ export default function GalleryDetailPage() {
             await updateImageDescription(firestore, user.uid, imageToEdit.id, dataToSave, wasGeneratedByAI);
             toast({ title: 'Description enregistrée' });
             setShowEditDialog(false);
-            await fetchGalleryData(); // Refresh data
+            await fetchGalleryAndImages();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur' });
         } finally {
@@ -442,6 +469,7 @@ export default function GalleryDetailPage() {
                                 </div>
                             )}
                             {images.length > 0 ? (
+                                <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {images.map(image => {
                                         const isPinned = gallery?.pinnedImageIds?.includes(image.id) ?? false;
@@ -534,6 +562,15 @@ export default function GalleryDetailPage() {
                                         </div>
                                     )})}
                                 </div>
+                                {hasMore && (
+                                    <div className="mt-8 text-center">
+                                        <Button onClick={() => fetchGalleryAndImages(true)} disabled={isLoadingMore}>
+                                            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Charger plus
+                                        </Button>
+                                    </div>
+                                )}
+                                </>
                             ) : (
                                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
                                     <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />

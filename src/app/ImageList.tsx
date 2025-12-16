@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,6 +67,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
+const IMAGES_PER_PAGE = 12;
+
 const platformOptions = [
     { id: 'instagram', label: 'Instagram', icon: Instagram },
     { id: 'facebook', label: 'Facebook', icon: Facebook },
@@ -82,6 +84,12 @@ export function ImageList() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const isMobile = useIsMobile();
+
+    const [allMedia, setAllMedia] = useState<ImageMetadata[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -117,22 +125,66 @@ export function ImageList() {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
 
-    // Nouveaux états pour le dialogue de planification/brouillon
     const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
     const [imageToSchedule, setImageToSchedule] = useState<ImageMetadata | null>(null);
     const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
     const [selectedProfileId, setSelectedProfileId] = useState<string>('');
     const [isSavingPost, setIsSavingPost] = useState(false);
 
+    const loadImages = useCallback(async (loadMore = false) => {
+        if (!user || !firestore) return;
 
-    const allMediaQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
+        if (loadMore) {
+            setIsLoadingMore(true);
+        } else {
+            setIsLoading(true);
+        }
+
+        try {
+            let q;
+            const collectionRef = collection(firestore, `users/${user.uid}/images`);
+            
+            if (loadMore && lastVisible) {
+                q = query(collectionRef, orderBy('uploadTimestamp', 'desc'), startAfter(lastVisible), limit(IMAGES_PER_PAGE));
+            } else {
+                q = query(collectionRef, orderBy('uploadTimestamp', 'desc'), limit(IMAGES_PER_PAGE));
+            }
+
+            const documentSnapshots = await getDocs(q);
+
+            const newImages = documentSnapshots.docs.map(doc => ({ ...doc.data(), id: doc.id } as ImageMetadata));
+            
+            const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+            setLastVisible(newLastVisible);
+            setHasMore(newImages.length === IMAGES_PER_PAGE);
+
+            if (loadMore) {
+                setAllMedia(prev => [...prev, ...newImages]);
+            } else {
+                setAllMedia(newImages);
+            }
+
+        } catch (error) {
+            console.error("Error loading images:", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les images.' });
+        } finally {
+            setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    }, [user, firestore, lastVisible, toast]);
+
+    useEffect(() => {
+        loadImages(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, firestore]);
 
-    const { data: allMedia, isLoading, refetch: refetchMedia } = useCollection<ImageMetadata>(allMediaQuery);
-    
-    // NOUVEAU: Filtrer uniquement les images
+    const refetchMedia = () => {
+        setAllMedia([]);
+        setLastVisible(null);
+        setHasMore(true);
+        loadImages(false);
+    };
+
     const imagesOnly = useMemo(() => {
         return allMedia?.filter(media => !media.mimeType?.startsWith('video/')) ?? [];
     }, [allMedia]);
@@ -162,10 +214,7 @@ export function ImageList() {
             const bIsPinned = pinnedIds.has(b.id);
             if (aIsPinned && !bIsPinned) return -1;
             if (!aIsPinned && bIsPinned) return 1;
-            // Si le statut d'épingle est le même, trier par date de téléversement
-            const dateA = a.uploadTimestamp?.toDate()?.getTime() || 0;
-            const dateB = b.uploadTimestamp?.toDate()?.getTime() || 0;
-            return dateB - dateA;
+            return 0;
         });
     }, [imagesOnly, userProfile]);
 
@@ -197,9 +246,8 @@ export function ImageList() {
             const containingGalleries = galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || [];
             setSelectedGalleries(new Set(containingGalleries));
         } else {
-            // Mode sélection multiple, pas d'image unique
             setImageToAddToGallery(null);
-            setSelectedGalleries(new Set()); // On part de zéro
+            setSelectedGalleries(new Set());
         }
         setNewGalleryName('');
         setShowAddToGalleryDialog(true);
@@ -225,8 +273,8 @@ export function ImageList() {
 
         if (!error) {
             toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès." });
+            refetchMedia();
         }
-        // Les erreurs sont gérées par le handler global
 
         setIsDeleting(null);
         setShowDeleteAlert(false);
@@ -248,6 +296,7 @@ export function ImageList() {
                 title: `${imageIdsToDelete.length} image(s) supprimée(s)`,
                 description: "Les images sélectionnées ont été définitivement supprimées.",
             });
+            refetchMedia();
             setIsSelectionMode(false);
             setSelectedImages(new Set());
         }
@@ -366,7 +415,7 @@ export function ImageList() {
         setIsSavingToGallery(true);
     
         const { error } = await withErrorHandling(async () => {
-            if (imageToAddToGallery) { // Cas image unique
+            if (imageToAddToGallery) {
                 await addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], Array.from(selectedGalleries));
 
                 const originalGalleries = galleries.filter(g => g.imageIds.includes(imageToAddToGallery.id)).map(g => g.id);
@@ -375,7 +424,7 @@ export function ImageList() {
                      await addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], [], true, galleriesToRemoveFrom);
                 }
 
-            } else if (selectedImages.size > 0) { // Cas sélection multiple
+            } else if (selectedImages.size > 0) {
                 if (selectedGalleries.size > 0) {
                     await addMultipleImagesToGalleries(firestore, user.uid, Array.from(selectedImages), Array.from(selectedGalleries));
                 }
@@ -449,6 +498,22 @@ export function ImageList() {
             toast({
                 title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée globalement',
             });
+            // Re-sort local state to reflect pinning change instantly
+            const pinnedIds = new Set(userProfile.pinnedImageIds || []);
+            if (!isCurrentlyPinned) {
+                pinnedIds.add(image.id);
+            } else {
+                pinnedIds.delete(image.id);
+            }
+            setAllMedia(currentImages => [...currentImages].sort((a, b) => {
+                const aIsPinned = pinnedIds.has(a.id);
+                const bIsPinned = pinnedIds.has(b.id);
+                if (aIsPinned && !bIsPinned) return -1;
+                if (!aIsPinned && bIsPinned) return 1;
+                const dateA = a.uploadTimestamp?.toDate()?.getTime() || 0;
+                const dateB = b.uploadTimestamp?.toDate()?.getTime() || 0;
+                return dateB - dateA;
+            }));
         }
     };
     
@@ -463,7 +528,7 @@ export function ImageList() {
                 brandProfileId: selectedProfileId,
                 title: imageToSchedule.title,
                 description: imageToSchedule.description || '',
-                scheduledAt: scheduleDate, // Peut être undefined pour un brouillon
+                scheduledAt: scheduleDate,
                 imageSource: imageToSchedule,
             })
         );
@@ -498,7 +563,6 @@ export function ImageList() {
 
     const hasAiTickets = totalAiTickets > 0;
 
-    // Component that wraps the clickable area
     const ClickableArea = ({ image }: { image: ImageMetadata }) => {
         const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
         
@@ -534,7 +598,7 @@ export function ImageList() {
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                     className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
-                    unoptimized // Important pour les Data URLs et celles de Storage
+                    unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                 
@@ -681,7 +745,7 @@ export function ImageList() {
                             <CardContent className="pt-0">
                                 {isLoading && renderSkeleton()}
 
-                                {!isLoading && (!sortedImages || sortedImages.length === 0) && (
+                                {!isLoading && sortedImages && sortedImages.length === 0 && (
                                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                                         <ImageIcon className="h-12 w-12 mb-4" />
                                         <p className="font-medium">Aucune image pour le moment.</p>
@@ -707,6 +771,15 @@ export function ImageList() {
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {!isLoading && hasMore && (
+                                    <div className="mt-8 text-center">
+                                        <Button onClick={() => loadImages(true)} disabled={isLoadingMore}>
+                                            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            Charger plus
+                                        </Button>
                                     </div>
                                 )}
                             </CardContent>
