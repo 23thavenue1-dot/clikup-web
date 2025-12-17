@@ -49,22 +49,25 @@ const generateCarouselFlow = ai.defineFlow(
         prompt: [
             { media: { url: baseImageUrl } },
             { text: `
-                **Contexte :** L'image fournie est une photo "Avant", souvent de type amateur. Pour l'image "Après" que tu vas créer, tu incarnes un photographe et directeur artistique de renom avec son équipe de professionnels (styliste, éclairagiste, retoucheur, décorateur d'intérieur) qui prend le relais.
+                **Contexte :** L'image fournie est une photo "Avant", souvent de type amateur. Pour l'image "Après" que tu vas créer, tu incarnes un directeur artistique de renom qui transforme une scène.
                 
-                **Objectif :** Transformer cette photo amateur en une photo spectaculaire et de haute qualité, comme si elle sortait d'un studio professionnel. La différence doit être flagrante.
-                ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
+                **Objectif :** Transformer cette photo amateur en une photo spectaculaire et de haute qualité. La différence doit être flagrante et raconter une histoire.
+                
+                **Règle Narrative Cruciale :** L'image "Après" ne doit pas être une simple amélioration de l'image "Avant". Le sujet principal doit être reconnaissable, mais **sa pose, son action ou l'environnement doivent radicalement changer** pour créer une progression dynamique.
+                - Si l'image "Avant" est statique, l'image "Après" doit suggérer le mouvement, la joie ou une action.
+                - Si le sujet est un **animal** (comme un chien), montre-le en train de **courir dans un champ, de sauter pour attraper une balle, ou de manger joyeusement une friandise**, plutôt que de simplement changer le fond.
+                - Si c'est un **portrait**, change l'expression, l'angle de vue ou le décor pour refléter une évolution (ex: de la timidité à la confiance).
 
                 **Instruction de transformation :** 
                 ${userDirective 
-                    ? `L'utilisateur a donné une directive claire : "${userDirective}". Ton équipe et toi DEVEZ suivre cette instruction à la lettre.`
-                    : `Tu dois analyser l'image "Avant" et appliquer la transformation la plus pertinente et optimisée pour la plateforme "${platform}".
-                      - **Pour Instagram et Facebook :** Privilégie des couleurs vibrantes, un contraste élevé et une image qui attire l'œil immédiatement.
-                      - **Pour LinkedIn :** Vise un rendu plus sobre, professionnel, avec un éclairage de type studio et des couleurs neutres.
-                      - **Si l'image est un portrait :** Ta mission est de réaliser une transformation radicale. 1. Augmente la qualité globale de l'image : contraste, luminosité, définition. 2. Ton équipe installe un éclairage de studio professionnel avec des effets de lumière subtils pour sculpter le visage. 3. Ton retoucheur corrige les imperfections de la peau (acné, rougeurs) pour un teint unifié, tout en conservant une texture naturelle. 4. Assure-toi que les couleurs sont riches et vibrantes. 5. Le sujet doit rester parfaitement reconnaissable, mais le résultat doit être visiblement optimisé.
-                      - **Si l'image est une pièce d'intérieur :** Ta mission est double. 1. D'abord, range la pièce pour qu'elle paraisse propre et ordonnée. 2. Ensuite, ajoute subtilement 2 ou 3 éléments de décoration tendance (ex: une plante verte, une bougie, un livre d'art) pour créer une ambiance zen et minimaliste. Améliore l'éclairage pour que la pièce soit plus accueillante.
-                      - **Si l'image met en valeur un objet :** Ta mission est de créer une mise en scène "lifestyle" inspirante et réaliste pour vendre le produit. Intègre l'objet dans un décor quotidien qui correspond à son usage le plus courant (par exemple, un sac à main sur l'épaule d'une personne dans une rue chic, un carnet sur un bureau design, une montre au poignet). L'éclairage doit être naturel et flatteur, créant une ambiance authentique et désirable. Assure-toi que l'objet reste le point focal de l'image tout en s'intégrant naturellement dans son environnement. Le résultat doit donner envie de posséder l'objet.
-                      - **Si l'image est un paysage de jour :** Ta mission est de la transformer en une scène de **coucher de soleil spectaculaire**. Modifie le ciel avec des couleurs chaudes et magnifiques (oranges, roses, violets), ajuste l'éclairage global pour refléter la lumière dorée du soir et crée des reflets saisissants sur les surfaces comme l'eau ou les bâtiments. Le résultat doit être époustouflant et radicalement différent de l'original.
-                      - **Si c'est déjà une photo de nuit ou de coucher de soleil :** Ta mission est de sublimer la scène en adoptant un cadrage très professionnel. Élargis légèrement le plan pour donner un sentiment plus panoramique et spacieux. Applique des règles de composition photographique (comme la règle des tiers ou les lignes directrices) pour guider le regard. Tout en gardant la scène reconnaissable, améliore la lumière, le contraste et la richesse des couleurs pour un rendu spectaculaire.`
+                    ? `L'utilisateur a donné une directive claire : "${userDirective}". Applique cette directive tout en respectant la Règle Narrative Cruciale.`
+                    : `Tu dois analyser l'image "Avant" et appliquer la transformation la plus pertinente et optimisée pour la plateforme "${platform}", en respectant la Règle Narrative Cruciale.
+                      - **Pour Instagram et Facebook :** Privilégie des couleurs vibrantes, un contraste élevé et une scène dynamique qui attire l'œil.
+                      - **Pour LinkedIn :** Vise un rendu plus professionnel, montrant le sujet en action ou dans un contexte valorisant.
+                      - **Si l'image est un portrait :** Transforme-le en un portrait professionnel ou artistique avec une nouvelle pose et une nouvelle lumière.
+                      - **Si l'image est une pièce d'intérieur :** Réaménage-la complètement avec un nouveau style, de nouveaux meubles.
+                      - **Si l'image met en valeur un objet :** Crée une nouvelle mise en scène "lifestyle" inspirante pour vendre le produit.
+                      - **Si l'image est un paysage :** Transforme complètement l'ambiance (ex: de jour à coucher de soleil, d'été à hiver).`
                 }
             `},
         ],
