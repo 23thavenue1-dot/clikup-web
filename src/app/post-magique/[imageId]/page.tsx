@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, Wand2 } from 'lucide-react';
@@ -29,23 +29,40 @@ import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount } from '@/lib/firestore';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import { Separator } from '@/components/ui/separator';
 
-const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
-    <div
-        className={cn(
-            "group relative p-4 border rounded-xl h-full flex flex-col items-start gap-2",
-            "transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
-            "hover:shadow-2xl hover:shadow-purple-500/40",
-            "bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white",
-            className
-        )}
-        {...props}
-    >
-        <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
-            {children}
-        </div>
-    </div>
+
+const ActionCard = ({ children, className, onGenerate, disabled }: { children: React.ReactNode; className?: string; onGenerate: () => void; disabled: boolean; }) => (
+    <AlertDialog>
+        <AlertDialogTrigger asChild>
+            <button
+                className={cn(
+                    "group relative p-4 border rounded-xl h-full w-full flex flex-col items-start gap-2 text-left",
+                    "transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
+                    "hover:shadow-2xl hover:shadow-purple-500/40",
+                    "bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white",
+                    disabled && "opacity-50 cursor-not-allowed",
+                    className
+                )}
+                disabled={disabled}
+            >
+                <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
+                    {children}
+                </div>
+            </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la génération ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Cette action utilisera 3 tickets IA pour générer un carrousel complet. Êtes-vous sûr de vouloir continuer ?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={onGenerate}>Valider & Générer</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 );
 
 const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
@@ -59,7 +76,7 @@ const ActionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 const ActionDescription = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-xs text-white/80 transition-colors group-hover:text-white">{children}</p>
+    <p className="text-xs text-purple-200/80 transition-colors group-hover:text-purple-100">{children}</p>
 );
 
 const SocialIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
@@ -101,7 +118,9 @@ export default function PostMagiquePage() {
         }
 
         const CAROUSEL_COST = 3;
-        if ((userProfile.aiTicketCount + userProfile.packAiTickets + userProfile.subscriptionAiTickets) < CAROUSEL_COST) {
+        const totalAiTickets = (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0);
+        
+        if (totalAiTickets < CAROUSEL_COST) {
              toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `La génération d'un carrousel requiert ${CAROUSEL_COST} tickets.` });
             return;
         }
@@ -252,28 +271,16 @@ export default function PostMagiquePage() {
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {formats.map((fmt, index) => (
-                                <AlertDialog key={index}>
-                                    <AlertDialogTrigger asChild disabled={fmt.disabled}>
-                                        <ActionCard className={cn(fmt.disabled && "opacity-50 cursor-not-allowed")}>
-                                            <SocialIcon icon={fmt.icon} />
-                                            <ActionIcon icon={fmt.typeIcon} />
-                                            <ActionTitle>{fmt.format}</ActionTitle>
-                                            <ActionDescription>pour {fmt.network}</ActionDescription>
-                                        </ActionCard>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirmer la génération ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action utilisera 3 tickets IA pour générer un carrousel complet. Êtes-vous sûr de vouloir continuer ?
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleGenerate(fmt.format, fmt.network)}>Valider & Générer</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                <ActionCard 
+                                    key={index}
+                                    onGenerate={() => handleGenerate(fmt.format, fmt.network)}
+                                    disabled={fmt.disabled || isGenerating}
+                                >
+                                    <SocialIcon icon={fmt.icon} />
+                                    <ActionIcon icon={fmt.typeIcon} />
+                                    <ActionTitle>{fmt.format}</ActionTitle>
+                                    <ActionDescription>pour {fmt.network}</ActionDescription>
+                                </ActionCard>
                             ))}
                         </CardContent>
                     </Card>
