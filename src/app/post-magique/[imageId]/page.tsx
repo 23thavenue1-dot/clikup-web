@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
 import {
   AlertDialog,
@@ -28,15 +28,24 @@ import { useToast } from '@/hooks/use-toast';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
-import { decrementAiTicketCount } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
+import { getStorage } from 'firebase/storage';
+import { uploadFileAndGetMetadata } from '@/lib/storage';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
+async function dataUriToBlob(dataUri: string): Promise<Blob> {
+    const response = await fetch(dataUri);
+    const blob = await response.blob();
+    return blob;
+}
 
 const ActionCard = ({ children, className, onGenerate, disabled }: { children: React.ReactNode; className?: string; onGenerate: () => void; disabled: boolean; }) => (
     <AlertDialog>
         <AlertDialogTrigger asChild>
             <button
                 className={cn(
-                    "group relative p-4 border rounded-xl h-full w-full flex flex-col items-start gap-2 text-left",
+                    "group relative p-4 border rounded-xl h-full flex flex-col items-start gap-2",
                     "transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
                     "hover:shadow-2xl hover:shadow-purple-500/40",
                     "bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white",
@@ -76,7 +85,7 @@ const ActionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 const ActionDescription = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-xs text-purple-200/80 transition-colors group-hover:text-white">{children}</p>
+    <p className="text-xs text-white/80 transition-colors group-hover:text-white">{children}</p>
 );
 
 const SocialIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
@@ -91,7 +100,7 @@ export default function PostMagiquePage() {
     const router = useRouter();
     const imageId = params.imageId as string;
 
-    const { user, isUserLoading } = useFirebase();
+    const { user, isUserLoading, firebaseApp } = useFirebase();
     const { toast } = useToast();
     const firestore = useFirestore();
 
@@ -99,6 +108,8 @@ export default function PostMagiquePage() {
     const [generatedSlides, setGeneratedSlides] = useState<CarouselSlide[] | null>(null);
     const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
     const [selectedNetwork, setSelectedNetwork] = useState<string>('Instagram');
+    const [isSaving, setIsSaving] = useState(false);
+
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -155,7 +166,7 @@ export default function PostMagiquePage() {
     };
     
     const handleRegenerateText = async (slideIndex: number) => {
-        if (!generatedSlides || !userProfile || totalAiTickets < 1) {
+        if (!generatedSlides || !userProfile || !user || !firestore || totalAiTickets < 1) {
             toast({ variant: 'destructive', title: "Action impossible", description: "Pas assez de tickets IA." });
             return;
         }
@@ -163,17 +174,17 @@ export default function PostMagiquePage() {
         setRegeneratingSlide(slideIndex);
 
         try {
-            const baseImageUrl = generatedSlides.find(s => s.title === 'AVANT' && s.type === 'image')?.content;
+            const beforeImageUrl = generatedSlides.find(s => s.title === 'AVANT' && s.type === 'image')?.content;
             const afterImageUrl = generatedSlides.find(s => s.title === 'APRÈS' && s.type === 'image')?.content;
             const currentText = generatedSlides[slideIndex].content;
 
-            if (!baseImageUrl || !afterImageUrl) throw new Error("Images de référence introuvables.");
+            if (!beforeImageUrl || !afterImageUrl) throw new Error("Images de référence introuvables.");
 
             const result = await regenerateCarouselText({
-                baseImageUrl,
-                afterImageUrl,
-                currentText,
-                slideIndex,
+                baseImageUrl: beforeImageUrl,
+                afterImageUrl: afterImageUrl,
+                currentText: currentText,
+                slideIndex: slideIndex,
                 platform: selectedNetwork
             });
             
@@ -191,6 +202,52 @@ export default function PostMagiquePage() {
             toast({ variant: 'destructive', title: "Erreur de l'IA", description: "Impossible de regénérer le texte." });
         } finally {
             setRegeneratingSlide(null);
+        }
+    };
+
+    const handleSaveCarousel = async () => {
+        if (!generatedSlides || !user || !firebaseApp || !firestore) return;
+
+        const afterImageSlide = generatedSlides.find(s => s.type === 'image' && s.title === 'APRÈS');
+        if (!afterImageSlide) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Image "Après" introuvable pour la sauvegarde.' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const blob = await dataUriToBlob(afterImageSlide.content);
+            const storage = getStorage(firebaseApp);
+            const newFileName = `carousel-after-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: 'image/png' });
+
+            const hookText = generatedSlides.find(s => s.type === 'text' && s.title === 'LE POINT DE DÉPART')?.content || '';
+            const conclusionText = generatedSlides.find(s => s.type === 'text' && s.title === 'LA TRANSFORMATION')?.content || '';
+            const fullDescription = `${hookText}\n\n[Image "Après"]\n\n${conclusionText}`;
+
+            const metadata = await uploadFileAndGetMetadata(
+                storage,
+                user,
+                imageFile,
+                `Généré par Post Magique`,
+                () => {} // Pas de suivi de progression pour l'instant
+            );
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Carrousel du ${format(new Date(), 'd MMMM yyyy')}`,
+                description: fullDescription,
+                hashtags: `#PostMagique #${selectedNetwork}`,
+                generatedByAI: true
+            });
+
+            toast({ title: "Carrousel sauvegardé !", description: "La nouvelle image et ses textes ont été ajoutés à votre galerie." });
+
+        } catch (error) {
+            console.error("Erreur de sauvegarde du carrousel:", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: 'Impossible d\'enregistrer la création.' });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -270,7 +327,7 @@ export default function PostMagiquePage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Votre Carrousel est Prêt !</CardTitle>
-                            <CardDescription>Voici un aperçu des 4 diapositives générées.</CardDescription>
+                            <CardDescription>Voici un aperçu des 4 diapositives générées. Vous pouvez regénérer les textes si besoin.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -307,13 +364,17 @@ export default function PostMagiquePage() {
                                     </div>
                                 ))}
                             </div>
-                            <div className="text-center mt-6">
-                                <Button onClick={() => setGeneratedSlides(null)}>
-                                    <Sparkles className="mr-2 h-4 w-4"/>
-                                    Créer une autre transformation
-                                </Button>
-                            </div>
                         </CardContent>
+                        <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 pt-6 border-t">
+                            <Button onClick={handleSaveCarousel} disabled={isSaving}>
+                                <Save className="mr-2 h-4 w-4" />
+                                {isSaving ? 'Sauvegarde...' : 'Sauvegarder le carrousel'}
+                            </Button>
+                            <Button variant="secondary" onClick={() => setGeneratedSlides(null)}>
+                                <Sparkles className="mr-2 h-4 w-4"/>
+                                Créer une autre transformation
+                            </Button>
+                        </CardFooter>
                     </Card>
                 )}
 
@@ -344,3 +405,5 @@ export default function PostMagiquePage() {
         </div>
     );
 }
+
+    
