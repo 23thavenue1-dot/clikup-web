@@ -16,7 +16,7 @@ import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase'
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { decrementAiTicketCount, updateImageDescription, savePostForLater, type ImageMetadata, type UserProfile, type BrandProfile } from '@/lib/firestore';
-import { Loader2, Sparkles, FileText, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, ShoppingCart, Ticket, FilePlus, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Sparkles, FileText, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, ShoppingCart, Ticket, FilePlus, Calendar as CalendarIcon, Bot } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -207,16 +207,15 @@ export function CreationHub({ lastImage }: CreationHubProps) {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Sparkles className="text-primary" />
-                    Votre dernière création
+                    Hub de Création IA
                 </CardTitle>
                 <CardDescription>
-                    {lastImage.uploadTimestamp ? `Téléversée ${'formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })'}.` : "Téléversement en cours..."}
-                    {' '}Prête à être améliorée.
+                    {lastImage.uploadTimestamp ? `Donnez une nouvelle dimension à votre image, téléversée ${'formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })'}.` : "Votre dernière image est prête à être améliorée."}
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                    <Link href={`/image/${lastImage.id}`} passHref>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
+                    <Link href={`/image/${lastImage.id}`} passHref className="md:col-span-2">
                         <div className="relative aspect-square rounded-lg overflow-hidden border shadow-md cursor-pointer group h-full">
                             <Image
                                 src={lastImage.directUrl}
@@ -228,26 +227,28 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                             />
                         </div>
                     </Link>
-                    <div className="flex flex-col h-full gap-4">
+                    <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Link href={`/edit/${lastImage.id}`} passHref>
-                            <ActionCard>
+                             <ActionCard>
                                 <ActionIcon icon={Wand2} />
-                                <ActionTitle>Éditer avec l'IA</ActionTitle>
+                                <ActionTitle>Éditeur d'Image par IA</ActionTitle>
                                 <ActionDescription>Modifiez votre image en décrivant les changements en langage naturel.</ActionDescription>
                             </ActionCard>
                         </Link>
                         
                          <ActionCard onClick={() => setIsDescriptionDialogOpen(true)}>
                             <ActionIcon icon={FileText} />
-                            <ActionTitle>Modifier ou générer une description IA</ActionTitle>
+                            <ActionTitle>Générer une description</ActionTitle>
                             <ActionDescription>Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</ActionDescription>
                         </ActionCard>
                         
-                        <ActionCard onClick={() => setScheduleDialogOpen(true)}>
-                            <ActionIcon icon={FilePlus} />
-                            <ActionTitle>Planifier / Brouillon</ActionTitle>
-                            <ActionDescription>Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</ActionDescription>
-                        </ActionCard>
+                        <Link href={`/post-magique/${lastImage.id}`} passHref className="sm:col-span-2">
+                            <ActionCard className="bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500">
+                                <ActionIcon icon={Bot} />
+                                <ActionTitle>Post Magique (Nouveau !)</ActionTitle>
+                                <ActionDescription>Générez en 1 clic des publications, stories, et carrousels optimisés pour les réseaux sociaux.</ActionDescription>
+                            </ActionCard>
+                        </Link>
                     </div>
                 </div>
             </CardContent>
