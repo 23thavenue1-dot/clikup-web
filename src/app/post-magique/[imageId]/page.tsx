@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase, useFirestore, useCollection } from '@/firebase';
+import { useDoc, useMemoFirebase, useFirestore, useCollection, useUser, useFirebaseApp } from '@/firebase';
 import { doc, collection, query, orderBy, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw, Save, FilePlus, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings, PlusCircle, Library, Bot, Wand2 } from 'lucide-react';
@@ -51,8 +50,9 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
 }
 
 const ActionCard = ({ children, className, onGenerate, disabled, cost }: { children: React.ReactNode; className?: string; onGenerate?: () => void; disabled?: boolean; cost: number; }) => {
-    const { user } = useFirebase();
-    const userDocRef = useMemoFirebase(() => user && doc(useFirestore(), `users/${user.uid}`), [user]);
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
     const { data: userProfile } = useDoc<UserProfile>(userDocRef);
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0) : 0;
     
@@ -119,7 +119,8 @@ export default function PostMagiquePage() {
     const router = useRouter();
     const imageId = params.imageId as string;
 
-    const { user, isUserLoading, firebaseApp } = useFirebase();
+    const { user, isUserLoading } = useUser();
+    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     const firestore = useFirestore();
 
@@ -150,7 +151,7 @@ export default function PostMagiquePage() {
     
     const brandProfilesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        return query(collection(firestore, `users/${user.uid}/brandProfiles`), orderBy('createdAt', 'desc'));
+        return query(collection(firestore, 'users', user.uid, 'brandProfiles'), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
     const { data: brandProfiles } = useCollection<BrandProfile>(brandProfilesQuery);
 
@@ -158,7 +159,7 @@ export default function PostMagiquePage() {
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0) : 0;
     
     const handleGenerateSinglePost = (network: string) => {
-        toast({ title: 'Fonctionnalité à venir', description: 'La génération de posts uniques sera bientôt disponible.' });
+        toast({ title: 'Fonctionnalité à venir', description: `La génération de posts uniques pour ${network} sera bientôt disponible.` });
     };
 
     const handleGenerateStory = () => {
@@ -166,7 +167,7 @@ export default function PostMagiquePage() {
     };
 
 
-    const handleGenerateCarousel = async (network: string) => {
+    const handleGenerateCarousel = async (format: string, network: string) => {
         if (!image || !user || !userProfile || !firestore) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de lancer la génération.' });
             return;
@@ -286,8 +287,8 @@ export default function PostMagiquePage() {
             toast({ title: "Carrousel sauvegardé !", description: "La nouvelle image et ses textes ont été ajoutés à votre galerie." });
         }
     };
-    
-     const handleCreateGalleryForCarousel = async () => {
+
+    const handleCreateGalleryForCarousel = useCallback(async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !image || !userProfile) return;
 
         const CAROUSEL_GALLERY_COST = 2; // Coût pour générer les 2 images de texte
@@ -315,7 +316,7 @@ export default function PostMagiquePage() {
                 let imageDataUri: string;
 
                 if (type === 'text_prompt') {
-                    const textImagePrompt = `Crée une image avec un fond noir uni (#111111). Au centre, affiche le texte suivant en blanc, avec une police de caractères moderne et lisible (sans-serif). Le texte doit être bien centré et prendre une place importante sur l'image : "${source}"`;
+                    const textImagePrompt = `Crée une image avec un fond uni noir (#18181b). Au centre, affiche le texte suivant en blanc, avec une police de caractères moderne et lisible (sans-serif). Le texte doit être bien centré et prendre une place importante sur l'image : "${source}"`;
                     const result = await generateImage({ prompt: textImagePrompt, aspectRatio: '1:1' });
                     imageDataUri = result.imageUrl;
                 } else {
@@ -330,25 +331,21 @@ export default function PostMagiquePage() {
                 const docRef = await saveImageMetadata(firestore, user, { ...metadata, title, description, generatedByAI: true });
                 return docRef.id;
             };
-
-            // Generate the two text images and save the "Après" image in parallel.
+            
             const [hookImageId, afterImageId, conclusionImageId] = await Promise.all([
-                saveGeneratedImage(hookTextSlide.content, 'text_prompt', 'Carrousel Étape 2', 'Diapositive textuelle du carrousel.'),
+                saveGeneratedImage(hookTextSlide.content, 'text_prompt', 'Carrousel Étape 2 (Texte)', 'Diapositive textuelle du carrousel.'),
                 saveGeneratedImage(afterImageSlide.content, 'data_uri', 'Carrousel Étape 3 (Après)', 'Image "Après" générée par l\'IA.'),
-                saveGeneratedImage(conclusionTextSlide.content, 'text_prompt', 'Carrousel Étape 4', 'Diapositive textuelle du carrousel.')
+                saveGeneratedImage(conclusionTextSlide.content, 'text_prompt', 'Carrousel Étape 4 (Texte)', 'Diapositive textuelle du carrousel.')
             ]);
             
-            // Decrement AI tickets used for generating text images
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
 
-            // Create the gallery
             const galleryName = `Carrousel du ${format(new Date(), 'd MMMM yyyy HH:mm')}`;
             const galleryDescription = `Galerie générée à partir du Post Magique. Contient les 4 étapes du carrousel.`;
             const newGalleryRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
             
-            // Add all 4 image IDs in order
             const imageIdsInOrder = [image.id, hookImageId, afterImageId, conclusionImageId];
             await updateDoc(newGalleryRef, { imageIds: imageIdsInOrder });
         });
@@ -361,7 +358,7 @@ export default function PostMagiquePage() {
                 action: <Button asChild variant="secondary" size="sm"><Link href="/galleries">Voir mes galeries</Link></Button>
             });
         }
-    }, [generatedSlides, user, firebaseApp, firestore, image, userProfile, totalAiTickets, toast, refetchUserProfile]);
+    }, [generatedSlides, user, firebaseApp, firestore, image, userProfile, totalAiTickets, toast, refetchUserProfile, selectedNetwork]);
     
     const handleSaveToPlanner = async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !selectedProfileId) {
@@ -454,7 +451,7 @@ export default function PostMagiquePage() {
      const formats = [
         { id: 'ig-post', network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Instagram'), disabled: true, cost: 1 },
         { id: 'ig-story', network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, onGenerate: () => handleGenerateStory(), disabled: true, cost: 5 },
-        { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Instagram'), disabled: false, cost: 3 },
+        { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Carrousel', 'Instagram'), disabled: false, cost: 3 },
         { id: 'fb-post', network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Facebook'), disabled: true, cost: 1 },
     ];
 
@@ -546,20 +543,22 @@ export default function PostMagiquePage() {
                         </CardContent>
                          <CardFooter className="flex-col items-center gap-4 pt-6 border-t">
                             <h3 className="font-semibold text-lg">Finaliser et Sauvegarder</h3>
-                            <div className="flex flex-col sm:flex-row justify-center gap-2 w-full max-w-2xl">
-                                <Button onClick={handleSaveCarousel} disabled={isSaving || isSavingToGallery} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                            <div className="flex flex-col sm:flex-row justify-center gap-2 w-full max-w-lg">
+                                <Button onClick={handleSaveCarousel} disabled={isSaving || isSavingToGallery || isSavingPost} className="w-full bg-green-600 hover:bg-green-700">
                                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                    Sauvegarder
+                                    Sauvegarder la création
                                 </Button>
-                                <Button onClick={handleCreateGalleryForCarousel} disabled={isSavingToGallery || isSaving} variant="outline" className="w-full sm:w-auto">
+                                 <Button onClick={handleCreateGalleryForCarousel} disabled={isSavingToGallery || isSaving || isSavingPost} variant="outline" className="w-full">
                                     {isSavingToGallery ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Library className="mr-2 h-4 w-4" />}
-                                    Créer une galerie
+                                    Créer une galerie dédiée
                                 </Button>
+                            </div>
+                            <div className="w-full max-w-lg">
                                 <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="secondary" disabled={isSaving || isSavingToGallery} className="w-full sm:w-auto">
+                                        <Button variant="secondary" disabled={isSaving || isSavingToGallery || isSavingPost} className="w-full">
                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                            Planifier / Brouillon
+                                            Planifier / Brouillon...
                                         </Button>
                                     </DialogTrigger>
                                      <DialogContent>
@@ -622,7 +621,7 @@ export default function PostMagiquePage() {
                             <CardTitle>Choisissez une transformation</CardTitle>
                             <CardDescription>Cliquez sur un format pour lancer la magie. Le coût en tickets IA est indiqué.</CardDescription>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {formats.map((fmt) => (
                                 <ActionCard 
                                     key={fmt.id} 
