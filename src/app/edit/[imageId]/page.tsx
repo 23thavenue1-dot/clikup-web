@@ -60,41 +60,6 @@ const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
   return Icon || LucideIcons.HelpCircle;
 };
 
-// --- Composants de carte d'action stylisés ---
-const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
-    <div
-        className={cn(
-            "group relative p-4 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden",
-            "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50",
-             props.disabled && "opacity-50 cursor-not-allowed",
-            className
-        )}
-        onClick={props.disabled ? undefined : props.onClick}
-    >
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/40 to-blue-950 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
-            {children}
-        </div>
-    </div>
-);
-
-const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
-    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-lg shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
-        <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-    </div>
-);
-
-const ActionTitle = ({ children }: { children: React.ReactNode }) => (
-    <span className="font-semibold text-sm text-slate-100 transition-colors group-hover:text-white">{children}</span>
-);
-
-const ActionDescription = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-xs text-slate-400 transition-colors group-hover:text-slate-300">{children}</p>
-);
-// --- Fin des composants de carte d'action ---
-
-
 // --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
     const response = await fetch(dataUri);
@@ -183,14 +148,12 @@ export default function EditImagePage() {
         }
     }, [isUserLoading, user, router]);
     
-    // Synchroniser la description avec l'historique
     useEffect(() => {
         if (currentHistoryItem) {
             setGeneratedTitle(currentHistoryItem.title);
             setGeneratedDescription(currentHistoryItem.description);
             setGeneratedHashtags(currentHistoryItem.hashtags);
         } else if (originalImage) {
-            // Si on revient à l'état initial, on utilise les infos de l'image originale
             setGeneratedTitle(originalImage.title || '');
             setGeneratedDescription(originalImage.description || '');
             setGeneratedHashtags(originalImage.hashtags || '');
@@ -198,22 +161,18 @@ export default function EditImagePage() {
     }, [currentHistoryItem, originalImage]);
 
 
+    // Fonction pour démarrer une NOUVELLE chaîne de modifications
     const handleGenerateImage = async (promptToUse: string) => {
         if (!promptToUse.trim() || !user || !userProfile || !firestore || !originalImage) return;
-    
+
         if (totalAiTickets <= 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Tickets IA épuisés',
-                description: (<Link href="/shop" className="font-bold underline text-white">Rechargez (dès 0,08€ / ticket)</Link>),
-            });
+            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: (<Link href="/shop" className="font-bold underline text-white">Rechargez</Link>), });
             return;
         }
-    
+
         setIsGenerating(true);
-    
         try {
-            const baseImageUrl = currentHistoryItem?.imageUrl || originalImage.directUrl;
+            const baseImageUrl = originalImage.directUrl; // Toujours partir de l'original
             const result = await editImage({ imageUrl: baseImageUrl, prompt: promptToUse });
             
             const newHistoryItem: ImageHistoryItem = {
@@ -223,25 +182,60 @@ export default function EditImagePage() {
                 description: generatedDescription,
                 hashtags: generatedHashtags
             };
-    
-            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
-            newHistory.push(newHistoryItem);
-            setGeneratedImageHistory(newHistory);
-            setHistoryIndex(newHistory.length - 1);
+
+            setGeneratedImageHistory([newHistoryItem]); // On écrase l'historique
+            setHistoryIndex(0);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
 
-            // Vider le champ d'affinement après utilisation
-            setRefinePrompt('');
-
-            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
+            toast({ title: 'Nouvelle version générée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
         } finally {
             setIsGenerating(false);
         }
     };
+    
+    // NOUVELLE FONCTION pour affiner le résultat ACTUEL
+    const handleRefineImage = async () => {
+        if (!refinePrompt.trim() || !currentHistoryItem || !user || !userProfile || !firestore) return;
+        
+        if (totalAiTickets <= 0) {
+            toast({ variant: 'destructive', title: 'Tickets IA épuisés' });
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            const baseImageUrl = currentHistoryItem.imageUrl; // On part du résultat actuel
+            const result = await editImage({ imageUrl: baseImageUrl, prompt: refinePrompt });
+            
+            const newHistoryItem: ImageHistoryItem = {
+                imageUrl: result.imageUrl,
+                prompt: refinePrompt,
+                title: generatedTitle,
+                description: generatedDescription,
+                hashtags: generatedHashtags
+            };
+
+            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
+            newHistory.push(newHistoryItem);
+            setGeneratedImageHistory(newHistory); // On ajoute à l'historique
+            setHistoryIndex(newHistory.length - 1);
+            
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            refetchUserProfile();
+
+            setRefinePrompt(''); // On vide le champ d'affinage
+            toast({ title: 'Image affinée !', description: 'Un ticket IA a été utilisé.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
 
     const handleGenerateStory = async () => {
         if (!originalImage || !storyAnimationPrompt.trim() || !user || !userProfile || totalAiTickets < 5) {
@@ -398,8 +392,8 @@ export default function EditImagePage() {
     };
     
     const openSavePromptDialog = () => {
-        const activePrompt = currentHistoryItem ? refinePrompt : prompt;
-        if (!activePrompt || !activePrompt.trim()) return;
+        const activePrompt = prompt.trim();
+        if (!activePrompt) return;
         setPromptToSave(activePrompt);
         setNewPromptName("");
         setIsSavePromptDialogOpen(true);
@@ -518,7 +512,6 @@ export default function EditImagePage() {
         <div className="flex flex-col md:flex-row h-screen bg-background">
             
             <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-6 overflow-y-auto">
-                {/* --- Header --- */}
                 <header className="flex items-center justify-between">
                     <Button variant="ghost" size="sm" asChild>
                        <Link href="/">
@@ -575,39 +568,63 @@ export default function EditImagePage() {
                     </Dialog>
                 </header>
 
-                <Card>
-                    <CardContent className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        <div className="flex flex-col gap-2">
-                            <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
-                            <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
-                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 flex-1">
+                    <div className="flex flex-col gap-2">
+                        <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
+                        <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
+                            <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                         </div>
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center justify-center gap-4 relative h-6">
-                            <Badge className="w-fit mx-auto">APRÈS</Badge>
-                            {!isGenerating && generatedImageHistory.length > 0 && (
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                                        <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
-                                            <Undo2 className="h-5 w-5" />
-                                        </Button>
-                                        <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
-                                            <Redo2 className="h-5 w-5" />
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-sm">
+                    </div>
+                    <Card className="flex flex-col overflow-hidden">
+                        <CardHeader className="flex-row items-center justify-center gap-4 relative h-12 p-2">
+                            <Badge>APRÈS</Badge>
+                             {!isGenerating && generatedImageHistory.length > 0 && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                        <Undo2 className="h-5 w-5" />
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                        <Redo2 className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            )}
+                        </CardHeader>
+                        <CardContent className="p-0 flex-grow">
+                             <div className="aspect-square w-full relative rounded-t-lg bg-muted flex items-center justify-center">
                                 {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
                                 {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                                 {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+
+                        {currentHistoryItem && (
+                            <CardFooter className="flex-col items-start gap-3 p-4 border-t bg-muted/30">
+                                <Label htmlFor="refine-prompt" className="font-semibold flex items-center gap-2">
+                                     <Sparkles className="h-4 w-4 text-primary"/>
+                                     Peaufiner ce Résultat
+                                </Label>
+                                 <Textarea
+                                    id="refine-prompt"
+                                    value={refinePrompt}
+                                    onChange={e => setRefinePrompt(e.target.value)}
+                                    placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                    rows={2}
+                                    disabled={isGenerating}
+                                 />
+                                 <Button
+                                    onClick={handleRefineImage}
+                                    disabled={!refinePrompt.trim() || isGenerating || !hasAiTickets}
+                                    className="w-full mt-2"
+                                 >
+                                    <Wand2 className="mr-2 h-4 w-4" />
+                                    Peaufiner (1 Ticket IA)
+                                 </Button>
+                            </CardFooter>
+                        )}
+                    </Card>
+                </div>
             </main>
 
-            {/* --- RIGHT SIDEBAR (Controls) --- */}
             <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-muted/40 border-l flex flex-col h-full">
                  <div className="flex-1 overflow-y-auto p-1">
                   <div className="p-3 space-y-4">
@@ -615,158 +632,126 @@ export default function EditImagePage() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                           <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                          <span>Édition Manuelle</span>
+                          <span>Démarrez une nouvelle idée</span>
                         </CardTitle>
+                        <CardDescription>Décrivez le résultat que vous souhaitez obtenir à partir de l'image originale.</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {currentHistoryItem ? (
-                            // --- VUE AFFINEMENT ---
-                            <div className="space-y-3">
-                                <div>
-                                    <Label className="text-xs font-semibold text-muted-foreground">Dernière instruction</Label>
-                                    <p className="text-sm border bg-muted p-2 rounded-md font-mono h-auto">{currentHistoryItem.prompt}</p>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="refine-prompt">Affiner cette image</Label>
-                                    <Textarea
-                                        id="refine-prompt"
-                                        placeholder="Ex: change la couleur du texte en bleu..."
-                                        value={refinePrompt}
-                                        onChange={(e) => setRefinePrompt(e.target.value)}
-                                        rows={3}
-                                        disabled={isGenerating || isSaving}
-                                    />
-                                </div>
-                                <Button 
-                                    size="lg" 
-                                    onClick={() => handleGenerateImage(refinePrompt)} 
-                                    disabled={!refinePrompt.trim() || isGenerating || isSaving || !hasAiTickets}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-opacity"
-                                >
-                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Wand2 className="mr-2 h-5 w-5" />}
-                                    {isGenerating ? 'Affinement...' : 'Affiner (1 Ticket IA)'}
-                                </Button>
-                            </div>
-                        ) : (
-                            // --- VUE INITIALE ---
-                            <>
-                                <div className="relative">
-                                    <Textarea
-                                        placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
-                                        value={prompt}
-                                        onChange={(e) => setPrompt(e.target.value)}
-                                        rows={3}
-                                        disabled={isGenerating || isSaving}
-                                        className="pr-10"
-                                    />
-                                    <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary" disabled={!prompt || !prompt.trim() || isGenerating || isSaving} onClick={openSavePromptDialog} aria-label="Sauvegarder le prompt">
-                                                <Star className="h-4 w-4" />
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Sauvegarder le prompt</DialogTitle>
-                                                <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
-                                            </DialogHeader>
-                                            <div className="space-y-4 py-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="prompt-name">Nom du prompt</Label>
-                                                    <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Instruction</Label>
-                                                    <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
-                                                </div>
-                                            </div>
-                                            <DialogFooter>
-                                                <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
-                                                <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
-                                                    {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                                    Sauvegarder
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                                            <Lightbulb className="mr-2 h-4 w-4" />
-                                            Trouver l'inspiration
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-2xl">
-                                        <DialogHeader>
-                                            <DialogTitle>Inspiration de Prompts</DialogTitle>
-                                            <DialogDescription>
-                                                Utilisez vos prompts sauvegardés ou explorez nos suggestions pour démarrer votre création. Cliquez sur un prompt pour l'utiliser.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="py-4 max-h-[60vh] overflow-y-auto">
-                                            <Accordion type="single" collapsible className="w-full">
-                                                {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
-                                                    <AccordionItem value="custom-prompts">
-                                                        <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                            <Star className="h-4 w-4 text-yellow-500" />
-                                                            <span className="font-semibold">Mes Prompts</span>
-                                                        </AccordionTrigger>
-                                                        <AccordionContent>
-                                                            <div className="flex flex-col gap-2 pt-2">
-                                                                {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
-                                                                    <div key={p.id} className="group relative flex items-center">
-                                                                        <DialogClose asChild>
-                                                                            <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
-                                                                                {p.name}
-                                                                            </Button>
-                                                                        </DialogClose>
-                                                                        <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
-                                                                                <Pencil className="h-3 w-3" />
-                                                                            </Button>
-                                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
-                                                                                <Trash2 className="h-3 w-3 text-destructive" />
-                                                                            </Button>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </AccordionContent>
-                                                    </AccordionItem>
-                                                )}
-                                                {suggestionCategories.map(category => {
-                                                    const Icon = getIcon(category.icon);
-                                                    return (
-                                                        <AccordionItem value={category.name} key={category.name}>
-                                                            <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                                <Icon className="h-4 w-4 text-muted-foreground" />
-                                                                <span className="font-semibold">{category.name}</span>
-                                                            </AccordionTrigger>
-                                                            <AccordionContent>
-                                                                <div className="flex flex-wrap gap-2 pt-2">
-                                                                    {category.prompts.map((p) => (
-                                                                        <DialogClose asChild key={p.title}>
-                                                                            <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                                                {p.title}
-                                                                            </Button>
-                                                                        </DialogClose>
-                                                                    ))}
-                                                                </div>
-                                                            </AccordionContent>
-                                                        </AccordionItem>
-                                                    );
-                                                })}
-                                            </Accordion>
+                        <div className="relative">
+                            <Textarea
+                                placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                rows={3}
+                                disabled={isGenerating || isSaving}
+                                className="pr-10"
+                            />
+                            <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary" disabled={!prompt || !prompt.trim() || isGenerating || isSaving} onClick={openSavePromptDialog} aria-label="Sauvegarder le prompt">
+                                        <Star className="h-4 w-4" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                                        <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="prompt-name">Nom du prompt</Label>
+                                            <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
                                         </div>
-                                    </DialogContent>
-                                </Dialog>
-                                <Button size="lg" onClick={() => handleGenerateImage(prompt)} disabled={!prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
-                                    {isGenerating ? 'Génération...' : 'Générer (1 Ticket IA)'}
+                                        <div className="space-y-2">
+                                            <Label>Instruction</Label>
+                                            <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
+                                        <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                                            {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            Sauvegarder
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
+                                    <Lightbulb className="mr-2 h-4 w-4" />
+                                    Trouver l'inspiration
                                 </Button>
-                            </>
-                        )}
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-2xl">
+                                <DialogHeader>
+                                    <DialogTitle>Inspiration de Prompts</DialogTitle>
+                                    <DialogDescription>
+                                        Utilisez vos prompts sauvegardés ou explorez nos suggestions pour démarrer votre création. Cliquez sur un prompt pour l'utiliser.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4 max-h-[60vh] overflow-y-auto">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                                            <AccordionItem value="custom-prompts">
+                                                <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                    <Star className="h-4 w-4 text-yellow-500" />
+                                                    <span className="font-semibold">Mes Prompts</span>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="flex flex-col gap-2 pt-2">
+                                                        {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
+                                                            <div key={p.id} className="group relative flex items-center">
+                                                                <DialogClose asChild>
+                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                                        {p.name}
+                                                                    </Button>
+                                                                </DialogClose>
+                                                                <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
+                                                                        <Pencil className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
+                                                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )}
+                                        {suggestionCategories.map(category => {
+                                            const Icon = getIcon(category.icon);
+                                            return (
+                                                <AccordionItem value={category.name} key={category.name}>
+                                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                        <Icon className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="font-semibold">{category.name}</span>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <div className="flex flex-wrap gap-2 pt-2">
+                                                            {category.prompts.map((p) => (
+                                                                <DialogClose asChild key={p.title}>
+                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                        {p.title}
+                                                                    </Button>
+                                                                </DialogClose>
+                                                            ))}
+                                                        </div>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            );
+                                        })}
+                                    </Accordion>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                        <Button size="lg" onClick={() => handleGenerateImage(prompt)} disabled={!prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full">
+                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
+                            {isGenerating ? 'Génération...' : 'Générer (1 Ticket IA)'}
+                        </Button>
                         {monthlyLimitReached && ( <p className="text-center text-xs text-primary font-semibold pt-2"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>)}
                         {!hasAiTickets && !isGenerating && !isSaving && !monthlyLimitReached && (
                             <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
@@ -871,3 +856,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+
