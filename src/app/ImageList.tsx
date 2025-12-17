@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages, savePostForLater, type BrandProfile } from '@/lib/firestore';
 import { format, formatDistanceToNow, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart, FilePlus, Calendar as CalendarIcon, Building } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart, FilePlus, Calendar as CalendarIcon, Building, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -631,12 +631,18 @@ export function ImageList() {
                             <DropdownMenuItem asChild>
                                 <Link href={`/edit/${image.id}`} passHref>
                                     <Sparkles className="mr-2 h-4 w-4" />
-                                    <span>Éditer, Modifier avec l'IA</span>
+                                    <span>Éditer avec l'IA</span>
+                                </Link>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem asChild>
+                                <Link href={`/post-magique/${image.id}`} passHref>
+                                    <Bot className="mr-2 h-4 w-4" />
+                                    <span>Post Magique</span>
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
-                                <Wand2 className="mr-2 h-4 w-4" />
-                                <span>Modifier la description</span>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                <span>Gérer la description</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
                                 <CopyPlus className="mr-2 h-4 w-4" />
@@ -841,7 +847,7 @@ export function ImageList() {
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                    <DialogTitle>Générer une description</DialogTitle>
+                    <DialogTitle>Gérer la description</DialogTitle>
                     <DialogDescription>
                         Laissez l'IA rédiger un contenu optimisé pour vos réseaux sociaux, ou rédigez le vôtre.
                     </DialogDescription>
@@ -1064,3 +1070,7 @@ export function ImageList() {
         </TooltipProvider>
     );
 }
+
+    
+
+    
