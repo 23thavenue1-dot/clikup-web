@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useFirestore, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, getDoc } from 'firebase/firestore';
+import { doc, collection, query, orderBy, getDoc, updateDoc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw, Save, FilePlus, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw, Save, FilePlus, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings, PlusCircle, Library } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -21,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import React, { useState, useMemo } from 'react';
@@ -29,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
-import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, savePostForLater, createGallery } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { format } from 'date-fns';
@@ -117,11 +118,14 @@ export default function PostMagiquePage() {
     const [generatedSlides, setGeneratedSlides] = useState<CarouselSlide[] | null>(null);
     const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
     const [selectedNetwork, setSelectedNetwork] = useState<string>('Instagram');
-    const [isSaving, setIsSaving] = useState(false);
     
-    // Nouveaux états pour la planification
+    // États pour la sauvegarde
+    const [isSaving, setIsSaving] = useState(false);
     const [isSavingDraft, setIsSavingDraft] = useState(false);
     const [isScheduling, setIsScheduling] = useState(false);
+    const [isCreatingGallery, setIsCreatingGallery] = useState(false);
+
+    // États pour la planification
     const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
     const [selectedProfileId, setSelectedProfileId] = useState<string>('');
 
@@ -148,7 +152,7 @@ export default function PostMagiquePage() {
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0) : 0;
 
 
-    const handleGenerate = async (format: string, network: string) => {
+    const handleGenerateCarousel = async (format: string, network: string) => {
         if (!image || !user || !userProfile || !firestore) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de lancer la génération.' });
             return;
@@ -196,18 +200,18 @@ export default function PostMagiquePage() {
         setRegeneratingSlide(slideIndex);
 
         try {
-            const beforeImageUrl = generatedSlides.find(s => s.title === 'AVANT' && s.type === 'image')?.content;
-            const afterImageUrl = generatedSlides.find(s => s.title === 'APRÈS' && s.type === 'image')?.content;
+            const beforeImageUrl = generatedSlides.find(s => s.title === 'AVANT')?.content;
+            const afterImageUrl = generatedSlides.find(s => s.title === 'APRÈS')?.content;
             const currentText = generatedSlides[slideIndex].content;
 
             if (!beforeImageUrl || !afterImageUrl) throw new Error("Images de référence introuvables.");
 
             const result = await regenerateCarouselText({
-                baseImageUrl: beforeImageUrl,
-                afterImageUrl: afterImageUrl,
-                currentText: currentText,
-                slideIndex: slideIndex,
-                platform: selectedNetwork
+                baseImageUrl,
+                afterImageUrl,
+                currentText,
+                slideIndex,
+                platform: selectedNetwork,
             });
             
             const newSlides = [...generatedSlides];
@@ -292,47 +296,103 @@ export default function PostMagiquePage() {
         const setLoading = isDraft ? setIsSavingDraft : setIsScheduling;
         setLoading(true);
     
-        const { error } = await withErrorHandling(async () => {
-            // 1. Uploader la nouvelle image pour obtenir une référence permanente
+        const { data: newImageMetadata, error } = await withErrorHandling(async () => {
             const blob = await dataUriToBlob(afterImageSlide!.content);
             const storage = getStorage(firebaseApp);
             const newFileName = `post-magique-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: 'image/png' });
     
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Post Magique : ${selectedNetwork}`, () => {});
-    
-            // 2. Créer une entrée dans la galerie principale pour cette nouvelle image
             const hookText = generatedSlides.find(s => s.type === 'text' && s.title === 'LE POINT DE DÉPART')?.content || '';
             const conclusionText = generatedSlides.find(s => s.type === 'text' && s.title === 'LA TRANSFORMATION')?.content || '';
             const fullDescription = `${hookText}\n\n[Image "Après"]\n\n${conclusionText}`;
             
-            const newImageDocRef = await saveImageMetadata(firestore, user, { 
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Post Magique : ${selectedNetwork}`, () => {});
+            
+            const imageDocRef = await saveImageMetadata(firestore, user, { 
                 ...metadata,
                 title: `Carrousel du ${format(new Date(), 'd MMMM yyyy')}`,
                 description: fullDescription,
                 hashtags: `#PostMagique #${selectedNetwork}`,
                 generatedByAI: true
             });
-            const newImageSnap = await getDoc(newImageDocRef);
-            const newImageMetadata = newImageSnap.data() as ImageMetadata;
-    
-            // 3. Utiliser cette nouvelle image pour créer le post programmé/brouillon
-            await savePostForLater(firestore, storage, user.uid, {
+            const newImageSnap = await getDoc(imageDocRef);
+            if (!newImageSnap.exists()) throw new Error("Failed to retrieve saved image.");
+            return newImageSnap.data() as ImageMetadata;
+        });
+
+        if (error || !newImageMetadata) {
+            setLoading(false);
+            return;
+        }
+
+        const { error: plannerError } = await withErrorHandling(() => 
+            savePostForLater(firestore, getStorage(firebaseApp), user.uid, {
                 brandProfileId: selectedProfileId,
                 title: newImageMetadata.title,
                 description: newImageMetadata.description || '',
                 scheduledAt: isDraft ? undefined : scheduleDate,
                 imageSource: newImageMetadata,
-            });
-        });
-    
+            })
+        );
+        
         setLoading(false);
-        if (!error) {
+        if (!plannerError) {
             if (isDraft) {
                 toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur." });
             } else {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate!, 'PPP', { locale: fr })}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur.` });
             }
+        }
+    };
+
+    const handleCreateGalleryForCarousel = async () => {
+        if (!generatedSlides || !user || !firebaseApp || !firestore || !image) return;
+
+        const afterImageSlide = generatedSlides.find(s => s.type === 'image' && s.title === 'APRÈS');
+        if (!afterImageSlide) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Image "Après" introuvable.' });
+            return;
+        }
+
+        setIsCreatingGallery(true);
+        
+        const { error } = await withErrorHandling(async () => {
+            const blob = await dataUriToBlob(afterImageSlide.content);
+            const storage = getStorage(firebaseApp);
+            const newFileName = `carousel-after-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: 'image/png' });
+
+            const hookText = generatedSlides.find(s => s.type === 'text' && s.title === 'LE POINT DE DÉPART')?.content || '';
+            const conclusionText = generatedSlides.find(s => s.type === 'text' && s.title === 'LA TRANSFORMATION')?.content || '';
+            const fullDescription = `${hookText}\n\n[Image "Après"]\n\n${conclusionText}`;
+            
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Généré par Post Magique`, () => {});
+            
+            const imageDocRef = await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Carrousel (Après) - ${format(new Date(), 'd MMM')}`,
+                description: conclusionText,
+                hashtags: `#PostMagique #${selectedNetwork}`,
+                generatedByAI: true
+            });
+            const newImageId = imageDocRef.id;
+
+            const galleryName = `Carrousel du ${format(new Date(), 'd MMMM yyyy HH:mm')}`;
+            const galleryDescription = `Accroche : ${hookText}\n\nConclusion : ${conclusionText}`;
+            const galleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
+            
+            await updateDoc(galleryDocRef, {
+                imageIds: [image.id, newImageId]
+            });
+        });
+
+        setIsCreatingGallery(false);
+        if (!error) {
+            toast({
+                title: "Galerie créée avec succès !",
+                description: "La nouvelle galerie est disponible dans 'Mes Galeries'.",
+                action: <Button asChild variant="secondary" size="sm"><Link href="/galleries">Voir mes galeries</Link></Button>
+            });
         }
     };
 
@@ -358,7 +418,7 @@ export default function PostMagiquePage() {
     }
     
     const formats = [
-        { network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, disabled: false },
+        { network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, disabled: false, onGenerate: () => handleGenerateCarousel('Carrousel', 'Instagram') },
         { network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, disabled: true },
         { network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, disabled: true },
         { network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, disabled: true },
@@ -412,7 +472,7 @@ export default function PostMagiquePage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Votre Carrousel est Prêt !</CardTitle>
-                            <CardDescription>Voici un aperçu des 4 diapositives générées. Vous pouvez regénérer les textes si besoin.</CardDescription>
+                            <CardDescription>Voici un aperçu des 4 diapositives générées.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -451,64 +511,65 @@ export default function PostMagiquePage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex-col items-center gap-4 pt-6 border-t">
+                            <h3 className="font-semibold text-lg">Finaliser et Sauvegarder</h3>
                             <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-lg">
-                                <Button onClick={handleSaveCarousel} disabled={isSaving || isSavingDraft || isScheduling} className="w-full" variant="secondary">
+                                <Button onClick={handleSaveCarousel} disabled={isSaving || isSavingDraft || isScheduling || isCreatingGallery} className="w-full" variant="secondary">
                                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                     Sauvegarder la création
                                 </Button>
-                                <Button onClick={() => saveGeneratedImageAndPlan(true)} disabled={isSaving || isSavingDraft || isScheduling || !selectedProfileId} className="w-full">
-                                    {isSavingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FilePlus className="mr-2 h-4 w-4" />}
-                                    Enregistrer en brouillon
+                                <Button onClick={handleCreateGalleryForCarousel} disabled={isSaving || isSavingDraft || isScheduling || isCreatingGallery} className="w-full" variant="outline">
+                                    {isCreatingGallery ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Library className="mr-2 h-4 w-4" />}
+                                    Créer une galerie dédiée
                                 </Button>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"default"}
-                                            className={cn("w-full justify-center text-left font-normal", !scheduleDate && "text-white/80")}
-                                            disabled={isSaving || isSavingDraft || isScheduling || !selectedProfileId}
-                                        >
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                         <Button variant="default" className="w-full">
                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Programmer...</span>}
+                                            Planifier / Brouillon...
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                            mode="single"
-                                            selected={scheduleDate}
-                                            onSelect={setScheduleDate}
-                                            disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
-                                            initialFocus
-                                        />
-                                        <div className="p-2 border-t">
-                                            <Button 
-                                                onClick={() => saveGeneratedImageAndPlan(false)} 
-                                                disabled={!scheduleDate || isScheduling}
-                                                className="w-full"
-                                            >
-                                                {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarIcon className="mr-2 h-4 w-4"/>}
-                                                Confirmer la date
-                                            </Button>
+                                    </DialogTrigger>
+                                     <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Planifier une publication</DialogTitle>
+                                            <DialogDescription>Associez ce post à un profil et choisissez une date, ou enregistrez-le comme brouillon.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="brand-profile">Profil de Marque</Label>
+                                                <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                                                    <SelectTrigger id="brand-profile"><SelectValue placeholder="Sélectionnez un profil..." /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {(brandProfiles || []).map(profile => (
+                                                            <SelectItem key={profile.id} value={profile.id}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Avatar className="h-5 w-5"><AvatarImage src={profile.avatarUrl} alt={profile.name} /><AvatarFallback>{profile.name.charAt(0)}</AvatarFallback></Avatar>
+                                                                    <span>{profile.name}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Date de publication (optionnel)</Label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal",!scheduleDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Choisissez une date</span>}</Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={scheduleDate} onSelect={setScheduleDate} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} initialFocus /></PopoverContent>
+                                                </Popover>
+                                                <p className="text-xs text-muted-foreground">Si aucune date n'est choisie, le post sera sauvegardé comme brouillon.</p>
+                                            </div>
                                         </div>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                             <div className="w-full max-w-lg">
-                                <Label htmlFor="brand-profile-save" className="sr-only">Profil de Marque</Label>
-                                <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
-                                    <SelectTrigger id="brand-profile-save" className="w-full mt-2">
-                                        <SelectValue placeholder="Sélectionnez un profil pour sauvegarder/planifier..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {(brandProfiles || []).map(profile => (
-                                            <SelectItem key={profile.id} value={profile.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <Avatar className="h-5 w-5"><AvatarImage src={profile.avatarUrl} alt={profile.name} /><AvatarFallback>{profile.name.charAt(0)}</AvatarFallback></Avatar>
-                                                    <span>{profile.name}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                        <DialogFooter>
+                                            <DialogClose asChild><Button variant="secondary" disabled={isSavingDraft || isScheduling}>Annuler</Button></DialogClose>
+                                            <Button onClick={() => saveGeneratedImageAndPlan(!scheduleDate)} disabled={!selectedProfileId || isSavingDraft || isScheduling}>
+                                                {(isSavingDraft || isScheduling) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FilePlus className="mr-2 h-4 w-4" />}
+                                                {scheduleDate ? 'Programmer' : 'Enregistrer en brouillon'}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                             <Button variant="link" onClick={() => setGeneratedSlides(null)} className="mt-4">
                                 <Sparkles className="mr-2 h-4 w-4"/>
@@ -525,11 +586,11 @@ export default function PostMagiquePage() {
                             <CardDescription>Cliquez sur un format pour lancer la magie.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {formats.map((fmt, index) => (
+                            {formats.map((fmt) => (
                                 <ActionCard 
-                                    key={index}
-                                    onGenerate={() => handleGenerate(fmt.format, fmt.network)}
-                                    disabled={fmt.disabled || isGenerating}
+                                    key={fmt.format} 
+                                    onGenerate={fmt.onGenerate}
+                                    disabled={fmt.disabled}
                                 >
                                     <SocialIcon icon={fmt.icon} />
                                     <ActionIcon icon={fmt.typeIcon} />
@@ -545,3 +606,4 @@ export default function PostMagiquePage() {
         </div>
     );
 }
+
