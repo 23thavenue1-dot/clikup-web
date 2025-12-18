@@ -2,56 +2,41 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, addDoc, collection, getDoc, DocumentReference, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/firestore';
-import React, { useEffect, useState, useMemo } from 'react';
+import { useUser, useFirebaseApp, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb, FileText as FileTextIcon, LineChart, FilePlus, Settings, Linkedin } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, X, HelpCircle, FileText as FileTextIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { animateStory } from '@/ai/flows/animate-story-flow';
-import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, updateImageDescription } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format, addMonths, startOfMonth } from "date-fns"
 import { fr } from "date-fns/locale"
-import { Calendar } from "@/components/ui/calendar"
-import { withErrorHandling } from '@/lib/async-wrapper';
-import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
-import type { SocialAuditInput, CreativeSuggestion } from '@/ai/schemas/social-audit-schemas';
-import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { suggestionCategories } from '@/lib/ai-prompts';
-import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
-import { generateVideo } from '@/ai/flows/generate-video-flow';
-import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+import { editImage } from '@/ai/flows/generate-image-flow';
+import { Separator } from '@/components/ui/separator';
 
-
-type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
-
-interface ImageHistoryItem {
+type ImageHistoryItem = {
     imageUrl: string;
     prompt: string;
     title: string;
     description: string;
     hashtags: string;
-}
+};
 
 type IconName = keyof typeof LucideIcons;
 
@@ -60,72 +45,50 @@ const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
   return Icon || LucideIcons.HelpCircle;
 };
 
-// --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
     const response = await fetch(dataUri);
     const blob = await response.blob();
     return blob;
 }
 
-
 export default function EditImagePage() {
     const params = useParams();
     const router = useRouter();
     const imageId = params.imageId as string;
 
-    const { user, isUserLoading, firebaseApp } = useFirebase();
+    const { user, isUserLoading } = useUser();
+    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     const firestore = useFirestore();
 
-    // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
     const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     
-    // Historique des images et descriptions générées
     const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
-
-    // State pour la génération de description
-    const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
-    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-    const [generatedTitle, setGeneratedTitle] = useState('');
-    const [generatedDescription, setGeneratedDescription] = useState('');
-    const [generatedHashtags, setGeneratedHashtags] = useState('');
-    
-    // State pour la sauvegarde finale
     const [isSaving, setIsSaving] = useState(false);
     
-    // State pour la sauvegarde de prompt
     const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
     const [newPromptName, setNewPromptName] = useState("");
     const [promptToSave, setPromptToSave] = useState("");
     const [isSavingPrompt, setIsSavingPrompt] = useState(false);
 
-    // State pour la suppression de prompt
     const [isDeletePromptDialogOpen, setIsDeletePromptDialogOpen] = useState(false);
     const [promptToDelete, setPromptToDelete] = useState<CustomPrompt | null>(null);
     const [isDeletingPrompt, setIsDeletingPrompt] = useState(false);
 
-    // State pour la modification de prompt
     const [isEditPromptDialogOpen, setIsEditPromptDialogOpen] = useState(false);
     const [promptToEdit, setPromptToEdit] = useState<CustomPrompt | null>(null);
     const [editedPromptName, setEditedPromptName] = useState("");
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
 
-    // NOUVEAU: State pour la Story Animée
-    const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
-    const [storyAnimationPrompt, setStoryAnimationPrompt] = useState("");
-    const [isGeneratingStory, setIsGeneratingStory] = useState(false);
-    const [generatedStoryUrl, setGeneratedStoryUrl] = useState<string | null>(null);
-
-
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}/images`, imageId);
     }, [user, firestore, imageId]);
-    const { data: originalImage, isLoading: isImageLoading, refetch: refetchImage } = useDoc<ImageMetadata>(imageDocRef);
+    const { data: originalImage, isLoading: isImageLoading } = useDoc<ImageMetadata>(imageDocRef);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -147,21 +110,7 @@ export default function EditImagePage() {
             router.push('/login');
         }
     }, [isUserLoading, user, router]);
-    
-    useEffect(() => {
-        if (currentHistoryItem) {
-            setGeneratedTitle(currentHistoryItem.title);
-            setGeneratedDescription(currentHistoryItem.description);
-            setGeneratedHashtags(currentHistoryItem.hashtags);
-        } else if (originalImage) {
-            setGeneratedTitle(originalImage.title || '');
-            setGeneratedDescription(originalImage.description || '');
-            setGeneratedHashtags(originalImage.hashtags || '');
-        }
-    }, [currentHistoryItem, originalImage]);
 
-
-    // Fonction pour démarrer une NOUVELLE chaîne de modifications
     const handleGenerateImage = async (promptToUse: string) => {
         if (!promptToUse.trim() || !user || !userProfile || !firestore || !originalImage) return;
 
@@ -172,18 +121,18 @@ export default function EditImagePage() {
 
         setIsGenerating(true);
         try {
-            const baseImageUrl = originalImage.directUrl; // Toujours partir de l'original
+            const baseImageUrl = originalImage.directUrl;
             const result = await editImage({ imageUrl: baseImageUrl, prompt: promptToUse });
             
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.imageUrl,
                 prompt: promptToUse,
-                title: generatedTitle,
-                description: generatedDescription,
-                hashtags: generatedHashtags
+                title: originalImage.title || '',
+                description: originalImage.description || '',
+                hashtags: originalImage.hashtags || ''
             };
 
-            setGeneratedImageHistory([newHistoryItem]); // On écrase l'historique
+            setGeneratedImageHistory([newHistoryItem]);
             setHistoryIndex(0);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
@@ -197,10 +146,9 @@ export default function EditImagePage() {
         }
     };
     
-    // NOUVELLE FONCTION pour affiner le résultat ACTUEL
     const handleRefineImage = async () => {
-        if (!refinePrompt.trim() || !currentHistoryItem || !user || !userProfile || !firestore) return;
-        
+        if (!refinePrompt.trim() || !currentHistoryItem || !user || !userProfile || !firestore || !originalImage) return;
+
         if (totalAiTickets <= 0) {
             toast({ variant: 'destructive', title: 'Tickets IA épuisés' });
             return;
@@ -208,26 +156,26 @@ export default function EditImagePage() {
 
         setIsGenerating(true);
         try {
-            const baseImageUrl = currentHistoryItem.imageUrl; // On part du résultat actuel
+            const baseImageUrl = currentHistoryItem.imageUrl;
             const result = await editImage({ imageUrl: baseImageUrl, prompt: refinePrompt });
             
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.imageUrl,
                 prompt: refinePrompt,
-                title: generatedTitle,
-                description: generatedDescription,
-                hashtags: generatedHashtags
+                title: currentHistoryItem.title,
+                description: currentHistoryItem.description,
+                hashtags: currentHistoryItem.hashtags
             };
 
             const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
             newHistory.push(newHistoryItem);
-            setGeneratedImageHistory(newHistory); // On ajoute à l'historique
+            setGeneratedImageHistory(newHistory);
             setHistoryIndex(newHistory.length - 1);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
-
-            setRefinePrompt(''); // On vide le champ d'affinage
+            
+            setRefinePrompt('');
             toast({ title: 'Image affinée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -236,66 +184,12 @@ export default function EditImagePage() {
         }
     };
 
-
-    const handleGenerateStory = async () => {
-        if (!originalImage || !storyAnimationPrompt.trim() || !user || !userProfile || totalAiTickets < 5) {
-            toast({ variant: 'destructive', title: 'Action impossible', description: "Vérifiez que vous avez entré un prompt et que vous avez assez de tickets IA (5 requis)." });
-            return;
-        }
-        setIsGeneratingStory(true);
-        setGeneratedStoryUrl(null);
-        try {
-            const result = await animateStory({
-                imageUrl: originalImage.directUrl,
-                prompt: storyAnimationPrompt,
-                aspectRatio: '9:16'
-            });
-            setGeneratedStoryUrl(result.videoUrl);
-
-            for (let i = 0; i < 5; i++) {
-                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            }
-            toast({ title: "Animation générée !", description: "5 tickets IA ont été utilisés." });
-        } catch (error) {
-             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
-        } finally {
-            setIsGeneratingStory(false);
-        }
-    };
-
-    const handleSaveGeneratedStory = async () => {
-        if (!generatedStoryUrl || !user || !firebaseApp || !firestore) return;
-        setIsSaving(true);
-        
-        const { error } = await withErrorHandling(async () => {
-            const storage = getStorage(firebaseApp);
-            const blob = await dataUriToBlob(generatedStoryUrl);
-            const newFileName = `animated-story-${Date.now()}.mp4`; // Sauvegarder en mp4
-            const videoFile = new File([blob], newFileName, { type: 'video/mp4' });
-
-            const metadata = await uploadFileAndGetMetadata(storage, user, videoFile, `Story Animée: ${storyAnimationPrompt}`, () => {});
-            
-            await saveImageMetadata(firestore, user, { 
-                ...metadata,
-                title: `Animation : ${storyAnimationPrompt}`,
-                description: `Story animée générée à partir de l'image originale avec le prompt : "${storyAnimationPrompt}"`,
-                generatedByAI: true,
-                mimeType: 'video/mp4' // S'assurer que le type est correct
-            });
-        });
-
-        if (!error) {
-            toast({ title: "Animation sauvegardée !", description: "Votre nouvelle vidéo a été ajoutée à votre galerie." });
-            setIsStoryDialogOpen(false); // Fermer le dialogue après la sauvegarde
-        } else {
-             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer la vidéo." });
-        }
-        setIsSaving(false);
-    };
-    
     const handleUndoGeneration = () => {
-        if (historyIndex >= 0) {
+        if (historyIndex > 0) {
             setHistoryIndex(prev => prev - 1);
+        } else if (historyIndex === 0) { // Si on est sur la première génération, on revient à l'état initial
+             setHistoryIndex(-1);
+             setGeneratedImageHistory([]);
         }
     };
 
@@ -305,67 +199,11 @@ export default function EditImagePage() {
         }
     };
 
-    const handleGenerateDescription = async (platform: Platform) => {
-        const imageToDescribe = currentHistoryItem || originalImage;
-        if (!imageToDescribe || !user || !userProfile) return;
-
-        if (totalAiTickets <= 0) {
-             toast({
-                variant: 'destructive',
-                title: 'Tickets IA épuisés',
-                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez (dès 0,08€ / ticket) </Link> )
-            });
-            return;
-        }
-
-        setIsGeneratingDescription(true);
-        try {
-            const imageUrlToProcess = currentHistoryItem?.imageUrl || originalImage?.directUrl;
-            if (!imageUrlToProcess) {
-                throw new Error("Aucune URL d'image disponible pour la description.");
-            }
-
-            const result = await generateImageDescription({ imageUrl: imageUrlToProcess, platform: platform });
-            
-            const newTitle = result.title;
-            const newDesc = result.description;
-            const newHashtags = result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' ');
-
-            setGeneratedTitle(newTitle);
-            setGeneratedDescription(newDesc);
-            setGeneratedHashtags(newHashtags);
-            
-            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
-            toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
-        } finally {
-            setIsGeneratingDescription(false);
-        }
-    };
-    
-    const handleConfirmDescription = () => {
-        setIsDescriptionDialogOpen(false);
-        toast({ title: 'Contenu validé', description: "N'oubliez pas d'enregistrer la création finale." });
-    };
-
     const handleSaveAiCreation = async () => {
         const imageToSave = currentHistoryItem;
-        if (!imageToSave || !user || !firebaseApp || !firestore) {
-            if (originalImage) {
-                 await updateImageDescription(firestore, user.uid, originalImage.id, {
-                    title: generatedTitle,
-                    description: generatedDescription,
-                    hashtags: generatedHashtags,
-                }, false);
-                refetchImage();
-                toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
-            }
-            return;
-        };
+        if (!imageToSave || !user || !firebaseApp || !firestore || !originalImage) return;
         
         setIsSaving(true);
-
         try {
             const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(imageToSave.imageUrl);
@@ -376,9 +214,9 @@ export default function EditImagePage() {
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: generatedTitle,
-                description: generatedDescription,
-                hashtags: generatedHashtags,
+                title: imageToSave.title,
+                description: imageToSave.description,
+                hashtags: imageToSave.hashtags,
                 generatedByAI: true
             });
             toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
@@ -390,7 +228,7 @@ export default function EditImagePage() {
             setIsSaving(false);
         }
     };
-    
+
     const openSavePromptDialog = () => {
         const activePrompt = prompt.trim();
         if (!activePrompt) return;
@@ -403,16 +241,9 @@ export default function EditImagePage() {
         if (!promptToSave || !newPromptName.trim() || !user || !firestore) return;
         setIsSavingPrompt(true);
 
-        const newCustomPrompt: CustomPrompt = {
-            id: `prompt_${Date.now()}`,
-            name: newPromptName,
-            value: promptToSave,
-        };
-
+        const newCustomPrompt: CustomPrompt = { id: `prompt_${Date.now()}`, name: newPromptName, value: promptToSave };
         try {
-            await updateDoc(doc(firestore, `users/${user.uid}`), {
-                customPrompts: arrayUnion(newCustomPrompt)
-            });
+            await saveCustomPrompt(firestore, user.uid, newCustomPrompt);
             toast({ title: "Prompt sauvegardé", description: `"${newPromptName}" a été ajouté à 'Mes Prompts'.` });
             setIsSavePromptDialogOpen(false);
         } catch (error) {
@@ -422,22 +253,14 @@ export default function EditImagePage() {
         }
     };
 
-    const openDeletePromptDialog = (prompt: CustomPrompt) => {
-        setPromptToDelete(prompt);
-        setIsDeletePromptDialogOpen(true);
-    };
-
+    const openDeletePromptDialog = (p: CustomPrompt) => { setPromptToDelete(p); setIsDeletePromptDialogOpen(true); };
     const handleDeletePrompt = async () => {
         if (!promptToDelete || !user || !firestore) return;
         setIsDeletingPrompt(true);
-
         try {
-            await updateDoc(doc(firestore, `users/${user.uid}`), {
-                customPrompts: arrayRemove(promptToDelete)
-            });
-            toast({ title: "Prompt supprimé", description: `"${promptToDelete.name}" a été supprimé.` });
+            await deleteCustomPrompt(firestore, user.uid, promptToDelete);
+            toast({ title: "Prompt supprimé" });
             setIsDeletePromptDialogOpen(false);
-            setPromptToDelete(null);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le prompt.' });
         } finally {
@@ -445,43 +268,21 @@ export default function EditImagePage() {
         }
     };
     
-    const openEditPromptDialog = (prompt: CustomPrompt) => {
-        setPromptToEdit(prompt);
-        setEditedPromptName(prompt.name);
-        setIsEditPromptDialogOpen(true);
-    };
-
+    const openEditPromptDialog = (p: CustomPrompt) => { setPromptToEdit(p); setEditedPromptName(p.name); setIsEditPromptDialogOpen(true); };
     const handleEditPrompt = async () => {
-        if (!promptToEdit || !editedPromptName.trim() || !user || !firestore || !userProfile) return;
+        if (!promptToEdit || !editedPromptName.trim() || !user || !firestore) return;
         setIsEditingPrompt(true);
-
         const updatedPrompt = { ...promptToEdit, name: editedPromptName };
-
         try {
-            const currentPrompts = userProfile.customPrompts || [];
-            const promptIndex = currentPrompts.findIndex(p => p.id === promptToEdit.id);
-
-            if (promptIndex === -1) {
-                throw new Error("Prompt non trouvé.");
-            }
-
-            const newPrompts = [...currentPrompts];
-            newPrompts[promptIndex] = updatedPrompt;
-
-            await updateDoc(doc(firestore, 'users', imageId), {
-                customPrompts: newPrompts
-            });
-
-            toast({ title: "Prompt renommé", description: `Le prompt a été renommé en "${editedPromptName}".` });
+            await updateCustomPrompt(firestore, user.uid, updatedPrompt);
+            toast({ title: "Prompt renommé" });
             setIsEditPromptDialogOpen(false);
-            setPromptToEdit(null);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de renommer le prompt.' });
         } finally {
             setIsEditingPrompt(false);
         }
     };
-
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
         return (
@@ -507,65 +308,27 @@ export default function EditImagePage() {
     const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 20 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
-
     return (
         <div className="flex flex-col md:flex-row h-screen bg-background">
             
             <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-6 overflow-y-auto">
                 <header className="flex items-center justify-between">
                     <Button variant="ghost" size="sm" asChild>
-                       <Link href="/">
+                       <Link href={`/image/${imageId}`}>
                            <ArrowLeft className="mr-2 h-4 w-4"/>
-                           Retour
+                           Retour à l'image
                        </Link>
                    </Button>
                     <div className="text-center">
                        <h1 className="text-lg font-semibold tracking-tight">Éditeur d'Image par IA</h1>
                        <p className="text-xs text-muted-foreground">Transformez vos images en décrivant simplement les changements souhaités.</p>
                    </div>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                             <Button variant="outline" className="h-8 text-sm">
-                               <Ticket className="mr-2 h-4 w-4 text-primary" />
-                               {totalAiTickets} Tickets IA
-                           </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Détail de vos Tickets IA</DialogTitle>
-                                <DialogDescription>
-                                    Vos tickets sont utilisés pour toutes les actions IA (génération d'image, de description, audit, etc.). L'ordre de consommation est : gratuits, abonnements, puis packs.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4 space-y-2">
-                                <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                                    <span>Gratuits (quotidiens)</span>
-                                    <span className="font-bold">{userProfile?.aiTicketCount ?? 0}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                                    <span>Abonnement (mensuels)</span>
-                                    <span className="font-bold">{userProfile?.subscriptionAiTickets ?? 0}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                                    <span>Packs (achetés)</span>
-                                    <span className="font-bold">{userProfile?.packAiTickets ?? 0}</span>
-                                </div>
-                                <Separator className="my-3"/>
-                                 <div className="flex justify-between items-center text-sm p-2">
-                                    <span className="font-semibold">Total</span>
-                                    <span className="font-bold text-primary text-lg">{totalAiTickets}</span>
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button asChild>
-                                    <Link href="/shop">
-                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                        Visiter la boutique
-                                    </Link>
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" className="h-8 text-sm" asChild>
+                        <Link href="/shop">
+                            <Ticket className="mr-2 h-4 w-4 text-primary" />
+                            {totalAiTickets} Tickets IA
+                        </Link>
+                   </Button>
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 flex-1">
@@ -575,11 +338,11 @@ export default function EditImagePage() {
                             <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                         </div>
                     </div>
-                    <Card className="flex flex-col overflow-hidden">
-                        <CardHeader className="flex-row items-center justify-center gap-4 relative h-12 p-2">
-                            <Badge>APRÈS</Badge>
+                     <div className="flex flex-col gap-2">
+                         <div className="flex items-center justify-center gap-4 relative h-6">
+                            <Badge className="w-fit mx-auto">APRÈS</Badge>
                              {!isGenerating && generatedImageHistory.length > 0 && (
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
                                     <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
                                         <Undo2 className="h-5 w-5" />
                                     </Button>
@@ -588,40 +351,54 @@ export default function EditImagePage() {
                                     </Button>
                                 </div>
                             )}
-                        </CardHeader>
-                        <CardContent className="p-0 flex-grow">
-                             <div className="aspect-square w-full relative rounded-t-lg bg-muted flex items-center justify-center">
-                                {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                                {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                                {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-                            </div>
-                        </CardContent>
+                        </div>
+                        <Card className="flex flex-col overflow-hidden flex-1">
+                            <CardContent className="p-0 flex-grow">
+                                <div className="aspect-square w-full relative rounded-t-lg bg-muted flex items-center justify-center">
+                                    {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                    {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                    {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
+                                </div>
+                            </CardContent>
+                            {currentHistoryItem && (
+                                <CardFooter className="flex-col items-start gap-3 p-4 border-t bg-muted/40">
+                                    <Label htmlFor="refine-prompt" className="text-base font-semibold flex items-center gap-2">
+                                        <Wand2 className="h-5 w-5 text-primary"/>
+                                        Peaufiner ce résultat
+                                    </Label>
+                                    <Textarea
+                                        id="refine-prompt"
+                                        value={refinePrompt}
+                                        onChange={e => setRefinePrompt(e.target.value)}
+                                        placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                        rows={2}
+                                        disabled={isGenerating}
+                                    />
+                                    <Button
+                                        onClick={handleRefineImage}
+                                        disabled={!refinePrompt.trim() || isGenerating || !hasAiTickets}
+                                        className="w-full mt-2"
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                        Affiner (1 Ticket IA)
+                                    </Button>
 
-                        {currentHistoryItem && (
-                            <CardFooter className="flex-col items-start gap-3 p-4 border-t bg-muted/30">
-                                <Label htmlFor="refine-prompt" className="font-semibold flex items-center gap-2">
-                                     <Sparkles className="h-4 w-4 text-primary"/>
-                                     Peaufiner ce Résultat
-                                </Label>
-                                 <Textarea
-                                    id="refine-prompt"
-                                    value={refinePrompt}
-                                    onChange={e => setRefinePrompt(e.target.value)}
-                                    placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
-                                    rows={2}
-                                    disabled={isGenerating}
-                                 />
-                                 <Button
-                                    onClick={handleRefineImage}
-                                    disabled={!refinePrompt.trim() || isGenerating || !hasAiTickets}
-                                    className="w-full mt-2"
-                                 >
-                                    <Wand2 className="mr-2 h-4 w-4" />
-                                    Peaufiner (1 Ticket IA)
-                                 </Button>
-                            </CardFooter>
-                        )}
-                    </Card>
+                                    <Separator className="my-2" />
+                                    
+                                    <div className="w-full space-y-2">
+                                        <Button disabled={true} className="w-full" variant="outline">
+                                            <FileTextIcon className="mr-2 h-4 w-4" />
+                                            Modifier/Générer la description
+                                        </Button>
+                                        <Button disabled={true} className="w-full bg-green-600 hover:bg-green-700">
+                                            <Save className="mr-2 h-4 w-4" />
+                                            Enregistrer la création
+                                        </Button>
+                                    </div>
+                                </CardFooter>
+                            )}
+                        </Card>
+                    </div>
                 </div>
             </main>
 
@@ -680,7 +457,7 @@ export default function EditImagePage() {
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                                    <Lightbulb className="mr-2 h-4 w-4" />
+                                    <Sparkles className="mr-2 h-4 w-4" />
                                     Trouver l'inspiration
                                 </Button>
                             </DialogTrigger>
@@ -760,56 +537,6 @@ export default function EditImagePage() {
                         )}
                       </CardContent>
                     </Card>
-
-                     <Card>
-                      <CardHeader>
-                         <CardTitle className="flex items-center gap-2 text-lg">
-                           <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                           <span>Description & Sauvegarde</span>
-                         </CardTitle>
-                      </CardHeader>
-                       <CardContent className="space-y-3">
-                         <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
-                                    <Text className="mr-2 h-4 w-4"/> Modifier ou générer une descrption IA
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                    <DialogTitle>Modifier ou générer une descrption IA</DialogTitle>
-                                    <DialogDescription>Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.</DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2"><Label htmlFor="gen-title">Titre</Label><Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/></div>
-                                    <div className="space-y-2"><Label htmlFor="gen-desc">Description</Label><Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/></div>
-                                    <div className="space-y-2"><Label htmlFor="gen-tags">Hashtags</Label><Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/></div>
-                                    <Separator/>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between"><Label>Optimisation IA pour... (1 Ticket)</Label><div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><span className="text-primary">{totalAiTickets}</span> tickets restants</div></div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('instagram')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Instagram className="mr-2 h-4 w-4"/>Instagram</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('facebook')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Facebook className="mr-2 h-4 w-4"/>Facebook</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('x')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><MessageSquare className="mr-2 h-4 w-4"/>X (Twitter)</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('tiktok')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><VenetianMask className="mr-2 h-4 w-4"/>TikTok</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('ecommerce')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><ShoppingCart className="mr-2 h-4 w-4"/>E-commerce</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('generic')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Wand2 className="mr-2 h-4 w-4"/>Générique</Button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
-                                    <Button onClick={handleConfirmDescription}>Valider le Contenu</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full" variant="secondary">
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                            Enregistrer la création
-                        </Button>
-                       </CardContent>
-                    </Card>
-                    
                   </div>
                 </div>
             </aside>
@@ -856,4 +583,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
