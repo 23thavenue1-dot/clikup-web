@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -8,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Bot, Send, Sparkles, User, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
-import { askChatbot, type Message } from '@/ai/schemas/chatbot-schemas';
+import { askChatbot } from '@/ai/flows/chatbot-flow';
+import type { Message } from '@/ai/schemas/chatbot-schemas';
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
