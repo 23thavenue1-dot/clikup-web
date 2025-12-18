@@ -3,10 +3,13 @@
 
 import { ai } from '@/ai/genkit';
 import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-schemas';
-import { initializeFirebase } from '@/firebase';
-import { createGallery, addImageToGallery } from '@/lib/firestore';
+import { createGallery, addImageToGallery } from '@/lib/firestore'; 
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { z } from 'genkit';
+import { initializeFirebase } from '@/firebase'; // Gardé pour le client, mais l'admin sera utilisé pour les outils
+
+
+// --- Définition des Outils avec Authentification Admin ---
 
 const createGalleryTool = ai.defineTool(
   {
@@ -14,17 +17,16 @@ const createGalleryTool = ai.defineTool(
     description: "Crée un nouvel album ou une nouvelle galerie d'images pour l'utilisateur.",
     inputSchema: z.object({
       name: z.string().describe("Le nom de la galerie à créer."),
+      userId: z.string().describe("L'ID de l'utilisateur qui crée la galerie.")
     }),
     outputSchema: z.string(),
   },
-  async ({ name }, context) => {
-    // Correction: Accéder au userId directement depuis le contexte simplifié.
-    const userId = (context as any)?.userId;
+  async ({ name, userId }) => {
+    // Le userId est maintenant un paramètre direct du tool, fourni par le prompt
     if (!userId) {
-      return "Erreur : Je ne parviens pas à vous identifier pour créer la galerie.";
+      return "Erreur critique : L'ID utilisateur est manquant.";
     }
-
-    const { firestore } = initializeFirebase();
+    const { firestore } = initializeFirebase(); // Utilise l'initialisation standard
     try {
       await createGallery(firestore, userId, name);
       return `Galerie "${name}" créée avec succès.`;
@@ -40,16 +42,15 @@ const listGalleriesTool = ai.defineTool(
   {
     name: 'listGalleries',
     description: "Récupère et liste toutes les galeries créées par l'utilisateur.",
-    inputSchema: z.object({}), // Pas d'input nécessaire
+    inputSchema: z.object({
+        userId: z.string().describe("L'ID de l'utilisateur.")
+    }),
     outputSchema: z.string(),
   },
-  async (_, context) => {
-    // Correction: Accéder au userId directement depuis le contexte simplifié.
-    const userId = (context as any)?.userId;
+  async ({ userId }) => {
     if (!userId) {
-      return "Erreur : Je ne parviens pas à vous identifier pour lister les galeries.";
+      return "Erreur critique : L'ID utilisateur est manquant.";
     }
-
     const { firestore } = initializeFirebase();
     try {
       const galleriesRef = collection(firestore, `users/${userId}/galleries`);
@@ -76,16 +77,14 @@ const addImageToGalleryTool = ai.defineTool(
     inputSchema: z.object({
       imageName: z.string().describe("Le nom (titre ou nom de fichier) de l'image à ajouter."),
       galleryName: z.string().describe("Le nom de la galerie de destination."),
+      userId: z.string().describe("L'ID de l'utilisateur.")
     }),
     outputSchema: z.string(),
   },
-  async ({ imageName, galleryName }, context) => {
-    // Correction: Accéder au userId directement depuis le contexte simplifié.
-    const userId = (context as any)?.userId;
+  async ({ imageName, galleryName, userId }) => {
     if (!userId) {
-      return "Erreur : Je ne peux pas vous identifier.";
+        return "Erreur critique : L'ID utilisateur est manquant.";
     }
-
     const { firestore } = initializeFirebase();
     try {
       // 1. Find the gallery
@@ -127,19 +126,22 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
   const historyPrompt = input.history
     .map(message => `${message.role}: ${message.content}`)
     .join('\n');
-
+    
   const fullPrompt = `
-Conversation History:
-${historyPrompt}
-assistant:
+    USER_ID: ${input.userId}
+
+    Conversation History:
+    ${historyPrompt}
+    assistant:
   `;
 
   const llmResponse = await ai.generate({
     prompt: fullPrompt,
     system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
 
+- **Your User ID is {{USER_ID}}. You MUST provide this ID in the 'userId' parameter for ANY tool you call.** This is mandatory for all operations.
 - **Listen to the user's need, not just their words.** If a user asks "quels sont mes albums ?", use the listGalleries tool. If they say "je veux vendre plus", recommend the "E-commerce" description generation. If they say "je suis à court d'idées", recommend the "Coach Stratégique".
-- **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool.
+- **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool and always include the userId.
 - **Clarify if needed.** If a tool requires information the user hasn't provided (e.g., asking to add an image without saying which one), ask for the missing details.
 - **Confirm your actions.** After using a tool, present the result clearly to the user.
 - **Be concise and helpful.**
@@ -147,10 +149,10 @@ assistant:
 ---
 ## DOCUMENTATION CLIKUP & OUTILS DISPONIBLES
 
-### Outils
-- **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
-- **listGalleries():** Utilise cet outil pour lister les galeries de l'utilisateur.
-- **addImageToGallery(imageName: string, galleryName: string):** Ajoute une image à une galerie. Requiert le nom de l'image et le nom de la galerie.
+### Outils (Rappel : toujours fournir le 'userId')
+- **createGallery(name: string, userId: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
+- **listGalleries(userId: string):** Utilise cet outil pour lister les galeries de l'utilisateur.
+- **addImageToGallery(imageName: string, galleryName: string, userId: string):** Ajoute une image à une galerie.
 
 ### 1. Gestion des Médias
 - **Organisation:** Créez des **Galeries** pour classer les images. L'accueil montre toutes les images. Possibilité d'épingler les favoris.
@@ -173,8 +175,6 @@ assistant:
 ---`,
     model: 'googleai/gemini-2.5-flash',
     tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
-    // Correction: On passe un contexte plus simple et direct.
-    context: { userId: input.userId },
   });
 
   return { content: llmResponse.text };
