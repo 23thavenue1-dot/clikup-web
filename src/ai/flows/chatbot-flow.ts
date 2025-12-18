@@ -3,11 +3,8 @@
 
 import { ai } from '@/ai/genkit';
 import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-schemas';
-import { createGallery, addImageToGallery } from '@/lib/firestore';
-import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { z } from 'genkit';
-import { initializeFirebase } from '@/firebase'; // Gardé pour le client, mais l'admin sera utilisé pour les outils
-
+import * as admin from 'firebase-admin';
 
 // --- Définition des Outils avec Authentification Admin ---
 
@@ -22,13 +19,31 @@ const createGalleryTool = ai.defineTool(
     outputSchema: z.string(),
   },
   async ({ name, userId }) => {
-    // Le userId est maintenant un paramètre direct du tool, fourni par le prompt
     if (!userId) {
       return "Erreur critique : L'ID utilisateur est manquant.";
     }
-    const { firestore } = initializeFirebase(); // Utilise l'initialisation standard
+    
+    if (admin.apps.length === 0) {
+      try {
+        admin.initializeApp();
+      } catch (error) {
+        console.error('Firebase Admin Initialization Error:', error);
+        return "Erreur d'initialisation du serveur. Impossible de continuer.";
+      }
+    }
+    const db = admin.firestore();
+
     try {
-      await createGallery(firestore, userId, name);
+      const galleriesCollectionRef = db.collection('users').doc(userId).collection('galleries');
+      const docRef = await galleriesCollectionRef.add({ 
+        userId, 
+        name, 
+        description: '', 
+        imageIds: [], 
+        pinnedImageIds: [], 
+        createdAt: admin.firestore.FieldValue.serverTimestamp() 
+      });
+      await docRef.update({ id: docRef.id });
       return `Galerie "${name}" créée avec succès.`;
     } catch (error) {
       console.error("Erreur de l'outil createGallery:", error);
@@ -51,11 +66,21 @@ const listGalleriesTool = ai.defineTool(
     if (!userId) {
       return "Erreur critique : L'ID utilisateur est manquant.";
     }
-    const { firestore } = initializeFirebase();
+    
+    if (admin.apps.length === 0) {
+      try {
+        admin.initializeApp();
+      } catch (error) {
+        console.error('Firebase Admin Initialization Error:', error);
+        return "Erreur d'initialisation du serveur. Impossible de continuer.";
+      }
+    }
+    const db = admin.firestore();
+
     try {
-      const galleriesRef = collection(firestore, `users/${userId}/galleries`);
-      const q = query(galleriesRef, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
+      const galleriesRef = db.collection(`users/${userId}/galleries`);
+      const q = galleriesRef.orderBy('createdAt', 'desc');
+      const querySnapshot = await q.get();
       
       if (querySnapshot.empty) {
         return "Vous n'avez aucune galerie pour le moment.";
@@ -85,32 +110,44 @@ const addImageToGalleryTool = ai.defineTool(
     if (!userId) {
         return "Erreur critique : L'ID utilisateur est manquant.";
     }
-    const { firestore } = initializeFirebase();
+    
+    if (admin.apps.length === 0) {
+      try {
+        admin.initializeApp();
+      } catch (error) {
+        console.error('Firebase Admin Initialization Error:', error);
+        return "Erreur d'initialisation du serveur. Impossible de continuer.";
+      }
+    }
+    const db = admin.firestore();
+
     try {
       // 1. Find the gallery
-      const galleriesRef = collection(firestore, `users/${userId}/galleries`);
-      const galleryQuery = query(galleriesRef, where('name', '==', galleryName), limit(1));
-      const gallerySnapshot = await getDocs(galleryQuery);
+      const galleriesRef = db.collection(`users/${userId}/galleries`);
+      const galleryQuery = galleriesRef.where('name', '==', galleryName).limit(1);
+      const gallerySnapshot = await galleryQuery.get();
       if (gallerySnapshot.empty) {
         return `Désolé, je n'ai pas trouvé de galerie nommée "${galleryName}". Voulez-vous que je la crée ? Vous pouvez aussi me demander de lister vos galeries.`;
       }
       const galleryDoc = gallerySnapshot.docs[0];
 
       // 2. Find the image (by title or originalName)
-      const imagesRef = collection(firestore, `users/${userId}/images`);
-      let imageQuery = query(imagesRef, where('title', '==', imageName), limit(1));
-      let imageSnapshot = await getDocs(imageQuery);
+      const imagesRef = db.collection(`users/${userId}/images`);
+      let imageQuery = imagesRef.where('title', '==', imageName).limit(1);
+      let imageSnapshot = await imageQuery.get();
       if (imageSnapshot.empty) {
-          imageQuery = query(imagesRef, where('originalName', '==', imageName), limit(1));
-          imageSnapshot = await getDocs(imageQuery);
+          imageQuery = imagesRef.where('originalName', '==', imageName).limit(1);
+          imageSnapshot = await imageQuery.get();
       }
       if (imageSnapshot.empty) {
         return `Désolé, je n'ai pas trouvé d'image nommée "${imageName}". Assurez-vous que le nom est correct.`;
       }
       const imageDoc = imageSnapshot.docs[0];
 
-      // 3. Add the image to the gallery
-      await addImageToGallery(firestore, userId, imageDoc.id, galleryDoc.id);
+      // 3. Add the image to the gallery using Admin SDK
+      await galleryDoc.ref.update({
+          imageIds: admin.firestore.FieldValue.arrayUnion(imageDoc.id)
+      });
 
       return `C'est fait ! L'image "${imageName}" a été ajoutée à la galerie "${galleryName}".`;
 
@@ -139,7 +176,7 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
     prompt: fullPrompt,
     system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
 
-- **Your User ID is {{USER_ID}}. You MUST provide this ID in the 'userId' parameter for ANY tool you call.** This is mandatory for all operations.
+- **You have been given a USER_ID. You MUST provide this ID in the 'userId' parameter for ANY tool you call.** This is mandatory for all operations.
 - **Listen to the user's need, not just their words.** If a user asks "quels sont mes albums ?", use the listGalleries tool. If they say "je veux vendre plus", recommend the "E-commerce" description generation. If they say "je suis à court d'idées", recommend the "Coach Stratégique".
 - **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool and always include the userId.
 - **Clarify if needed.** If a tool requires information the user hasn't provided (e.g., asking to add an image without saying which one), ask for the missing details.
