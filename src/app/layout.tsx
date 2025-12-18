@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorNotificationProvider } from '@/components/ErrorNotificationProvider';
 import { Toaster } from 'sonner';
+import { Chatbot } from '@/components/Chatbot';
 
 export const metadata: Metadata = {
   title: 'Clikup : Assistant IA pour Création & Édition d\'Images',
@@ -58,6 +59,7 @@ export default function RootLayout({
                         </Link>
                     </div>
                   </footer>
+                  <Chatbot />
                 </div>
                 <Toaster position="top-right" richColors />
               </ErrorNotificationProvider>
