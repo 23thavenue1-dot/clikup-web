@@ -56,14 +56,9 @@ const nextConfig: NextConfig = {
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     FIREBASE_SERVICE_ACCOUNT_KEY: process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        async_hooks: false,
-      };
-    }
-    return config;
+  experimental: {
+    // Cette option est compatible avec Turbopack et remplace la configuration webpack précédente.
+    serverComponentsExternalPackages: ['async_hooks'],
   },
 };
 
