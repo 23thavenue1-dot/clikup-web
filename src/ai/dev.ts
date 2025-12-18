@@ -1,4 +1,3 @@
-
 'use server';
 // Flows will be imported for their side effects in this file.
 import './flows/generate-description-flow';
@@ -12,3 +11,5 @@ import './flows/regenerate-carousel-text-flow';
 import './schemas/carousel-schemas';
 import './flows/animate-story-flow';
 import './schemas/story-animation-schemas';
+import './flows/chatbot-flow';
+import './schemas/chatbot-schemas';

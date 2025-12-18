@@ -8,12 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Bot, Send, Sparkles, User, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
-
-// Définit la structure d'un message dans la conversation
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { askChatbot, type Message } from '@/ai/schemas/chatbot-schemas';
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,21 +34,26 @@ export function Chatbot() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
-    // --- Placeholder pour le futur appel au Flow Genkit ---
-    // À la prochaine étape, nous remplacerons ce code par un vrai appel à l'IA.
-    setTimeout(() => {
-      const assistantResponse: Message = {
-        role: 'assistant',
-        content: `Fonctionnalité en cours de développement. Je ne peux pas encore traiter la demande : "${userMessage.content}"`
-      };
-      setMessages(prev => [...prev, assistantResponse]);
-      setIsLoading(false);
-    }, 1500);
-    // --- Fin du placeholder ---
+    try {
+        const response = await askChatbot({ history: newMessages });
+        const assistantMessage: Message = { role: 'assistant', content: response.content };
+        setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+        console.error("Chatbot error:", error);
+        const errorMessage: Message = {
+            role: 'assistant',
+            content: "Désolé, je rencontre une difficulté technique. Veuillez réessayer plus tard."
+        };
+        setMessages(prev => [...prev, errorMessage]);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
