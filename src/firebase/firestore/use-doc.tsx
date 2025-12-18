@@ -1,4 +1,3 @@
-
 'use client';
     
 import { useState, useEffect } from 'react';
@@ -25,6 +24,31 @@ export interface UseDocResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
   refetch: () => void; // Function to manually refetch data
 }
+
+/**
+ * Helper function to perform a deep equality check between two objects.
+ * This is crucial to prevent re-renders if the data hasn't actually changed.
+ */
+function isDeepEqual(obj1: any, obj2: any): boolean {
+  if (obj1 === obj2) return true;
+  if (obj1 == null || obj2 == null || typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+    return false;
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!keys2.includes(key) || !isDeepEqual(obj1[key], obj2[key])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 
 /**
  * React hook to subscribe to a single Firestore document in real-time.
@@ -69,12 +93,20 @@ export function useDoc<T = any>(
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        const docExists = snapshot.exists; 
+        const docExists = snapshot.exists(); 
 
         if (docExists) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
+          const newDoc = { ...(snapshot.data() as T), id: snapshot.id };
+          // Use functional update with deep comparison to prevent infinite loops
+          setData(currentDoc => {
+            if (isDeepEqual(currentDoc, newDoc)) {
+              return currentDoc;
+            }
+            return newDoc;
+          });
         } else {
-          setData(null);
+          // Only update state if it's not already null
+          setData(currentDoc => (currentDoc === null ? null : null));
         }
         setError(null);
         setIsLoading(false);
