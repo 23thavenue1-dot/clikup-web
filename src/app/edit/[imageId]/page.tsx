@@ -81,7 +81,6 @@ export default function EditImagePage() {
     const [editedPromptName, setEditedPromptName] = useState("");
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
     
-    // --- State for description dialog ---
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
 
     const imageDocRef = useMemoFirebase(() => {
@@ -178,6 +177,7 @@ export default function EditImagePage() {
         }
     };
 
+
     const handleUndoGeneration = () => {
         if (historyIndex > 0) {
             setHistoryIndex(prev => prev - 1);
@@ -206,7 +206,6 @@ export default function EditImagePage() {
 
             const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
             
-            // On reprend les métadonnées de l'image originale
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
                 title: originalImage.title,
@@ -341,7 +340,7 @@ export default function EditImagePage() {
                     </Card>
 
                     {/* --- APRÈS --- */}
-                    <Card className="flex flex-col">
+                    <Card className="flex flex-col overflow-hidden">
                          <CardHeader className="flex-row items-center justify-center p-2 relative h-10">
                             <Badge>APRÈS</Badge>
                              {!isGenerating && generatedImageHistory.length > 0 && (
@@ -370,40 +369,43 @@ export default function EditImagePage() {
                             </div>
                         </CardContent>
                         {currentHistoryItem && (
-                            <CardFooter className="flex-col items-start gap-3 p-4 border-t bg-muted/30">
-                                 <div className="w-full space-y-2">
-                                     <Label htmlFor="refine-prompt" className="font-semibold flex items-center gap-2">
-                                        <Wand2 className="h-4 w-4 text-primary"/>
-                                        Peaufiner ce Résultat
-                                    </Label>
-                                     <Textarea
-                                        id="refine-prompt"
-                                        value={refinePrompt}
-                                        onChange={e => setRefinePrompt(e.target.value)}
-                                        placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
-                                        rows={2}
-                                        disabled={isGenerating || isSaving}
-                                     />
-                                     <Button
-                                        onClick={handleRefineImage}
-                                        disabled={!refinePrompt.trim() || isGenerating || isSaving || totalAiTickets <= 0}
-                                        className="w-full"
-                                     >
-                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                        Affiner (1 Ticket IA)
-                                     </Button>
-                                 </div>
-                                 <Separator className="my-4" />
-                                 <div className="w-full space-y-2">
-                                     <Button onClick={() => setIsDescriptionDialogOpen(true)} className="w-full" variant="secondary" disabled={isGenerating || isSaving}>
-                                        <FileTextIcon className="mr-2 h-4 w-4" />
-                                        Modifier ou Générer la Description
-                                    </Button>
-                                    <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
-                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                        Enregistrer la création
-                                    </Button>
-                                 </div>
+                            <CardFooter className="flex-col items-start gap-4 p-4 border-t bg-muted/30">
+                                <div className="w-full space-y-3">
+                                    <div>
+                                        <Label htmlFor="refine-prompt" className="font-semibold flex items-center gap-2">
+                                            <Wand2 className="h-4 w-4 text-primary"/>
+                                            Peaufiner ce Résultat
+                                        </Label>
+                                        <Textarea
+                                            id="refine-prompt"
+                                            value={refinePrompt}
+                                            onChange={e => setRefinePrompt(e.target.value)}
+                                            placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                            rows={2}
+                                            disabled={isGenerating || isSaving}
+                                            className="mt-2"
+                                        />
+                                        <Button
+                                            onClick={handleRefineImage}
+                                            disabled={!refinePrompt.trim() || isGenerating || isSaving || totalAiTickets <= 0}
+                                            className="w-full mt-2"
+                                        >
+                                            {isGenerating && refinePrompt ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                            Affiner (1 Ticket IA)
+                                        </Button>
+                                    </div>
+                                    <Separator />
+                                     <div className="w-full space-y-2">
+                                        <Button onClick={() => setIsDescriptionDialogOpen(true)} className="w-full" variant="secondary" disabled={isGenerating || isSaving}>
+                                            <FileTextIcon className="mr-2 h-4 w-4" />
+                                            Modifier ou Générer la Description
+                                        </Button>
+                                        <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                            Enregistrer la création
+                                        </Button>
+                                     </div>
+                                </div>
                             </CardFooter>
                         )}
                     </Card>
@@ -534,8 +536,8 @@ export default function EditImagePage() {
                             </DialogContent>
                         </Dialog>
                         <Button size="lg" onClick={() => handleGenerateImage(prompt)} disabled={!prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full">
-                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
-                            {isGenerating ? 'Génération...' : 'Générer (1 Ticket IA)'}
+                            {isGenerating && !refinePrompt ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
+                            Générer (1 Ticket IA)
                         </Button>
                         {monthlyLimitReached && ( <p className="text-center text-xs text-primary font-semibold pt-2"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>)}
                         {!hasAiTickets && !isGenerating && !isSaving && !monthlyLimitReached && (
@@ -595,4 +597,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
