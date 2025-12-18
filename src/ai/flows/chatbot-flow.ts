@@ -3,7 +3,7 @@
 
 import { ai } from '@/ai/genkit';
 import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-schemas';
-import { createGallery, addImageToGallery } from '@/lib/firestore'; 
+import { createGallery, addImageToGallery } from '@/lib/firestore';
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { z } from 'genkit';
 import { initializeFirebase } from '@/firebase'; // Gardé pour le client, mais l'admin sera utilisé pour les outils
