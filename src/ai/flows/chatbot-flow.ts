@@ -17,31 +17,39 @@ const createGalleryTool = ai.defineTool(
     }),
     outputSchema: z.string(),
   },
-  async ({ name }, { auth }) => {
-    const userId = auth?.uid;
-    if (!userId) {
-      return "Erreur d'identification. Impossible de créer la galerie.";
+  async ({ name }, { token }) => {
+    // Ce 'tool' s'exécute sur le serveur. Il doit appeler l'API sécurisée que nous avons créée.
+    if (!token) {
+      return "Erreur d'authentification interne. Le token est manquant pour l'outil.";
     }
-    
-    const db = admin.firestore();
+
     try {
-      const galleriesCollectionRef = db.collection('users').doc(userId).collection('galleries');
-      const docRef = await galleriesCollectionRef.add({ 
-        userId, 
-        name, 
-        description: '', 
-        imageIds: [], 
-        pinnedImageIds: [], 
-        createdAt: admin.firestore.FieldValue.serverTimestamp() 
+      // L'URL doit être absolue car c'est un appel de serveur à serveur.
+      // En production, cette URL viendrait d'une variable d'environnement.
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+      const response = await fetch(`${baseUrl}/api/galleries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name }),
       });
-      await docRef.update({ id: docRef.id });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur de l'API /api/galleries: ${response.status}`, errorText);
+        return `Échec de la création de la galerie. Le serveur a répondu : ${response.status}.`;
+      }
+
       return `Galerie "${name}" créée avec succès.`;
     } catch (error) {
-      console.error("Erreur de l'outil createGallery:", error);
-      return `Désolé, je n'ai pas pu créer la galerie "${name}". Une erreur est survenue.`;
+      console.error("Erreur réseau dans l'outil createGalleryTool:", error);
+      return `Désolé, une erreur réseau est survenue lors de la tentative de création de la galerie.`;
     }
   }
 );
+
 
 const listGalleriesTool = ai.defineTool(
   {
@@ -56,6 +64,7 @@ const listGalleriesTool = ai.defineTool(
       return "Erreur d'identification. Impossible de lister les galeries.";
     }
     
+    if (admin.apps.length === 0) { admin.initializeApp(); }
     const db = admin.firestore();
     try {
       const galleriesRef = db.collection(`users/${userId}/galleries`);
@@ -91,6 +100,7 @@ const addImageToGalleryTool = ai.defineTool(
         return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
+    if (admin.apps.length === 0) { admin.initializeApp(); }
     const db = admin.firestore();
     try {
       const galleriesRef = db.collection(`users/${userId}/galleries`);
@@ -133,9 +143,6 @@ export const askChatbot = ai.defineFlow(
     inputSchema: ChatbotInputSchema,
     outputSchema: z.object({ content: z.string() }),
     auth: {
-      // Cette politique attend un ID Token et le vérifie.
-      // Le `uid` sera disponible dans le `auth` du contexte de l'outil.
-      // @ts-ignore
       policy: async (token) => {
         if (admin.apps.length === 0) {
           admin.initializeApp();
@@ -145,8 +152,8 @@ export const askChatbot = ai.defineFlow(
       }
     }
   },
-  async (input) => {
-    const { history } = input;
+  async (input, { auth }) => {
+    const { history, token } = input;
     
     const historyPrompt = history
       .map(message => `${message.role}: ${message.content}`)
@@ -192,12 +199,11 @@ export const askChatbot = ai.defineFlow(
 - **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.`,
       model: 'googleai/gemini-2.5-flash',
       tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
+      context: { auth, token }, // On passe l'objet auth et le token brut
     });
 
     const toolRequest = llmResponse.toolRequest;
     if (toolRequest) {
-      // Genkit gère automatiquement l'appel de l'outil ici,
-      // et le `auth` contexte sera fourni à l'outil.
       const toolResponse = await llmResponse.performToolRequest(toolRequest);
       return { content: toolResponse as string };
     }
