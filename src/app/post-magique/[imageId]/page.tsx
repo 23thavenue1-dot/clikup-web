@@ -28,7 +28,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
-import { generateImage } from '@/ai/flows/generate-image-flow';
+import { animateStory } from '@/ai/flows/animate-story-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater, createGallery } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -200,6 +200,11 @@ export default function PostMagiquePage() {
     const [isSavingPost, setIsSavingPost] = useState(false);
     const [isSavingToGallery, setIsSavingToGallery] = useState(false);
 
+    // --- NOUVEAUX ÉTATS POUR LA STORY ANIMÉE ---
+    const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+    const [generatedStoryUrl, setGeneratedStoryUrl] = useState<string | null>(null);
+
+
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}/images`, imageId);
@@ -225,8 +230,40 @@ export default function PostMagiquePage() {
         toast({ title: 'Fonctionnalité à venir', description: `La génération de posts uniques pour ${network} sera bientôt disponible.` });
     };
 
-    const handleGenerateStory = () => {
-        toast({ title: 'Fonctionnalité à venir', description: 'La génération de stories sera bientôt disponible.' });
+    const handleGenerateStory = async (network: string) => {
+        if (!image || !user || !userProfile || !firestore) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de lancer la génération.' });
+            return;
+        }
+
+        const STORY_COST = 5;
+        if (totalAiTickets < STORY_COST) {
+             toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `L'animation de story requiert ${STORY_COST} tickets.` });
+            return;
+        }
+        
+        setIsGeneratingStory(true);
+        setGeneratedSlides(null);
+        setGeneratedStoryUrl(null);
+        setSelectedNetwork(network);
+
+        const { data: result, error } = await withErrorHandling(() => 
+            animateStory({
+                imageUrl: image.directUrl,
+                prompt: 'Applique un mouvement subtil et élégant à cette image pour la transformer en cinemagraph. Par exemple, fais bouger les nuages, onduler l\'eau, ou tomber de la neige.',
+                aspectRatio: '9:16'
+            })
+        );
+        
+        if (!error && result) {
+            setGeneratedStoryUrl(result.videoUrl);
+             for (let i = 0; i < STORY_COST; i++) {
+                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            }
+            refetchUserProfile();
+            toast({ title: 'Story animée générée !', description: 'Votre vidéo est prête.' });
+        }
+        setIsGeneratingStory(false);
     };
 
     const handleGenerateCarousel = async (format: string, network: string) => {
@@ -244,6 +281,7 @@ export default function PostMagiquePage() {
 
         setIsGenerating(true);
         setGeneratedSlides(null);
+        setGeneratedStoryUrl(null);
         setSelectedNetwork(network);
 
         const { data: result, error } = await withErrorHandling(() => 
@@ -494,8 +532,8 @@ export default function PostMagiquePage() {
     
      const formats = [
         { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Instagram', 'Instagram'), disabled: false, cost: 3 },
+        { id: 'ig-story', network: 'Instagram', format: 'Story Animée', icon: Instagram, typeIcon: Clapperboard, onGenerate: () => handleGenerateStory('Instagram'), disabled: false, cost: 5 },
         { id: 'ig-post', network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Instagram'), disabled: true, cost: 1 },
-        { id: 'ig-story', network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, onGenerate: () => handleGenerateStory(), disabled: true, cost: 5 },
         { id: 'fb-post', network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Facebook'), disabled: true, cost: 1 },
     ];
 
@@ -533,7 +571,7 @@ export default function PostMagiquePage() {
                     </CardContent>
                 </Card>
                 
-                {isGenerating && (
+                {(isGenerating || isGeneratingStory) && (
                     <Card className="text-center">
                         <CardContent className="p-8 flex flex-col items-center justify-center gap-4">
                             <Loader2 className="h-12 w-12 animate-spin text-primary"/>
@@ -542,6 +580,28 @@ export default function PostMagiquePage() {
                         </CardContent>
                     </Card>
                 )}
+
+                {generatedStoryUrl && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Votre Story Animée est Prête !</CardTitle>
+                            <CardDescription>Voici la vidéo générée pour {selectedNetwork}.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="aspect-video relative bg-black rounded-lg overflow-hidden border">
+                                <video src={generatedStoryUrl} controls autoPlay loop className="w-full h-full object-contain" />
+                            </div>
+                        </CardContent>
+                         <CardFooter className="flex-col items-center gap-4 pt-6 border-t">
+                            <h3 className="font-semibold text-lg">Que souhaitez-vous faire ?</h3>
+                            <Button variant="link" onClick={() => setGeneratedStoryUrl(null)} className="mt-4">
+                                <Sparkles className="mr-2 h-4 w-4"/>
+                                Créer une autre transformation
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                )}
+
 
                 {generatedSlides && (
                     <Card>
@@ -657,7 +717,7 @@ export default function PostMagiquePage() {
                     </Card>
                 )}
 
-                {!isGenerating && !generatedSlides && (
+                {!isGenerating && !isGeneratingStory && !generatedSlides && !generatedStoryUrl && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Choisissez une transformation</CardTitle>
@@ -668,7 +728,7 @@ export default function PostMagiquePage() {
                                 <ActionCard 
                                     key={fmt.id} 
                                     onGenerate={fmt.onGenerate}
-                                    disabled={fmt.disabled}
+                                    disabled={fmt.disabled || isGenerating || isGeneratingStory}
                                     cost={fmt.cost}
                                 >
                                     <SocialIcon icon={fmt.icon} />
@@ -685,5 +745,3 @@ export default function PostMagiquePage() {
         </div>
     );
 }
-
-    
