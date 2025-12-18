@@ -3,9 +3,9 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirebaseApp, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, X, HelpCircle, FileText as FileTextIcon, Ticket } from 'lucide-react';
@@ -13,7 +13,7 @@ import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, updateImageDescription } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -27,15 +27,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { suggestionCategories } from '@/lib/ai-prompts';
-import { editImage } from '@/ai/flows/generate-image-flow';
+import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { Separator } from '@/components/ui/separator';
 
 type ImageHistoryItem = {
     imageUrl: string;
     prompt: string;
-    title: string;
-    description: string;
-    hashtags: string;
 };
 
 type IconName = keyof typeof LucideIcons;
@@ -83,12 +80,15 @@ export default function EditImagePage() {
     const [promptToEdit, setPromptToEdit] = useState<CustomPrompt | null>(null);
     const [editedPromptName, setEditedPromptName] = useState("");
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+    
+    // --- State for description dialog ---
+    const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}/images`, imageId);
     }, [user, firestore, imageId]);
-    const { data: originalImage, isLoading: isImageLoading } = useDoc<ImageMetadata>(imageDocRef);
+    const { data: originalImage, isLoading: isImageLoading, refetch: refetchImage } = useDoc<ImageMetadata>(imageDocRef);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -127,9 +127,6 @@ export default function EditImagePage() {
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.imageUrl,
                 prompt: promptToUse,
-                title: originalImage.title || '',
-                description: originalImage.description || '',
-                hashtags: originalImage.hashtags || ''
             };
 
             setGeneratedImageHistory([newHistoryItem]);
@@ -162,9 +159,6 @@ export default function EditImagePage() {
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.imageUrl,
                 prompt: refinePrompt,
-                title: currentHistoryItem.title,
-                description: currentHistoryItem.description,
-                hashtags: currentHistoryItem.hashtags
             };
 
             const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
@@ -187,7 +181,7 @@ export default function EditImagePage() {
     const handleUndoGeneration = () => {
         if (historyIndex > 0) {
             setHistoryIndex(prev => prev - 1);
-        } else if (historyIndex === 0) { // Si on est sur la première génération, on revient à l'état initial
+        } else if (historyIndex === 0) {
              setHistoryIndex(-1);
              setGeneratedImageHistory([]);
         }
@@ -198,8 +192,8 @@ export default function EditImagePage() {
             setHistoryIndex(prev => prev + 1);
         }
     };
-
-    const handleSaveAiCreation = async () => {
+    
+     const handleSaveAiCreation = async () => {
         const imageToSave = currentHistoryItem;
         if (!imageToSave || !user || !firebaseApp || !firestore || !originalImage) return;
         
@@ -212,22 +206,27 @@ export default function EditImagePage() {
 
             const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
             
+            // On reprend les métadonnées de l'image originale
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: imageToSave.title,
-                description: imageToSave.description,
-                hashtags: imageToSave.hashtags,
+                title: originalImage.title,
+                description: originalImage.description,
+                hashtags: originalImage.hashtags,
                 generatedByAI: true
             });
-            toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
+            toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image a été ajoutée à votre galerie principale." });
+            setGeneratedImageHistory([]);
+            setHistoryIndex(-1);
+            setRefinePrompt('');
 
         } catch (error) {
             console.error("Erreur lors de la sauvegarde :", error);
-            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer les modifications." });
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer la nouvelle image." });
         } finally {
             setIsSaving(false);
         }
     };
+
 
     const openSavePromptDialog = () => {
         const activePrompt = prompt.trim();
@@ -240,14 +239,12 @@ export default function EditImagePage() {
     const handleSavePrompt = async () => {
         if (!promptToSave || !newPromptName.trim() || !user || !firestore) return;
         setIsSavingPrompt(true);
-
-        const newCustomPrompt: CustomPrompt = { id: `prompt_${Date.now()}`, name: newPromptName, value: promptToSave };
         try {
-            await saveCustomPrompt(firestore, user.uid, newCustomPrompt);
-            toast({ title: "Prompt sauvegardé", description: `"${newPromptName}" a été ajouté à 'Mes Prompts'.` });
+            await saveCustomPrompt(firestore, user.uid, { id: `prompt_${Date.now()}`, name: newPromptName, value: promptToSave });
+            toast({ title: "Prompt sauvegardé" });
             setIsSavePromptDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de sauvegarder le prompt.' });
+            toast({ variant: 'destructive', title: 'Erreur' });
         } finally {
             setIsSavingPrompt(false);
         }
@@ -262,7 +259,7 @@ export default function EditImagePage() {
             toast({ title: "Prompt supprimé" });
             setIsDeletePromptDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le prompt.' });
+            toast({ variant: 'destructive', title: 'Erreur' });
         } finally {
             setIsDeletingPrompt(false);
         }
@@ -272,13 +269,12 @@ export default function EditImagePage() {
     const handleEditPrompt = async () => {
         if (!promptToEdit || !editedPromptName.trim() || !user || !firestore) return;
         setIsEditingPrompt(true);
-        const updatedPrompt = { ...promptToEdit, name: editedPromptName };
         try {
-            await updateCustomPrompt(firestore, user.uid, updatedPrompt);
+            await updateCustomPrompt(firestore, user.uid, { ...promptToEdit, name: editedPromptName });
             toast({ title: "Prompt renommé" });
             setIsEditPromptDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de renommer le prompt.' });
+            toast({ variant: 'destructive', title: 'Erreur' });
         } finally {
             setIsEditingPrompt(false);
         }
@@ -296,7 +292,7 @@ export default function EditImagePage() {
          return (
             <div className="container mx-auto p-8 text-center">
                  <h1 className="text-2xl font-bold">Image introuvable</h1>
-                 <p className="text-muted-foreground">Le rapport que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
+                 <p className="text-muted-foreground">L'image que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
                  <Button asChild className="mt-4">
                     <Link href="/">Retour à l'accueil</Link>
                  </Button>
@@ -311,7 +307,7 @@ export default function EditImagePage() {
     return (
         <div className="flex flex-col md:flex-row h-screen bg-background">
             
-            <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-6 overflow-y-auto">
+            <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-4 overflow-y-auto">
                 <header className="flex items-center justify-between">
                     <Button variant="ghost" size="sm" asChild>
                        <Link href={`/image/${imageId}`}>
@@ -320,7 +316,7 @@ export default function EditImagePage() {
                        </Link>
                    </Button>
                     <div className="text-center">
-                       <h1 className="text-lg font-semibold tracking-tight">Éditeur d'Image par IA</h1>
+                       <h1 className="text-xl font-semibold tracking-tight">Éditeur d'Image par IA</h1>
                        <p className="text-xs text-muted-foreground">Transformez vos images en décrivant simplement les changements souhaités.</p>
                    </div>
                     <Button variant="outline" className="h-8 text-sm" asChild>
@@ -332,74 +328,85 @@ export default function EditImagePage() {
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 flex-1">
-                    <div className="flex flex-col gap-2">
-                        <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
-                        <div className="aspect-square w-full relative rounded-lg border bg-muted overflow-hidden shadow-sm">
-                            <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                        </div>
-                    </div>
-                     <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-center gap-4 relative h-6">
-                            <Badge className="w-fit mx-auto">APRÈS</Badge>
+                    {/* --- AVANT --- */}
+                    <Card className="flex flex-col">
+                        <CardHeader className="flex-row items-center justify-center p-2">
+                            <Badge variant="secondary">AVANT</Badge>
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1 flex items-center justify-center">
+                            <div className="aspect-square w-full relative">
+                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* --- APRÈS --- */}
+                    <Card className="flex flex-col">
+                         <CardHeader className="flex-row items-center justify-center p-2 relative h-10">
+                            <Badge>APRÈS</Badge>
                              {!isGenerating && generatedImageHistory.length > 0 && (
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
                                         <Undo2 className="h-5 w-5" />
                                     </Button>
-                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
                                         <Redo2 className="h-5 w-5" />
                                     </Button>
                                 </div>
                             )}
-                        </div>
-                        <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
-                            {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                            {!isGenerating && currentHistoryItem?.imageUrl && (
-                                <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />
-                            )}
-                            {!isGenerating && !currentHistoryItem?.imageUrl && (
-                                <div className="text-center text-muted-foreground p-4">
-                                    <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
-                                    <p className="text-sm">Votre création apparaîtra ici.</p>
-                                </div>
-                            )}
-                        </div>
-                         {currentHistoryItem && (
-                            <div className="pt-4 space-y-3 border-t mt-4">
-                                <Label htmlFor="refine-prompt" className="text-sm font-semibold flex items-center gap-2">
-                                    <Wand2 className="h-4 w-4 text-primary" />
-                                    Peaufiner ce résultat
-                                </Label>
-                                <Textarea 
-                                    id="refine-prompt"
-                                    value={refinePrompt}
-                                    onChange={e => setRefinePrompt(e.target.value)}
-                                    placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
-                                    rows={2}
-                                    disabled={isGenerating}
-                                />
-                                <Button
-                                    onClick={handleRefineImage}
-                                    disabled={!refinePrompt.trim() || isGenerating || !hasAiTickets}
-                                    className="w-full"
-                                >
-                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                    Affiner (1 Ticket IA)
-                                </Button>
-                                <Separator className="my-4 !mt-6" />
-                                <div className="space-y-2">
-                                    <Button disabled={true} className="w-full">
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1 flex items-center justify-center">
+                            <div className="aspect-square w-full relative bg-muted/40 rounded-b-lg">
+                                {isGenerating ? (
+                                    <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
+                                ) : currentHistoryItem?.imageUrl ? (
+                                    <Image src={currentHistoryItem.imageUrl} alt="Image générée" fill className="object-contain" unoptimized />
+                                ) : (
+                                    <div className="text-center text-muted-foreground p-4 flex flex-col items-center justify-center h-full">
+                                        <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
+                                        <p className="text-sm">Votre création apparaîtra ici.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                        {currentHistoryItem && (
+                            <CardFooter className="flex-col items-start gap-3 p-4 border-t bg-muted/30">
+                                 <div className="w-full space-y-2">
+                                     <Label htmlFor="refine-prompt" className="font-semibold flex items-center gap-2">
+                                        <Wand2 className="h-4 w-4 text-primary"/>
+                                        Peaufiner ce Résultat
+                                    </Label>
+                                     <Textarea
+                                        id="refine-prompt"
+                                        value={refinePrompt}
+                                        onChange={e => setRefinePrompt(e.target.value)}
+                                        placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                        rows={2}
+                                        disabled={isGenerating || isSaving}
+                                     />
+                                     <Button
+                                        onClick={handleRefineImage}
+                                        disabled={!refinePrompt.trim() || isGenerating || isSaving || totalAiTickets <= 0}
+                                        className="w-full"
+                                     >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                        Affiner (1 Ticket IA)
+                                     </Button>
+                                 </div>
+                                 <Separator className="my-4" />
+                                 <div className="w-full space-y-2">
+                                     <Button onClick={() => setIsDescriptionDialogOpen(true)} className="w-full" variant="secondary" disabled={isGenerating || isSaving}>
                                         <FileTextIcon className="mr-2 h-4 w-4" />
-                                        Modifier/Générer la description
+                                        Modifier ou Générer la Description
                                     </Button>
-                                    <Button disabled={true} className="w-full bg-green-600 hover:bg-green-700">
-                                        <Save className="mr-2 h-4 w-4" />
+                                    <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
+                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                         Enregistrer la création
                                     </Button>
-                                </div>
-                            </div>
+                                 </div>
+                            </CardFooter>
                         )}
-                    </div>
+                    </Card>
                 </div>
             </main>
 
@@ -581,6 +588,11 @@ export default function EditImagePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            
+            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                {/* Contenu du dialogue pour la description - pour l'instant vide car on le supprime */}
+            </Dialog>
         </div>
     );
 }
+
