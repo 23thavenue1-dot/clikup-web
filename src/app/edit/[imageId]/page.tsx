@@ -82,6 +82,13 @@ export default function EditImagePage() {
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
     
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
+    const [currentTitle, setCurrentTitle] = useState('');
+    const [currentDescription, setCurrentDescription] = useState('');
+    const [hashtagsString, setHashtagsString] = useState('');
+    const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
+    const [isSavingDescription, setIsSavingDescription] = useState(false);
+    const [generatingForPlatform, setGeneratingForPlatform] = useState<string | null>(null);
+
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -174,6 +181,28 @@ export default function EditImagePage() {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    const handleSaveDescription = async () => {
+        if (!originalImage || !user || !firestore) return;
+        setIsSavingDescription(true);
+        const dataToUpdate: any = { 
+            title: currentTitle, 
+            description: currentDescription, 
+            hashtags: hashtagsString 
+        };
+        if(wasGeneratedByAI) dataToUpdate.generatedByAI = true;
+
+        try {
+            await updateImageDescription(firestore, user.uid, originalImage.id, dataToUpdate, wasGeneratedByAI);
+            toast({ title: 'Description enregistrée' });
+            setIsDescriptionDialogOpen(false);
+            refetchImage();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur' });
+        } finally {
+            setIsSavingDescription(false);
         }
     };
 
@@ -305,7 +334,6 @@ export default function EditImagePage() {
 
     return (
         <div className="flex flex-col md:flex-row h-screen bg-background">
-            
             <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-4 overflow-y-auto">
                 <header className="flex items-center justify-between">
                     <Button variant="ghost" size="sm" asChild>
@@ -325,14 +353,14 @@ export default function EditImagePage() {
                         </Link>
                    </Button>
                 </header>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 flex-1">
+                
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* --- AVANT --- */}
                     <Card className="flex flex-col">
-                        <CardHeader className="flex-row items-center justify-center p-2">
-                            <Badge variant="secondary">AVANT</Badge>
+                        <CardHeader className="p-2">
+                           <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
                         </CardHeader>
-                        <CardContent className="p-0 flex-1 flex items-center justify-center">
+                        <CardContent className="flex-1 flex items-center justify-center p-2">
                             <div className="aspect-square w-full relative">
                                 <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                             </div>
@@ -340,10 +368,10 @@ export default function EditImagePage() {
                     </Card>
 
                     {/* --- APRÈS --- */}
-                    <Card className="flex flex-col overflow-hidden">
-                         <CardHeader className="flex-row items-center justify-center p-2 relative h-10">
+                    <Card className="flex flex-col">
+                        <CardHeader className="flex-row items-center justify-center gap-4 relative h-10 p-2">
                             <Badge>APRÈS</Badge>
-                             {!isGenerating && generatedImageHistory.length > 0 && (
+                             {generatedImageHistory.length > 0 && (
                                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
                                     <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
                                         <Undo2 className="h-5 w-5" />
@@ -354,8 +382,8 @@ export default function EditImagePage() {
                                 </div>
                             )}
                         </CardHeader>
-                        <CardContent className="p-0 flex-1 flex items-center justify-center">
-                            <div className="aspect-square w-full relative bg-muted/40 rounded-b-lg">
+                        <CardContent className="flex-1 flex items-center justify-center p-2">
+                            <div className="aspect-square w-full relative bg-muted/40 rounded-md">
                                 {isGenerating ? (
                                     <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
                                 ) : currentHistoryItem?.imageUrl ? (
@@ -368,48 +396,51 @@ export default function EditImagePage() {
                                 )}
                             </div>
                         </CardContent>
-                        {currentHistoryItem && (
-                            <CardFooter className="flex-col items-start gap-4 p-4 border-t bg-muted/30">
-                                <div className="w-full space-y-3">
-                                    <div>
-                                        <Label htmlFor="refine-prompt" className="font-semibold flex items-center gap-2">
-                                            <Wand2 className="h-4 w-4 text-primary"/>
-                                            Peaufiner ce Résultat
-                                        </Label>
-                                        <Textarea
-                                            id="refine-prompt"
-                                            value={refinePrompt}
-                                            onChange={e => setRefinePrompt(e.target.value)}
-                                            placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
-                                            rows={2}
-                                            disabled={isGenerating || isSaving}
-                                            className="mt-2"
-                                        />
-                                        <Button
-                                            onClick={handleRefineImage}
-                                            disabled={!refinePrompt.trim() || isGenerating || isSaving || totalAiTickets <= 0}
-                                            className="w-full mt-2"
-                                        >
-                                            {isGenerating && refinePrompt ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                            Affiner (1 Ticket IA)
-                                        </Button>
-                                    </div>
-                                    <Separator />
-                                     <div className="w-full space-y-2">
-                                        <Button onClick={() => setIsDescriptionDialogOpen(true)} className="w-full" variant="secondary" disabled={isGenerating || isSaving}>
-                                            <FileTextIcon className="mr-2 h-4 w-4" />
-                                            Modifier ou Générer la Description
-                                        </Button>
-                                        <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
-                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                            Enregistrer la création
-                                        </Button>
-                                     </div>
-                                </div>
-                            </CardFooter>
-                        )}
                     </Card>
                 </div>
+                
+                 {currentHistoryItem && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Peaufiner & Sauvegarder</CardTitle>
+                            <CardDescription>Ajustez le résultat ou enregistrez votre création.</CardDescription>
+                        </CardHeader>
+                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <Label htmlFor="refine-prompt" className="flex items-center gap-2 font-semibold">
+                                    <Wand2 className="h-4 w-4 text-primary" />
+                                    <span>Peaufiner ce Résultat</span>
+                                </Label>
+                                <Textarea
+                                    id="refine-prompt"
+                                    value={refinePrompt}
+                                    onChange={e => setRefinePrompt(e.target.value)}
+                                    placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                    rows={3}
+                                    disabled={isGenerating || isSaving}
+                                />
+                                <Button
+                                    onClick={handleRefineImage}
+                                    disabled={!refinePrompt.trim() || isGenerating || isSaving || !hasAiTickets}
+                                    className="w-full"
+                                >
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                    Affiner (1 Ticket IA)
+                                </Button>
+                            </div>
+                            <div className="space-y-3 flex flex-col justify-end">
+                                <Button onClick={() => setIsDescriptionDialogOpen(true)} variant="outline" className="w-full">
+                                    <FileTextIcon className="mr-2 h-4 w-4" />
+                                    Modifier/Générer la description
+                                </Button>
+                                <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                    Enregistrer la création
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </main>
 
             <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-muted/40 border-l flex flex-col h-full">
@@ -590,10 +621,17 @@ export default function EditImagePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            
-            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                {/* Contenu du dialogue pour la description - pour l'instant vide car on le supprime */}
+
+             <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
+                        <DialogDescription>Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.</DialogDescription>
+                    </DialogHeader>
+                    {/* Le contenu du dialogue de description sera ajouté ici */}
+                </DialogContent>
             </Dialog>
         </div>
     );
 }
+
