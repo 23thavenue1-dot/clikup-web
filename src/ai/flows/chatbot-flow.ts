@@ -6,7 +6,7 @@ import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-sche
 import { initializeFirebase } from '@/firebase';
 import { createGallery, addImageToGallery } from '@/lib/firestore';
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
-import { z } from 'zod';
+import { z } from 'genkit';
 
 const createGalleryTool = ai.defineTool(
   {
@@ -18,8 +18,8 @@ const createGalleryTool = ai.defineTool(
     outputSchema: z.string(),
   },
   async ({ name }, context) => {
-    // IMPORTANT: Accéder au userId passé dans le contexte du flow
-    const userId = context?.auth?.userId;
+    // Correction: Accéder au userId directement depuis le contexte simplifié.
+    const userId = (context as any)?.userId;
     if (!userId) {
       return "Erreur : Je ne parviens pas à vous identifier pour créer la galerie.";
     }
@@ -44,7 +44,8 @@ const listGalleriesTool = ai.defineTool(
     outputSchema: z.string(),
   },
   async (_, context) => {
-    const userId = context?.auth?.userId;
+    // Correction: Accéder au userId directement depuis le contexte simplifié.
+    const userId = (context as any)?.userId;
     if (!userId) {
       return "Erreur : Je ne parviens pas à vous identifier pour lister les galeries.";
     }
@@ -79,7 +80,8 @@ const addImageToGalleryTool = ai.defineTool(
     outputSchema: z.string(),
   },
   async ({ imageName, galleryName }, context) => {
-    const userId = context?.auth?.userId;
+    // Correction: Accéder au userId directement depuis le contexte simplifié.
+    const userId = (context as any)?.userId;
     if (!userId) {
       return "Erreur : Je ne peux pas vous identifier.";
     }
@@ -171,7 +173,8 @@ assistant:
 ---`,
     model: 'googleai/gemini-2.5-flash',
     tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
-    context: { auth: { userId: input.userId, authenticated: true } },
+    // Correction: On passe un contexte plus simple et direct.
+    context: { userId: input.userId },
   });
 
   return { content: llmResponse.text };
