@@ -18,14 +18,12 @@ const createGalleryTool = ai.defineTool(
     outputSchema: z.string(),
   },
   async ({ name }, { token }) => {
-    // Ce 'tool' s'exécute sur le serveur. Il doit appeler l'API sécurisée que nous avons créée.
+    // This tool runs on the server. It must call the secure API we created.
     if (!token) {
       return "Erreur d'authentification interne. Le token est manquant pour l'outil.";
     }
 
     try {
-      // L'URL doit être absolue car c'est un appel de serveur à serveur.
-      // En production, cette URL viendrait d'une variable d'environnement.
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
       const response = await fetch(`${baseUrl}/api/galleries`, {
         method: 'POST',
@@ -46,6 +44,45 @@ const createGalleryTool = ai.defineTool(
     } catch (error) {
       console.error("Erreur réseau dans l'outil createGalleryTool:", error);
       return `Désolé, une erreur réseau est survenue lors de la tentative de création de la galerie.`;
+    }
+  }
+);
+
+const createNoteTool = ai.defineTool(
+  {
+    name: 'createNote',
+    description: "Crée une nouvelle note dans le bloc-notes de l'utilisateur.",
+    inputSchema: z.object({
+      text: z.string().describe("Le contenu de la note à enregistrer."),
+    }),
+    outputSchema: z.string(),
+  },
+  async ({ text }, { token }) => {
+    if (!token) {
+      return "Erreur d'authentification interne. Impossible de créer la note.";
+    }
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+      const response = await fetch(`${baseUrl}/api/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur de l'API /api/notes: ${response.status}`, errorText);
+        return `Échec de la création de la note. Le serveur a répondu : ${response.status}.`;
+      }
+
+      return `Note enregistrée avec succès.`;
+    } catch (error) {
+      console.error("Erreur réseau dans l'outil createNoteTool:", error);
+      return `Désolé, une erreur réseau est survenue lors de la tentative de création de la note.`;
     }
   }
 );
@@ -152,8 +189,8 @@ export const askChatbot = ai.defineFlow(
       }
     }
   },
-  async (input, { auth }) => {
-    const { history, token } = input;
+  async (input) => {
+    const { token, history } = input;
     
     const historyPrompt = history
       .map(message => `${message.role}: ${message.content}`)
@@ -175,6 +212,7 @@ export const askChatbot = ai.defineFlow(
 ## DOCUMENTATION CLIKUP & OUTILS DISPONIBLES
 
 ### Outils disponibles
+- **createNote(text: string):** Utilise cet outil pour créer une nouvelle note dans le bloc-notes.
 - **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
 - **listGalleries():** Utilise cet outil pour lister les galeries de l'utilisateur.
 - **addImageToGallery(imageName: string, galleryName: string):** Ajoute une image à une galerie.
@@ -198,8 +236,8 @@ export const askChatbot = ai.defineFlow(
 - **Tableau de Bord:** Suivi de votre progression (niveau, XP, succès). Débloque des "Tips de Créateur".
 - **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.`,
       model: 'googleai/gemini-2.5-flash',
-      tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
-      context: { auth, token }, // On passe l'objet auth et le token brut
+      tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool, createNoteTool],
+      context: { token },
     });
 
     const toolRequest = llmResponse.toolRequest;
