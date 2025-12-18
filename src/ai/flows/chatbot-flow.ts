@@ -20,7 +20,7 @@ const createGalleryTool = ai.defineTool(
   async ({ name }, context: any) => {
     const userId = context?.userId;
     if (!userId) {
-      return "Erreur critique : L'ID utilisateur est manquant.";
+      return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
     if (admin.apps.length === 0) {
@@ -63,7 +63,7 @@ const listGalleriesTool = ai.defineTool(
   async (_, context: any) => {
     const userId = context?.userId;
     if (!userId) {
-      return "Erreur critique : L'ID utilisateur est manquant.";
+      return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
     if (admin.apps.length === 0) {
@@ -107,7 +107,7 @@ const addImageToGalleryTool = ai.defineTool(
   async ({ imageName, galleryName }, context: any) => {
     const userId = context?.userId;
     if (!userId) {
-        return "Erreur critique : L'ID utilisateur est manquant.";
+        return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
     if (admin.apps.length === 0) {
