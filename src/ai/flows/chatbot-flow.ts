@@ -14,11 +14,11 @@ const createGalleryTool = ai.defineTool(
     description: "Crée un nouvel album ou une nouvelle galerie d'images pour l'utilisateur.",
     inputSchema: z.object({
       name: z.string().describe("Le nom de la galerie à créer."),
-      userId: z.string().describe("L'ID de l'utilisateur qui crée la galerie.")
     }),
     outputSchema: z.string(),
   },
-  async ({ name, userId }) => {
+  async ({ name }, context: any) => {
+    const userId = context?.userId;
     if (!userId) {
       return "Erreur critique : L'ID utilisateur est manquant.";
     }
@@ -57,12 +57,11 @@ const listGalleriesTool = ai.defineTool(
   {
     name: 'listGalleries',
     description: "Récupère et liste toutes les galeries créées par l'utilisateur.",
-    inputSchema: z.object({
-        userId: z.string().describe("L'ID de l'utilisateur.")
-    }),
+    inputSchema: z.object({}),
     outputSchema: z.string(),
   },
-  async ({ userId }) => {
+  async (_, context: any) => {
+    const userId = context?.userId;
     if (!userId) {
       return "Erreur critique : L'ID utilisateur est manquant.";
     }
@@ -102,11 +101,11 @@ const addImageToGalleryTool = ai.defineTool(
     inputSchema: z.object({
       imageName: z.string().describe("Le nom (titre ou nom de fichier) de l'image à ajouter."),
       galleryName: z.string().describe("Le nom de la galerie de destination."),
-      userId: z.string().describe("L'ID de l'utilisateur.")
     }),
     outputSchema: z.string(),
   },
-  async ({ imageName, galleryName, userId }) => {
+  async ({ imageName, galleryName }, context: any) => {
+    const userId = context?.userId;
     if (!userId) {
         return "Erreur critique : L'ID utilisateur est manquant.";
     }
@@ -160,13 +159,12 @@ const addImageToGalleryTool = ai.defineTool(
 
 
 export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
-  const historyPrompt = input.history
+  const { userId, history } = input;
+  const historyPrompt = history
     .map(message => `${message.role}: ${message.content}`)
     .join('\n');
     
   const fullPrompt = `
-    USER_ID: ${input.userId}
-
     Conversation History:
     ${historyPrompt}
     assistant:
@@ -176,9 +174,8 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
     prompt: fullPrompt,
     system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
 
-- **You have been given a USER_ID. You MUST provide this ID in the 'userId' parameter for ANY tool you call.** This is mandatory for all operations.
 - **Listen to the user's need, not just their words.** If a user asks "quels sont mes albums ?", use the listGalleries tool. If they say "je veux vendre plus", recommend the "E-commerce" description generation. If they say "je suis à court d'idées", recommend the "Coach Stratégique".
-- **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool and always include the userId.
+- **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool.
 - **Clarify if needed.** If a tool requires information the user hasn't provided (e.g., asking to add an image without saying which one), ask for the missing details.
 - **Confirm your actions.** After using a tool, present the result clearly to the user.
 - **Be concise and helpful.**
@@ -186,10 +183,10 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 ---
 ## DOCUMENTATION CLIKUP & OUTILS DISPONIBLES
 
-### Outils (Rappel : toujours fournir le 'userId')
-- **createGallery(name: string, userId: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
-- **listGalleries(userId: string):** Utilise cet outil pour lister les galeries de l'utilisateur.
-- **addImageToGallery(imageName: string, galleryName: string, userId: string):** Ajoute une image à une galerie.
+### Outils
+- **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
+- **listGalleries():** Utilise cet outil pour lister les galeries de l'utilisateur.
+- **addImageToGallery(imageName: string, galleryName: string):** Ajoute une image à une galerie.
 
 ### 1. Gestion des Médias
 - **Organisation:** Créez des **Galeries** pour classer les images. L'accueil montre toutes les images. Possibilité d'épingler les favoris.
@@ -212,6 +209,7 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 ---`,
     model: 'googleai/gemini-2.5-flash',
     tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
+    context: { userId: userId },
   });
 
   return { content: llmResponse.text };
