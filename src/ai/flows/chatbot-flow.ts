@@ -6,7 +6,7 @@ import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-sche
 import { z } from 'genkit';
 import * as admin from 'firebase-admin';
 
-// --- Définition des Outils avec Authentification Admin ---
+// --- Définition des Outils avec userId explicite dans le schéma ---
 
 const createGalleryTool = ai.defineTool(
   {
@@ -14,22 +14,17 @@ const createGalleryTool = ai.defineTool(
     description: "Crée un nouvel album ou une nouvelle galerie d'images pour l'utilisateur.",
     inputSchema: z.object({
       name: z.string().describe("Le nom de la galerie à créer."),
+      userId: z.string().describe("L'ID de l'utilisateur qui effectue l'action."),
     }),
     outputSchema: z.string(),
   },
-  async ({ name }, context: any) => {
-    const userId = context?.userId;
+  async ({ name, userId }) => {
     if (!userId) {
       return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
     if (admin.apps.length === 0) {
-      try {
-        admin.initializeApp();
-      } catch (error) {
-        console.error('Firebase Admin Initialization Error:', error);
-        return "Erreur d'initialisation du serveur. Impossible de continuer.";
-      }
+      admin.initializeApp();
     }
     const db = admin.firestore();
 
@@ -52,27 +47,22 @@ const createGalleryTool = ai.defineTool(
   }
 );
 
-
 const listGalleriesTool = ai.defineTool(
   {
     name: 'listGalleries',
     description: "Récupère et liste toutes les galeries créées par l'utilisateur.",
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      userId: z.string().describe("L'ID de l'utilisateur."),
+    }),
     outputSchema: z.string(),
   },
-  async (_, context: any) => {
-    const userId = context?.userId;
+  async ({ userId }) => {
     if (!userId) {
       return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
     if (admin.apps.length === 0) {
-      try {
-        admin.initializeApp();
-      } catch (error) {
-        console.error('Firebase Admin Initialization Error:', error);
-        return "Erreur d'initialisation du serveur. Impossible de continuer.";
-      }
+      admin.initializeApp();
     }
     const db = admin.firestore();
 
@@ -94,6 +84,7 @@ const listGalleriesTool = ai.defineTool(
   }
 );
 
+
 const addImageToGalleryTool = ai.defineTool(
   {
     name: 'addImageToGallery',
@@ -101,27 +92,21 @@ const addImageToGalleryTool = ai.defineTool(
     inputSchema: z.object({
       imageName: z.string().describe("Le nom (titre ou nom de fichier) de l'image à ajouter."),
       galleryName: z.string().describe("Le nom de la galerie de destination."),
+      userId: z.string().describe("L'ID de l'utilisateur."),
     }),
     outputSchema: z.string(),
   },
-  async ({ imageName, galleryName }, context: any) => {
-    const userId = context?.userId;
+  async ({ imageName, galleryName, userId }) => {
     if (!userId) {
         return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
     if (admin.apps.length === 0) {
-      try {
-        admin.initializeApp();
-      } catch (error) {
-        console.error('Firebase Admin Initialization Error:', error);
-        return "Erreur d'initialisation du serveur. Impossible de continuer.";
-      }
+      admin.initializeApp();
     }
     const db = admin.firestore();
 
     try {
-      // 1. Find the gallery
       const galleriesRef = db.collection(`users/${userId}/galleries`);
       const galleryQuery = galleriesRef.where('name', '==', galleryName).limit(1);
       const gallerySnapshot = await galleryQuery.get();
@@ -130,7 +115,6 @@ const addImageToGalleryTool = ai.defineTool(
       }
       const galleryDoc = gallerySnapshot.docs[0];
 
-      // 2. Find the image (by title or originalName)
       const imagesRef = db.collection(`users/${userId}/images`);
       let imageQuery = imagesRef.where('title', '==', imageName).limit(1);
       let imageSnapshot = await imageQuery.get();
@@ -143,7 +127,6 @@ const addImageToGalleryTool = ai.defineTool(
       }
       const imageDoc = imageSnapshot.docs[0];
 
-      // 3. Add the image to the gallery using Admin SDK
       await galleryDoc.ref.update({
           imageIds: admin.firestore.FieldValue.arrayUnion(imageDoc.id)
       });
@@ -157,16 +140,13 @@ const addImageToGalleryTool = ai.defineTool(
   }
 );
 
-
 export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
   const { userId, history } = input;
   
-  // Création du prompt simple pour l'historique
   const historyPrompt = history
     .map(message => `${message.role}: ${message.content}`)
     .join('\n');
     
-  // Le prompt complet est juste l'historique, suivi du tour de l'assistant
   const fullPrompt = `${historyPrompt}\nassistant:`;
 
   const llmResponse = await ai.generate({
@@ -175,6 +155,7 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 
 - **Listen to the user's need, not just their words.** If a user asks "quels sont mes albums ?", use the listGalleries tool. If they say "je veux vendre plus", recommend the "E-commerce" description generation. If they say "je suis à court d'idées", recommend the "Coach Stratégique".
 - **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool.
+- **You have been given a USER_ID. You MUST provide this ID in the 'userId' parameter for ANY tool you call.**
 - **Clarify if needed.** If a tool requires information the user hasn't provided (e.g., asking to add an image without saying which one), ask for the missing details.
 - **Confirm your actions.** After using a tool, present the result clearly to the user.
 - **Be concise and helpful.**
@@ -182,10 +163,10 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 ---
 ## DOCUMENTATION CLIKUP & OUTILS DISPONIBLES
 
-### Outils
-- **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
-- **listGalleries():** Utilise cet outil pour lister les galeries de l'utilisateur.
-- **addImageToGallery(imageName: string, galleryName: string):** Ajoute une image à une galerie.
+### Outils (IMPORTANT: toujours fournir le 'userId'!)
+- **createGallery(name: string, userId: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
+- **listGalleries(userId: string):** Utilise cet outil pour lister les galeries de l'utilisateur.
+- **addImageToGallery(imageName: string, galleryName: string, userId: string):** Ajoute une image à une galerie.
 
 ### 1. Gestion des Médias
 - **Organisation:** Créez des **Galeries** pour classer les images. L'accueil montre toutes les images. Possibilité d'épingler les favoris.
@@ -205,11 +186,24 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 ### 4. Profil & Boutique
 - **Tableau de Bord:** Suivi de votre progression (niveau, XP, succès). Débloque des "Tips de Créateur".
 - **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.
----`,
+---
+USER_ID: ${userId}`,
     model: 'googleai/gemini-2.5-flash',
     tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
-    context: { userId: userId }, // Passage direct et simple du contexte
   });
+
+  // Gestion manuelle de l'appel d'outil si Genkit ne le fait pas automatiquement
+  // à cause d'une configuration ou d'une version spécifique.
+  const toolRequest = llmResponse.toolRequest;
+  if (toolRequest) {
+      const tool = llmResponse.tools?.find(t => t.name === toolRequest.name);
+      if (tool) {
+        // Injection manuelle et forcée du userId
+        const augmentedInput = { ...toolRequest.input, userId };
+        const output = await (tool as any).func(augmentedInput);
+        return { content: output as string };
+      }
+  }
 
   return { content: llmResponse.text };
 }
